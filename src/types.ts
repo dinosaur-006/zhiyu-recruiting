@@ -22,6 +22,8 @@ export type HRActionSuggestion = '优先邀约' | '建议补充确认' | '建议
 
 export type ReverseQuestionType = '工作节奏' | '薪资福利' | '团队氛围' | '成长空间' | '岗位挑战' | '面试流程';
 
+export type JobTruthSource = '岗位职责' | '任职要求' | '团队介绍' | '面试流程' | 'HR配置';
+
 export interface JobAnalysis {
   summary: string;
   hardSkills: string[];
@@ -200,6 +202,14 @@ export interface JobTruthLabel {
   pressureSources: string[];
   suitableFor: string[];
   notSuitableFor: string[];
+  evidence: JobTruthEvidence[];
+}
+
+export interface JobTruthEvidence {
+  label: string;
+  value: string;
+  source: JobTruthSource;
+  evidenceText: string;
 }
 
 export interface BranchChoice {
@@ -350,6 +360,34 @@ export interface AIRiskReview {
   reminders: string[];
 }
 
+export interface TrustNegotiationCard {
+  candidateQuestions: string[];
+  hrClarifications: string[];
+  trustRepairScript: string;
+  formalInvitationScript: string;
+}
+
+export interface InterviewMutualConfirmation {
+  candidateConfirmedItems: string[];
+  unresolvedReasons: string[];
+  hrCommitments: string[];
+  confirmedAt?: string;
+}
+
+export interface CandidateFairnessIndex {
+  total: number;
+  dimensions: {
+    aiDisclosure: number;
+    dataUsageNotice: number;
+    directApplyPath: number;
+    humanReview: number;
+    explanationAndDeletion: number;
+    sensitiveDataAvoidance: number;
+    feedbackTiming: number;
+  };
+  optimizationSuggestions: string[];
+}
+
 export interface TrialSession {
   id: string;
   jobId: string;
@@ -363,6 +401,7 @@ export interface TrialSession {
   focusedTruthPoints: string[];
   reverseQuestions: ReverseQuestion[];
   truthContractAcknowledgement: TruthContractAcknowledgement;
+  mutualConfirmation: InterviewMutualConfirmation;
   trialEvents: TrialEvent[];
   directApply: boolean;
   startedAt: string;
@@ -401,6 +440,9 @@ export interface RealityReport {
   trustRepairScript: string;
   trialReplay: TrialReplayEvent[];
   aiRiskReview: AIRiskReview;
+  trustNegotiationCard: TrustNegotiationCard;
+  mutualConfirmation: InterviewMutualConfirmation;
+  candidateFairnessIndex: CandidateFairnessIndex;
   decisionPathAnalysis: DecisionPathAnalysis;
   concernRadar: ConcernRadar;
   sceneChoiceSummary: string[];
@@ -416,6 +458,7 @@ export interface RealityReport {
     fromTrialScenes: string[];
     fromCandidateInput: string[];
     fromScenarioChoices: string[];
+    fromJobTruthLabel: string[];
   };
   complianceNote: string;
 }
@@ -447,6 +490,10 @@ export interface FunnelMetrics {
   truthContractAcknowledgements?: number;
   aiRiskReviewPasses?: number;
   lowTrustReasonTop3?: string[];
+  mutualConfirmations?: number;
+  highConfirmationCandidateRatio?: number;
+  unconfirmedReasonTop3?: string[];
+  candidateFairnessIndex?: number;
 }
 
 export interface Company {

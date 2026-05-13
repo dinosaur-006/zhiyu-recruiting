@@ -8,10 +8,13 @@ import {
   detectIntent,
   generateJobTruthContract,
   generateJobTruthLabel,
+  generateCandidateFairnessIndex,
   generateHRStoryCard,
+  generateInterviewMutualConfirmation,
   generateRealityReport,
   generateRealityScripts,
   generateTrialReplay,
+  generateTrustNegotiationCard,
   generateTrustGapSummary,
   generateTrustRepairScript,
   generateTruthVideoScript,
@@ -34,6 +37,7 @@ import type {
   RealityRole,
   TrialEvent,
   TrialSession,
+  InterviewMutualConfirmation,
   TruthContractAcknowledgement,
 } from '../types';
 
@@ -46,6 +50,16 @@ const emptyTruthContractAcknowledgement = (): TruthContractAcknowledgement => ({
   acknowledged: false,
   acknowledgedItems: [],
   unresolvedConcerns: [],
+});
+
+const emptyMutualConfirmation = (): InterviewMutualConfirmation => ({
+  candidateConfirmedItems: [],
+  unresolvedReasons: [],
+  hrCommitments: [
+    '本轮面试会重点沟通候选人关心的问题',
+    '不会仅凭AI报告做最终决定',
+    '会尽量说明面试结果反馈节点',
+  ],
 });
 
 function createTrialEvent(type: TrialEvent['type'], label: string, metadata?: TrialEvent['metadata']): TrialEvent {
@@ -81,7 +95,12 @@ export function normalizeDemoState(state: Partial<DemoState>): DemoState {
   const realityRoles =
     existingRoles.length > 0 ? existingRoles : jobs.flatMap((job) => createDefaultRealityRoles(job.id));
   const jobTruthLabels =
-    existingTruthLabels.length > 0 ? existingTruthLabels : jobs.map((job) => generateJobTruthLabel(job));
+    existingTruthLabels.length > 0
+      ? existingTruthLabels.map((label) => {
+          const job = jobs.find((item) => item.id === label.jobId);
+          return label.evidence?.length || !job ? label : generateJobTruthLabel(job);
+        })
+      : jobs.map((job) => generateJobTruthLabel(job));
   const jobTruthContracts =
     existingTruthContracts.length > 0
       ? existingTruthContracts
@@ -141,6 +160,7 @@ export function normalizeDemoState(state: Partial<DemoState>): DemoState {
       focusedTruthPoints: session.focusedTruthPoints ?? [],
       reverseQuestions: session.reverseQuestions ?? [],
       truthContractAcknowledgement,
+      mutualConfirmation: session.mutualConfirmation ?? emptyMutualConfirmation(),
       trialEvents,
     };
   });
@@ -185,6 +205,32 @@ export function normalizeDemoState(state: Partial<DemoState>): DemoState {
           repairSuggestions: [],
         },
       trustRepairScript: report.trustRepairScript ?? '',
+      mutualConfirmation:
+        report.mutualConfirmation ??
+        (session ? generateInterviewMutualConfirmation(session, report) : emptyMutualConfirmation()),
+      trustNegotiationCard:
+        report.trustNegotiationCard ??
+        {
+          candidateQuestions: [],
+          hrClarifications: [],
+          trustRepairScript: '',
+          formalInvitationScript: '',
+        },
+      candidateFairnessIndex:
+        report.candidateFairnessIndex ??
+        {
+          total: 0,
+          dimensions: {
+            aiDisclosure: 0,
+            dataUsageNotice: 0,
+            directApplyPath: 0,
+            humanReview: 0,
+            explanationAndDeletion: 0,
+            sensitiveDataAvoidance: 0,
+            feedbackTiming: 0,
+          },
+          optimizationSuggestions: [],
+        },
       aiRiskReview:
         report.aiRiskReview ??
         {
@@ -206,9 +252,23 @@ export function normalizeDemoState(state: Partial<DemoState>): DemoState {
       trustGapSummary,
       trustRepairScript,
     };
-    return {
+    const withTrustPlus = {
       ...enrichedReport,
-      aiRiskReview: report.aiRiskReview ?? generateAIRiskReview(enrichedReport),
+      mutualConfirmation:
+        report.mutualConfirmation ??
+        (session ? generateInterviewMutualConfirmation(session, enrichedReport) : enrichedReport.mutualConfirmation),
+      trustNegotiationCard:
+        report.trustNegotiationCard && report.trustNegotiationCard.hrClarifications.length > 0
+          ? report.trustNegotiationCard
+          : generateTrustNegotiationCard(enrichedReport),
+    };
+    return {
+      ...withTrustPlus,
+      aiRiskReview: report.aiRiskReview ?? generateAIRiskReview(withTrustPlus),
+      candidateFairnessIndex:
+        report.candidateFairnessIndex && report.candidateFairnessIndex.total > 0
+          ? report.candidateFairnessIndex
+          : generateCandidateFairnessIndex(withTrustPlus),
     };
   });
 
@@ -376,6 +436,7 @@ export function startTrialSession(jobId: string, directApply = false) {
     focusedTruthPoints: [],
     reverseQuestions: [],
     truthContractAcknowledgement: emptyTruthContractAcknowledgement(),
+    mutualConfirmation: emptyMutualConfirmation(),
     trialEvents: [
       createTrialEvent(directApply ? 'direct_apply' : 'trial_started', directApply ? '候选人选择直接投递' : '进入岗位真相舱'),
     ],
@@ -645,6 +706,7 @@ export function submitCandidateApplication(
     focusedTruthPoints: existingSession?.focusedTruthPoints ?? [],
     reverseQuestions: existingSession?.reverseQuestions ?? [],
     truthContractAcknowledgement: existingSession?.truthContractAcknowledgement ?? emptyTruthContractAcknowledgement(),
+    mutualConfirmation: existingSession?.mutualConfirmation ?? emptyMutualConfirmation(),
     trialEvents: existingSession?.trialEvents ?? [
       createTrialEvent(!existingSession ? 'direct_apply' : 'trial_started', !existingSession ? '候选人选择直接投递' : '进入岗位真相舱'),
     ],
@@ -661,6 +723,15 @@ export function submitCandidateApplication(
       ...fallbackSession.trialEvents,
       createTrialEvent('profile_submitted', '补充云试岗资料', { candidateId }),
     ],
+    mutualConfirmation:
+      fallbackSession.mutualConfirmation.candidateConfirmedItems.length > 0
+        ? fallbackSession.mutualConfirmation
+        : {
+            candidateConfirmedItems: ['我已了解岗位节奏', '我已了解面试流程', '我已了解薪资沟通节点', '我仍愿意继续面试'],
+            unresolvedReasons: fallbackSession.truthContractAcknowledgement.unresolvedConcerns,
+            hrCommitments: emptyMutualConfirmation().hrCommitments,
+            confirmedAt: nowIso(),
+          },
     completionRate:
       fallbackSession.completionRate > 0
         ? fallbackSession.completionRate
@@ -766,6 +837,15 @@ export function completeTrialSession(sessionId: string, candidateId: string) {
       ...session.trialEvents,
       createTrialEvent('profile_submitted', '补充云试岗资料', { candidateId }),
     ],
+    mutualConfirmation:
+      session.mutualConfirmation.candidateConfirmedItems.length > 0
+        ? session.mutualConfirmation
+        : {
+            candidateConfirmedItems: ['我已了解岗位节奏', '我已了解面试流程', '我已了解薪资沟通节点', '我仍愿意继续面试'],
+            unresolvedReasons: session.truthContractAcknowledgement.unresolvedConcerns,
+            hrCommitments: emptyMutualConfirmation().hrCommitments,
+            confirmedAt: nowIso(),
+          },
     completionRate: session.completionRate || 100,
   };
   const report = generateRealityReport(candidate, job, completedSession, selectedChoices, branchChoices, truthLabel);

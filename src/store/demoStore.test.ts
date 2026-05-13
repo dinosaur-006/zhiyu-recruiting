@@ -49,4 +49,30 @@ describe('normalizeDemoState', () => {
     expect(normalized.realityReports[0].candidateTrustIndex.total).toBeGreaterThanOrEqual(0);
     expect(normalized.realityReports[0].aiRiskReview.checkedItems).toContain('已包含人工复核声明');
   });
+
+  it('adds Trust+ fields to older state shapes', () => {
+    const legacy = createInitialState();
+    const normalized = normalizeDemoState({
+      ...legacy,
+      trialSessions: [
+        {
+          ...legacy.trialSessions[0],
+          mutualConfirmation: undefined,
+        } as never,
+      ],
+      realityReports: [
+        {
+          ...legacy.realityReports[0],
+          trustNegotiationCard: undefined,
+          mutualConfirmation: undefined,
+          candidateFairnessIndex: undefined,
+        } as never,
+      ],
+    });
+
+    expect(normalized.jobTruthLabels[0].evidence.length).toBeGreaterThan(0);
+    expect(normalized.trialSessions[0].mutualConfirmation.candidateConfirmedItems).toBeInstanceOf(Array);
+    expect(normalized.realityReports[0].trustNegotiationCard.hrClarifications.length).toBeGreaterThan(0);
+    expect(normalized.realityReports[0].candidateFairnessIndex.total).toBeGreaterThanOrEqual(0);
+  });
 });

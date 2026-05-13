@@ -1645,6 +1645,64 @@ select:focus {
   background: #f7fffb;
 }
 
+.truth-evidence-grid {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.truth-evidence-grid h3 {
+  margin-bottom: 0;
+}
+
+.truth-evidence-item {
+  padding: 12px;
+  border: 1px solid #d9e5ff;
+  border-radius: 12px;
+  background: #f8fbff;
+}
+
+.truth-evidence-item div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.truth-evidence-item strong {
+  color: var(--blue-dark);
+}
+
+.truth-evidence-item span {
+  font-weight: 900;
+  color: var(--purple);
+}
+
+.truth-evidence-item p,
+.truth-evidence-item small {
+  display: block;
+  color: var(--muted);
+  line-height: 1.6;
+  margin: 6px 0 0;
+}
+
+.negotiation-panel,
+.mutual-panel,
+.fairness-panel {
+  border: 1px solid #d9e5ff;
+  background:
+    linear-gradient(135deg, rgba(36, 107, 254, 0.045), rgba(16, 185, 129, 0.045)),
+    #fff;
+}
+
+.compact-script {
+  margin-top: 12px;
+}
+
+.fairness-score {
+  background: #123f4f;
+}
+
 @keyframes speakPulse {
   0%,
   100% {

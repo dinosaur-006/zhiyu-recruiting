@@ -6,17 +6,20 @@ import {
   calculateCandidateTrustIndex,
   detectJobRealityRisk,
   generateAIRiskReview,
+  generateCandidateFairnessIndex,
   generateConcernRadar,
   generateAvatarReply,
   generateHRStoryCard,
   generateInterviewBattleCard,
   generateJobTruthContract,
   generateJobTruthLabel,
+  generateInterviewMutualConfirmation,
   generateNoShowPreventionCard,
   generateRealityReport,
   generateRealityScripts,
   generateTrialReplay,
   generateTrustGapSummary,
+  generateTrustNegotiationCard,
   generateTrustRepairScript,
   generateTruthVideoScript,
   getBranchScenarios,
@@ -169,6 +172,7 @@ describe('Reality cabin AI', () => {
       focusedTruthPoints: [],
       reverseQuestions: [],
       truthContractAcknowledgement: { acknowledged: false, acknowledgedItems: [], unresolvedConcerns: [] },
+      mutualConfirmation: { candidateConfirmedItems: [], unresolvedReasons: [], hrCommitments: [] },
       trialEvents: [],
       directApply: false,
       startedAt: '2026-05-13T00:00:00.000Z',
@@ -247,6 +251,7 @@ describe('Reality Pro AI', () => {
       focusedTruthPoints: ['工作节奏'],
       reverseQuestions: [],
       truthContractAcknowledgement: { acknowledged: false, acknowledgedItems: [], unresolvedConcerns: [] },
+      mutualConfirmation: { candidateConfirmedItems: [], unresolvedReasons: [], hrCommitments: [] },
       trialEvents: [],
       directApply: false,
       startedAt: '2026-05-13T00:00:00.000Z',
@@ -299,6 +304,7 @@ describe('Reality Pro AI', () => {
       focusedTruthPoints: ['工作节奏', '成长速度'],
       reverseQuestions: [answerReverseQuestion(job, generateJobTruthLabel(job), '成长空间')],
       truthContractAcknowledgement: { acknowledged: false, acknowledgedItems: [], unresolvedConcerns: [] },
+      mutualConfirmation: { candidateConfirmedItems: [], unresolvedReasons: [], hrCommitments: [] },
       trialEvents: [],
       directApply: false,
       startedAt: '2026-05-13T00:00:00.000Z',
@@ -365,6 +371,7 @@ describe('Trust Layer AI', () => {
       unresolvedConcerns: ['薪资沟通节点', '成长路径说明'],
       acknowledgedAt: '2026-05-13T00:03:00.000Z',
     },
+    mutualConfirmation: { candidateConfirmedItems: [], unresolvedReasons: [], hrCommitments: [] },
     trialEvents: [
       { id: 'event-1', type: 'truth_label_viewed', label: '查看岗位真相标签', occurredAt: '2026-05-13T00:00:00.000Z' },
       { id: 'event-2', type: 'truth_contract_acknowledged', label: '确认岗位真相合约', occurredAt: '2026-05-13T00:03:00.000Z' },
@@ -425,5 +432,109 @@ describe('Trust Layer AI', () => {
     expect(review.result).toBe('复核通过');
     expect(review.checkedItems).toEqual(expect.arrayContaining(['未出现自动化最终决策表述', '已包含人工复核声明']));
     expect(review.reminders.join('')).toContain('最终招聘决策由企业人工完成');
+  });
+});
+
+describe('Trust+ AI', () => {
+  const candidate: Candidate = {
+    id: 'candidate-trust-plus',
+    jobId: job.id,
+    conversationId: 'conversation-trust-plus',
+    name: '许同学',
+    phone: '13400000000',
+    email: 'xu@example.com',
+    sourceChannel: 'Trust+岗位入口',
+    skills: 'Vue React TypeScript',
+    projectExperience: '参与过SaaS权限和筛选模块。',
+    motivation: '想确认成长路径和团队协作方式。',
+    concerns: '工作节奏、薪资沟通节点、成长路径',
+    rhythmAcceptance: '接受阶段性压力，希望不是长期高压。',
+    followUpQuestion: '薪资范围是否可谈，面试后多久反馈？',
+    scenarioReflection: '会先澄清边界，再拆分核心功能。',
+    status: '已投递',
+    submittedAt: '2026-05-13T00:00:00.000Z',
+  };
+  const selectedChoice = getScenarioChoices()[1];
+  const branchChoices = getBranchScenarios(job).map((scenario) => scenario.choices[1]);
+  const session: TrialSession = {
+    id: 'trial-trust-plus',
+    jobId: job.id,
+    candidateId: candidate.id,
+    currentSceneId: `scene_task_${job.id}`,
+    completedSceneIds: [`scene_intro_${job.id}`, `scene_day_${job.id}`, `scene_task_${job.id}`],
+    askedTopics: ['工作节奏', '薪资福利', '成长空间'],
+    selectedChoiceIds: [selectedChoice.id],
+    branchChoiceIds: branchChoices.map((choice) => choice.id),
+    viewedTruthPoints: ['工作节奏', '协作密度', '成长速度'],
+    focusedTruthPoints: ['工作节奏', '成长速度'],
+    reverseQuestions: [answerReverseQuestion(job, generateJobTruthLabel(job), '工作节奏')],
+    truthContractAcknowledgement: {
+      acknowledged: true,
+      acknowledgedItems: ['工作节奏说明', '面试流程承诺', 'AI辅助边界'],
+      unresolvedConcerns: ['薪资沟通节点'],
+      acknowledgedAt: '2026-05-13T00:03:00.000Z',
+    },
+    mutualConfirmation: {
+      candidateConfirmedItems: ['我已了解岗位节奏', '我已了解面试流程', '我仍愿意继续面试'],
+      unresolvedReasons: ['薪资沟通节点'],
+      hrCommitments: [],
+      confirmedAt: '2026-05-13T00:08:30.000Z',
+    },
+    trialEvents: [],
+    directApply: false,
+    startedAt: '2026-05-13T00:00:00.000Z',
+    completedAt: '2026-05-13T00:08:00.000Z',
+    completionRate: 100,
+  };
+
+  it('adds trusted source and evidence text to Job Truth Label', () => {
+    const truth = generateJobTruthLabel(job);
+
+    expect(truth.evidence.length).toBeGreaterThanOrEqual(6);
+    expect(truth.evidence.map((item) => item.source)).toEqual(expect.arrayContaining(['岗位职责', '团队介绍', '面试流程', 'HR配置']));
+    expect(truth.evidence.find((item) => item.label === '工作节奏')?.evidenceText).toContain('节奏');
+  });
+
+  it('generates a trust negotiation card before invitation', () => {
+    const report = generateRealityReport(candidate, job, session, [selectedChoice], branchChoices, generateJobTruthLabel(job));
+    const card = generateTrustNegotiationCard(report);
+
+    expect(card.candidateQuestions).toEqual(expect.arrayContaining(['薪资沟通节点']));
+    expect(card.hrClarifications.length).toBeGreaterThan(0);
+    expect(card.trustRepairScript).toContain('15分钟');
+    expect(card.formalInvitationScript).toContain(candidate.name);
+  });
+
+  it('generates an interview mutual confirmation', () => {
+    const report = generateRealityReport(candidate, job, session, [selectedChoice], branchChoices, generateJobTruthLabel(job));
+    const confirmation = generateInterviewMutualConfirmation(session, report);
+
+    expect(confirmation.candidateConfirmedItems).toContain('我已了解岗位节奏');
+    expect(confirmation.hrCommitments).toEqual(
+      expect.arrayContaining(['本轮面试会重点沟通候选人关心的问题', '不会仅凭AI报告做最终决定']),
+    );
+  });
+
+  it('generates candidate fairness index with transparent-process dimensions', () => {
+    const report = generateRealityReport(candidate, job, session, [selectedChoice], branchChoices, generateJobTruthLabel(job));
+    const fairness = generateCandidateFairnessIndex(report);
+
+    expect(fairness.total).toBeGreaterThan(80);
+    expect(fairness.dimensions.aiDisclosure).toBe(100);
+    expect(fairness.optimizationSuggestions).toContain('持续明确面试结果反馈节点。');
+  });
+
+  it('asks risk reviewer to flag missing job truth evidence', () => {
+    const report = generateRealityReport(candidate, job, session, [selectedChoice], branchChoices, generateJobTruthLabel(job));
+    const review = generateAIRiskReview({
+      ...report,
+      evidenceSources: {
+        ...report.evidenceSources,
+        fromJobTruthLabel: [],
+      },
+    });
+
+    expect(review.result).toBe('需要人工确认');
+    expect(review.reminders.join('')).toContain('需要HR补充证据');
   });
 });

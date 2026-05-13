@@ -135,6 +135,12 @@ export function createInitialState(): DemoState {
       unresolvedConcerns: ['薪资沟通节点'],
       acknowledgedAt: '2026-05-13T09:11:30.000Z',
     },
+    mutualConfirmation: {
+      candidateConfirmedItems: ['我已了解岗位节奏', '我已了解面试流程', '我已了解薪资沟通节点', '我仍愿意继续面试'],
+      unresolvedReasons: ['薪资沟通节点'],
+      hrCommitments: ['本轮面试会重点沟通候选人关心的问题', '不会仅凭AI报告做最终决定', '会尽量说明面试结果反馈节点'],
+      confirmedAt: '2026-05-13T09:18:10.000Z',
+    },
     trialEvents: [
       { id: 'event-lin-001', type: 'truth_label_viewed', label: '进入岗位真相舱并查看岗位真相标签', occurredAt: '2026-05-13T09:10:00.000Z' },
       { id: 'event-lin-002', type: 'truth_point_focused', label: '重点查看：工作节奏', occurredAt: '2026-05-13T09:10:18.000Z' },
@@ -195,6 +201,10 @@ export function createInitialState(): DemoState {
       truthContractAcknowledgements: 31,
       aiRiskReviewPasses: 18,
       lowTrustReasonTop3: ['薪资沟通节点', '工作节奏', '成长路径'],
+      mutualConfirmations: 16,
+      highConfirmationCandidateRatio: 58,
+      unconfirmedReasonTop3: ['薪资沟通节点', '工作节奏', '面试反馈时效'],
+      candidateFairnessIndex: realityReport.candidateFairnessIndex.total,
     },
   };
 }

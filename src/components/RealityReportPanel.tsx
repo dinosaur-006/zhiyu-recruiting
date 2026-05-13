@@ -1,10 +1,13 @@
 import { Badge } from './Badge';
 import { AIRiskReviewPanel } from './AIRiskReviewPanel';
+import { CandidateFairnessIndexPanel } from './CandidateFairnessIndexPanel';
 import { CandidateTrustIndexPanel } from './CandidateTrustIndexPanel';
 import { ConcernRadarPanel } from './ConcernRadarPanel';
 import { InterviewBattleCardPanel } from './InterviewBattleCardPanel';
+import { MutualConfirmationPanel } from './MutualConfirmationPanel';
 import { NoShowPreventionCardPanel } from './NoShowPreventionCardPanel';
 import { TrialReplayPanel } from './TrialReplayPanel';
+import { TrustNegotiationCardPanel } from './TrustNegotiationCardPanel';
 import type { RealityReport, RealityScene } from '../types';
 
 interface RealityReportPanelProps {
@@ -36,6 +39,7 @@ export function RealityReportPanel({ report, scenes = [], mode = 'hr' }: Reality
         <StoryTags title="我看过的岗位真相点" items={report.jobTruthViewSummary.viewedPoints} tone="blue" />
         <StoryTags title="我确认过的岗位真相合约" items={report.truthContractSummary.acknowledgedItems.slice(0, 5)} tone="blue" />
         <StoryBlock title="我的分岔选择路径摘要" content={report.decisionPathAnalysis.summary} />
+        <MutualConfirmationPanel confirmation={report.mutualConfirmation} mode="candidate" />
         <StoryTags title="我的技能标签" items={report.skillEvidence} tone="blue" />
         <StoryTags title="我的场景选择" items={report.sceneChoiceSummary} tone="purple" />
         <StoryBlock title="下一步建议" content="你的云试岗记录已同步到HR工作台。后续沟通中，可以重点补充项目证据和你对真实任务场景的处理思路。" />
@@ -131,9 +135,12 @@ export function RealityReportPanel({ report, scenes = [], mode = 'hr' }: Reality
       <StoryList title="邀约前信任修复建议" items={report.trustGapSummary.repairSuggestions} />
       <CopyableScript title="信任修复话术" content={report.trustRepairScript} />
       <CopyableScript title="正式邀约话术" content={report.invitationScript} />
+      <TrustNegotiationCardPanel card={report.trustNegotiationCard} />
+      <MutualConfirmationPanel confirmation={report.mutualConfirmation} />
       <StoryList title="建议面试追问" items={report.interviewQuestions} />
       <NoShowPreventionCardPanel card={report.noShowPreventionCard} />
       <InterviewBattleCardPanel card={report.interviewBattleCard} />
+      <CandidateFairnessIndexPanel fairness={report.candidateFairnessIndex} />
       <AIRiskReviewPanel review={report.aiRiskReview} />
       <div className="story-compliance">{report.complianceNote}</div>
     </section>

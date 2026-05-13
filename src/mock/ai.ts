@@ -4,6 +4,7 @@ import type {
   BranchScenario,
   Candidate,
   CandidateTrustIndex,
+  CandidateFairnessIndex,
   ConcernRadar,
   Conversation,
   ConversationMessage,
@@ -16,6 +17,7 @@ import type {
   JobRealityRisk,
   JobInput,
   JobTruthContract,
+  JobTruthEvidence,
   JobTruthLabel,
   NoShowPreventionCard,
   Recommendation,
@@ -27,6 +29,8 @@ import type {
   ScenarioChoice,
   TrialReplayEvent,
   TruthVideoScript,
+  TrustNegotiationCard,
+  InterviewMutualConfirmation,
   TrustGapSummary,
   TrialSession,
 } from '../types';
@@ -284,7 +288,7 @@ export function generateJobTruthLabel(job: Job): JobTruthLabel {
   const uncertain = containsAny(corpus, ['需求变化', '变化', '复杂', '不确定', '业务复杂']);
   const growth = containsAny(corpus, ['成长', '晋升', 'owner', '技术分享', 'Code Review', '架构']);
 
-  return {
+  const label: JobTruthLabel = {
     jobId: job.id,
     workPace: fastPace ? '中高' : '中',
     collaborationDensity: highCollaboration ? '高' : '中',
@@ -309,7 +313,59 @@ export function generateJobTruthLabel(job: Job): JobTruthLabel {
       highCollaboration ? '不愿频繁沟通和同步进展的人' : '不愿说明过程和风险的人',
       fastPace ? '完全不能接受阶段性项目压力的人' : '不愿在节点前确认排期的人',
     ],
+    evidence: [],
   };
+  return {
+    ...label,
+    evidence: buildJobTruthEvidence(job, label),
+  };
+}
+
+function buildJobTruthEvidence(job: Job, label: JobTruthLabel): JobTruthEvidence[] {
+  return [
+    {
+      label: '工作节奏',
+      value: label.workPace,
+      source: 'HR配置',
+      evidenceText: job.workload || 'HR尚未补充工作节奏，建议面试前确认。',
+    },
+    {
+      label: '协作密度',
+      value: label.collaborationDensity,
+      source: '岗位职责',
+      evidenceText: job.responsibilities,
+    },
+    {
+      label: '不确定性',
+      value: label.uncertainty,
+      source: '岗位职责',
+      evidenceText: job.challenges || job.responsibilities,
+    },
+    {
+      label: '成长速度',
+      value: label.growthSpeed,
+      source: '团队介绍',
+      evidenceText: job.growthPath || job.teamInfo,
+    },
+    {
+      label: '沟通成本',
+      value: label.communicationCost,
+      source: '团队介绍',
+      evidenceText: job.teamInfo,
+    },
+    {
+      label: '面试流程',
+      value: job.interviewProcess || '待HR补充',
+      source: '面试流程',
+      evidenceText: job.interviewProcess || 'HR尚未补充面试流程。',
+    },
+    {
+      label: '薪资沟通节点',
+      value: `${job.salaryMin}k-${job.salaryMax}k`,
+      source: 'HR配置',
+      evidenceText: `HR公开薪资范围为${job.salaryMin}k-${job.salaryMax}k，最终以人工沟通为准。`,
+    },
+  ];
 }
 
 export function getBranchScenarios(job: Job): BranchScenario[] {
@@ -618,12 +674,15 @@ export function generateAIRiskReview(report: RealityReport): AIRiskReview {
   const forbidden = ['淘' + '汰', '拒' + '绝', '自动' + '筛掉', '自动' + '录用'];
   const forbiddenHits = forbidden.filter((word) => reportText.includes(word));
   const hasHumanReview = report.complianceNote.includes('人工');
+  const hasJobTruthEvidence = (report.evidenceSources.fromJobTruthLabel ?? []).length > 0;
   const hasEvidence =
-    report.evidenceSources.fromCandidateInput.length > 0 ||
-    report.evidenceSources.fromScenarioChoices.length > 0 ||
-    report.trialReplay.length > 0;
+    hasJobTruthEvidence &&
+    (report.evidenceSources.fromCandidateInput.length > 0 ||
+      report.evidenceSources.fromScenarioChoices.length > 0 ||
+      report.trialReplay.length > 0);
   const reminders = unique([
     forbiddenHits.length > 0 ? `发现需人工确认的越界表述：${forbiddenHits.join('、')}` : '',
+    hasJobTruthEvidence ? '岗位真相标签已标注可信来源和证据文本。' : '岗位真相标签缺少可信来源，需要HR补充证据。',
     hasEvidence ? '每条HR辅助建议均可回溯到候选人的云试岗行为、选择或主动填写内容。' : '部分建议缺少证据来源，建议HR人工确认后再使用。',
     hasHumanReview ? '本报告仅供HR面试前参考，最终招聘决策由企业人工完成。' : '报告需要补充人工复核声明。',
     '系统未分析候选人的外貌、表情或声音情绪。',
@@ -631,6 +690,7 @@ export function generateAIRiskReview(report: RealityReport): AIRiskReview {
   const checkedItems = unique([
     forbiddenHits.length === 0 ? '未出现禁用表达' : '',
     '未出现自动化最终决策表述',
+    hasJobTruthEvidence ? '岗位真相具备来源标注' : '',
     hasEvidence ? '已关联证据来源' : '',
     hasHumanReview ? '已包含人工复核声明' : '',
     '未分析外貌、表情、声音情绪',
@@ -645,6 +705,72 @@ export function generateAIRiskReview(report: RealityReport): AIRiskReview {
 
 function clampScore(value: number) {
   return Math.max(0, Math.min(100, Math.round(value)));
+}
+
+export function generateTrustNegotiationCard(report: RealityReport): TrustNegotiationCard {
+  const candidateQuestions = unique([
+    ...report.truthContractSummary.unresolvedConcerns,
+    ...report.candidateTrustIndex.gapReasons
+      .filter((item) => item.includes('薪资') || item.includes('节奏') || item.includes('成长'))
+      .map((item) => item.replace('仍需补充说明', '').replace('需要进一步确认', '').replace('可信度需要更多证据', '')),
+    ...report.reverseQuestions.map((item) => item.type),
+  ])
+    .filter(Boolean)
+    .slice(0, 5);
+  const hrClarifications = unique([
+    report.concernRadar.workload >= 65 ? '说明项目节点前会有阶段性压力，但不是长期高压。' : '',
+    report.concernRadar.growth >= 65 ? '补充团队技术分享、Code Review和新人导师机制。' : '',
+    report.concernRadar.salary >= 65 ? '明确薪资沟通会在一面后由HR确认范围和期望。' : '',
+    '说明本轮面试会重点回应候选人关心的问题。',
+  ]).filter(Boolean);
+
+  return {
+    candidateQuestions: candidateQuestions.length > 0 ? candidateQuestions : ['岗位节奏', '成长路径'],
+    hrClarifications,
+    trustRepairScript: report.trustRepairScript,
+    formalInvitationScript: report.invitationScript,
+  };
+}
+
+export function generateInterviewMutualConfirmation(
+  session: TrialSession,
+  report: Pick<RealityReport, 'trustGapSummary' | 'reverseQuestions'>,
+): InterviewMutualConfirmation {
+  const candidateConfirmedItems = session.mutualConfirmation?.candidateConfirmedItems?.length
+    ? session.mutualConfirmation.candidateConfirmedItems
+    : ['我已了解岗位节奏', '我已了解面试流程', '我已了解薪资沟通节点', '我仍愿意继续面试'];
+  const unresolvedReasons = session.mutualConfirmation?.unresolvedReasons?.length
+    ? session.mutualConfirmation.unresolvedReasons
+    : report.trustGapSummary.majorGaps.filter((item) => item.includes('薪资') || item.includes('节奏') || item.includes('成长'));
+
+  return {
+    candidateConfirmedItems,
+    unresolvedReasons,
+    hrCommitments: [
+      '本轮面试会重点沟通候选人关心的问题',
+      '不会仅凭AI报告做最终决定',
+      '会尽量说明面试结果反馈节点',
+    ],
+    confirmedAt: session.mutualConfirmation?.confirmedAt,
+  };
+}
+
+export function generateCandidateFairnessIndex(report: RealityReport): CandidateFairnessIndex {
+  const dimensions = {
+    aiDisclosure: 100,
+    dataUsageNotice: report.complianceNote.includes('数据') || report.complianceNote.includes('删除') ? 95 : 75,
+    directApplyPath: 100,
+    humanReview: report.complianceNote.includes('人工') ? 100 : 70,
+    explanationAndDeletion: report.complianceNote.includes('解释') && report.complianceNote.includes('删除') ? 95 : 70,
+    sensitiveDataAvoidance: report.aiRiskReview?.checkedItems?.includes('未分析外貌、表情、声音情绪') ? 100 : 90,
+    feedbackTiming: report.mutualConfirmation?.hrCommitments?.some((item) => item.includes('反馈')) ? 90 : 75,
+  };
+
+  return {
+    total: Math.round(Object.values(dimensions).reduce((sum, value) => sum + value, 0) / Object.keys(dimensions).length),
+    dimensions,
+    optimizationSuggestions: ['持续明确面试结果反馈节点。'],
+  };
 }
 
 export function detectIntent(text: string) {
@@ -866,6 +992,12 @@ export function generateRealityReport(
       acknowledgedItems: session.truthContractAcknowledgement?.acknowledgedItems ?? [],
       unresolvedConcerns: session.truthContractAcknowledgement?.unresolvedConcerns ?? [],
     },
+    mutualConfirmation: {
+      candidateConfirmedItems: session.mutualConfirmation?.candidateConfirmedItems ?? [],
+      unresolvedReasons: session.mutualConfirmation?.unresolvedReasons ?? [],
+      hrCommitments: [],
+      confirmedAt: session.mutualConfirmation?.confirmedAt,
+    },
     candidateTrustIndex: {
       total: 0,
       dimensions: {
@@ -891,6 +1023,25 @@ export function generateRealityReport(
       result: '需要人工确认',
       checkedItems: [],
       reminders: [],
+    },
+    trustNegotiationCard: {
+      candidateQuestions: [],
+      hrClarifications: [],
+      trustRepairScript: '',
+      formalInvitationScript: '',
+    },
+    candidateFairnessIndex: {
+      total: 0,
+      dimensions: {
+        aiDisclosure: 0,
+        dataUsageNotice: 0,
+        directApplyPath: 0,
+        humanReview: 0,
+        explanationAndDeletion: 0,
+        sensitiveDataAvoidance: 0,
+        feedbackTiming: 0,
+      },
+      optimizationSuggestions: [],
     },
     decisionPathAnalysis,
     concernRadar,
@@ -922,6 +1073,7 @@ export function generateRealityReport(
       fromTrialScenes: session.completedSceneIds,
       fromCandidateInput: skillEvidence,
       fromScenarioChoices: selectedChoices.map((choice) => choice.id),
+      fromJobTruthLabel: truthLabel.evidence.map((item) => `${item.label}：${item.source}`),
     },
     complianceNote:
       '本报告由AI基于候选人授权的云试岗行为、场景选择和主动填写内容生成，仅供HR面试前参考，不作为单独招聘决策依据，最终招聘决策由企业人工完成，候选人可申请解释或删除相关数据。',
@@ -943,10 +1095,20 @@ export function generateRealityReport(
     trustGapSummary,
     trustRepairScript,
   };
+  const mutualConfirmation = generateInterviewMutualConfirmation(session, reportWithTrust);
+  const reportWithTrustPlus: RealityReport = {
+    ...reportWithTrust,
+    mutualConfirmation,
+    trustNegotiationCard: generateTrustNegotiationCard(reportWithTrust),
+  };
+  const reportWithReview: RealityReport = {
+    ...reportWithTrustPlus,
+    aiRiskReview: generateAIRiskReview(reportWithTrustPlus),
+  };
 
   return {
-    ...reportWithTrust,
-    aiRiskReview: generateAIRiskReview(reportWithTrust),
+    ...reportWithReview,
+    candidateFairnessIndex: generateCandidateFairnessIndex(reportWithReview),
   };
 }
 

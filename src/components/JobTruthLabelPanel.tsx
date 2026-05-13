@@ -47,6 +47,20 @@ export function JobTruthLabelPanel({ label, compact = false, onFocusPoint }: Job
       <TruthList title="压力来源" items={label.pressureSources} tone="amber" onFocusPoint={focus} />
       <TruthList title="适合人群" items={label.suitableFor} tone="green" onFocusPoint={focus} />
       <TruthList title="不太适合" items={label.notSuitableFor} tone="gray" onFocusPoint={focus} />
+
+      <div className="truth-evidence-grid">
+        <h3>可信来源</h3>
+        {label.evidence.map((item) => (
+          <article key={`${item.label}-${item.source}`} className="truth-evidence-item">
+            <div>
+              <strong>{item.label}</strong>
+              <span>{item.value}</span>
+            </div>
+            <p>来源：{item.source}</p>
+            <small>证据：{item.evidenceText}</small>
+          </article>
+        ))}
+      </div>
     </section>
   );
 }
