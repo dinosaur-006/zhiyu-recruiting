@@ -12,7 +12,7 @@ export function StoryCardPanel({ card, mode = 'hr' }: StoryCardPanelProps) {
       <section className="story-panel">
         <div className="section-heading">
           <span>候选人预览</span>
-          <h2>你的岗位预体验摘要</h2>
+          <h2>你的云试岗摘要</h2>
         </div>
         <StoryBlock title="我的岗位理解" content={card.jobUnderstanding} />
         <StoryList title="我的技能标签" items={card.skillTags} tone="blue" />
@@ -34,7 +34,7 @@ export function StoryCardPanel({ card, mode = 'hr' }: StoryCardPanelProps) {
       <div className="story-hero">
         <div>
           <span className="eyebrow">HR面试前情报卡</span>
-          <h2>候选人故事卡</h2>
+          <h2>候选人云试岗线索卡</h2>
         </div>
         <Badge tone={card.recommendation === '强推荐面试' ? 'green' : card.recommendation === '暂缓邀约' ? 'amber' : 'blue'}>
           AI辅助建议：{card.recommendation}

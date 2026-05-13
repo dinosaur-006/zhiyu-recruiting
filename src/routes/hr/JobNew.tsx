@@ -1,6 +1,8 @@
 import { FormEvent, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Badge } from '../../components/Badge';
+import { JobTruthLabelPanel } from '../../components/JobTruthLabelPanel';
+import { detectJobRealityRisk, generateJobTruthLabel } from '../../mock/ai';
 import { addJob } from '../../store/demoStore';
 import type { Job, JobInput } from '../../types';
 
@@ -41,12 +43,12 @@ export function JobNew() {
       <div className="page-header">
         <div>
           <span className="eyebrow">新建职位</span>
-          <h1>填写JD并生成AI解析</h1>
-          <p>系统会自动提取岗位技能、卖点、风险点和候选人常见问题。</p>
+          <h1>创建岗位并生成 AI岗位真相舱</h1>
+          <p>系统会自动提取岗位技能、候选人FAQ，生成岗位真相标签，并检测岗位信息是否足够真实透明。</p>
         </div>
         {createdJob ? (
           <button className="primary-button" onClick={() => navigate(`/hr/avatar/${createdJob.id}`)}>
-            下一步：配置数字人
+            下一步：配置三角色数字人
           </button>
         ) : null}
       </div>
@@ -78,7 +80,7 @@ export function JobNew() {
           <TextArea label="工作节奏" value={form.workload} onChange={(value) => update('workload', value)} />
           <TextArea label="岗位挑战" value={form.challenges} onChange={(value) => update('challenges', value)} />
           <button className="primary-button full" type="submit">
-            AI解析并保存岗位
+            保存并生成 AI岗位真相舱
           </button>
         </form>
 
@@ -95,18 +97,52 @@ export function JobNew() {
               <div className="tag-row">{createdJob.analysis.riskPoints.map((item) => <Badge key={item} tone="amber">{item}</Badge>)}</div>
               <h3>候选人FAQ</h3>
               <ul className="clean-list">{createdJob.analysis.faq.map((item) => <li key={item}>{item}</li>)}</ul>
-              <Link className="ghost-button full" to={`/hr/avatar/${createdJob.id}`}>配置数字人</Link>
+              <RealityRiskBlock job={createdJob} />
+              <JobTruthLabelPanel label={generateJobTruthLabel(createdJob)} compact />
+              <Link className="ghost-button full" to={`/hr/avatar/${createdJob.id}`}>配置三角色数字人</Link>
             </>
           ) : (
             <>
               <h2>等待AI解析</h2>
-              <p>保存岗位后，这里会展示技能、卖点、风险点和候选人FAQ。</p>
-              <div className="suggestion-card">建议补充具体工作节奏、面试流程和岗位挑战，候选人对这些信息最敏感。</div>
+              <p>保存岗位后，这里会展示技能、卖点、风险点、候选人FAQ和岗位真相检测。</p>
+              <div className="suggestion-card">建议补充真实一天、项目节点压力、面试流程和跨部门协作机制。</div>
             </>
           )}
         </aside>
       </div>
     </main>
+  );
+}
+
+function RealityRiskBlock({ job }: { job: Job }) {
+  const risk = detectJobRealityRisk(job);
+
+  return (
+    <div className="reality-risk-card">
+      <h3>岗位真相检测</h3>
+      <div className="report-summary-grid compact">
+        <div className="summary-cell">
+          <span>JD清晰度</span>
+          <strong>{risk.clarity}</strong>
+        </div>
+        <div className="summary-cell">
+          <span>候选人误解风险</span>
+          <strong>{risk.misunderstandingRisk}</strong>
+        </div>
+      </div>
+      <h3>缺失信息</h3>
+      <ul className="clean-list">
+        {(risk.missingInfo.length > 0 ? risk.missingInfo : ['暂无明显缺失信息']).map((item) => (
+          <li key={item}>{item}</li>
+        ))}
+      </ul>
+      <h3>AI补充建议</h3>
+      <ul className="clean-list">
+        {risk.suggestions.map((item) => (
+          <li key={item}>{item}</li>
+        ))}
+      </ul>
+    </div>
   );
 }
 

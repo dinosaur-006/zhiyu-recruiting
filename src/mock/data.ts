@@ -1,5 +1,17 @@
-import { buildDefaultAvatarConfig, generateHRStoryCard, parseJobDescription } from './ai';
-import type { Candidate, Company, Conversation, DemoState, Job, JobInput } from '../types';
+import {
+  buildDefaultAvatarConfig,
+  createDefaultRealityRoles,
+  answerReverseQuestion,
+  generateJobTruthLabel,
+  generateHRStoryCard,
+  generateRealityReport,
+  generateRealityScripts,
+  generateTruthVideoScript,
+  getBranchScenarios,
+  getScenarioChoices,
+  parseJobDescription,
+} from './ai';
+import type { Candidate, Company, Conversation, DemoState, Job, JobInput, TrialSession } from '../types';
 
 export const demoCompany: Company = {
   id: 'company-zhiyu-demo',
@@ -38,6 +50,12 @@ export function createInitialState(): DemoState {
   };
 
   const avatar = buildDefaultAvatarConfig(job);
+  const realityRoles = createDefaultRealityRoles(job.id);
+  const realityScenes = generateRealityScripts(job);
+  const jobTruthLabel = generateJobTruthLabel(job);
+  const branchScenarios = getBranchScenarios(job);
+  const branchChoices = branchScenarios.map((scenario) => scenario.choices[1]);
+  const truthVideoScript = generateTruthVideoScript(job, realityRoles, realityScenes);
   const candidate: Candidate = {
     id: 'candidate-lin-001',
     jobId: job.id,
@@ -50,6 +68,9 @@ export function createInitialState(): DemoState {
     projectExperience: '在课程项目和实习中参与SaaS后台开发，负责组件封装、接口联调和页面性能优化。',
     motivation: '希望进入技术氛围更强、成长路径更清晰的团队。',
     concerns: '成长空间、团队技术氛围',
+    rhythmAcceptance: '可以接受阶段性项目节点压力，希望提前了解排期机制。',
+    followUpQuestion: '想进一步确认团队Code Review和新人培养方式。',
+    scenarioReflection: '我会先和后端约定Mock字段，同时同步产品确认优先级。',
     status: '已投递',
     submittedAt: '2026-05-13T09:20:00.000Z',
   };
@@ -93,11 +114,37 @@ export function createInitialState(): DemoState {
     ],
   };
   const storyCard = generateHRStoryCard(candidate, job, conversation);
+  const selectedChoice = getScenarioChoices().find((choice) => choice.label === 'B') ?? getScenarioChoices()[0];
+  const trialSession: TrialSession = {
+    id: 'trial-lin-001',
+    jobId: job.id,
+    candidateId: candidate.id,
+    currentSceneId: realityScenes[2].id,
+    completedSceneIds: realityScenes.map((scene) => scene.id),
+    askedTopics: ['岗位职责', '团队氛围', '成长空间', '工作节奏', '技术挑战'],
+    selectedChoiceIds: [selectedChoice.id],
+    branchChoiceIds: branchChoices.map((choice) => choice.id),
+    viewedTruthPoints: ['工作节奏', '协作密度', '成长速度', '压力来源'],
+    focusedTruthPoints: ['工作节奏', '成长速度'],
+    reverseQuestions: [answerReverseQuestion(job, jobTruthLabel, '成长空间')],
+    directApply: false,
+    startedAt: '2026-05-13T09:10:00.000Z',
+    completedAt: '2026-05-13T09:18:00.000Z',
+    completionRate: 100,
+  };
+  const realityReport = generateRealityReport(candidate, job, trialSession, [selectedChoice], branchChoices, jobTruthLabel);
 
   return {
     company: demoCompany,
     jobs: [job],
     avatars: [avatar],
+    realityRoles,
+    realityScenes,
+    jobTruthLabels: [jobTruthLabel],
+    branchScenarios,
+    truthVideoScripts: [truthVideoScript],
+    trialSessions: [trialSession],
+    realityReports: [realityReport],
     drafts: [],
     candidates: [candidate],
     conversations: [conversation],
@@ -111,6 +158,19 @@ export function createInitialState(): DemoState {
       interviewInvites: 4,
       attendedInterviews: 3,
       hires: 1,
+      trialStarts: 64,
+      trialCompletions: 38,
+      trialDropOffs: 26,
+      misunderstandingCandidates: 11,
+      savedInterviewEstimate: 8,
+      savedHrHoursEstimate: 6,
+      talentPoolAdds: 5,
+      truthLabelViews: 42,
+      branchTrialCompletions: 24,
+      highConcernCandidates: 9,
+      preInviteSuggestionCoverage: 18,
+      invitationScriptsGenerated: 18,
+      battleCardsGenerated: 18,
     },
   };
 }

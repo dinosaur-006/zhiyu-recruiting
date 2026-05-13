@@ -10,9 +10,9 @@ export function Jobs() {
     <main className="page">
       <div className="page-header">
         <div>
-          <span className="eyebrow">职位管理</span>
-          <h1>岗位与数字人入口</h1>
-          <p>每个岗位都可以生成独立的岗位预体验链接，并沉淀候选人故事卡。</p>
+          <span className="eyebrow">岗位实境舱管理</span>
+          <h1>岗位与云试岗入口</h1>
+          <p>每个岗位都可以生成独立的实境舱链接，并沉淀候选人云试岗报告。</p>
         </div>
         <Link className="primary-button" to="/hr/jobs/new">
           新建职位
@@ -55,7 +55,7 @@ export function Jobs() {
                   </td>
                   <td>
                     <div className="row-actions">
-                      <Link to={`/hr/avatar/${job.id}`}>配置数字人</Link>
+                    <Link to={`/hr/avatar/${job.id}`}>配置实境舱</Link>
                       <Link to={`/hr/share/${job.id}`}>分享</Link>
                     </div>
                   </td>

@@ -1,13 +1,29 @@
 import type {
   AvatarConfig,
+  BranchChoice,
+  BranchScenario,
   Candidate,
+  ConcernRadar,
   Conversation,
   ConversationMessage,
+  DecisionPathAnalysis,
   HRStoryCard,
+  InterviewBattleCard,
   Job,
   JobAnalysis,
+  JobRealityRisk,
   JobInput,
+  JobTruthLabel,
+  NoShowPreventionCard,
   Recommendation,
+  RealityReport,
+  RealityRole,
+  RealityScene,
+  ReverseQuestion,
+  ReverseQuestionType,
+  ScenarioChoice,
+  TruthVideoScript,
+  TrialSession,
 } from '../types';
 
 const nowIso = () => new Date().toISOString();
@@ -94,6 +110,342 @@ export function buildDefaultAvatarConfig(job: Job): AvatarConfig {
   };
 }
 
+export function createDefaultRealityRoles(jobId: string): RealityRole[] {
+  return [
+    {
+      id: `role_hr_${jobId}`,
+      jobId,
+      type: 'hr',
+      name: '小遇',
+      title: 'AI招聘体验官',
+      persona: '负责岗位概览、流程说明、候选人权利说明',
+      tone: '专业、透明、友好',
+      responsibility: '讲清岗位基本信息、面试流程和云试岗规则',
+      avatarImage: '/avatars/hr-avatar.png',
+      videoUrl: '/videos/hr-intro.mp4',
+      provider: 'mockVideo',
+    },
+    {
+      id: `role_teammate_${jobId}`,
+      jobId,
+      type: 'teammate',
+      name: '林同学',
+      title: '未来同事数字分身',
+      persona: '负责还原真实工作日常和团队协作方式',
+      tone: '自然、真实、有亲和力',
+      responsibility: '讲述岗位真实一天、团队协作和工作节奏',
+      avatarImage: '/avatars/teammate-avatar.png',
+      videoUrl: '/videos/day-in-life.mp4',
+      provider: 'mockVideo',
+    },
+    {
+      id: `role_manager_${jobId}`,
+      jobId,
+      type: 'manager',
+      name: '周主管',
+      title: '未来主管数字分身',
+      persona: '负责说明岗位挑战和真实任务场景',
+      tone: '直接、清晰、重视问题解决',
+      responsibility: '给出真实任务场景，观察候选人处理思路',
+      avatarImage: '/avatars/manager-avatar.png',
+      videoUrl: '/videos/task-challenge.mp4',
+      provider: 'mockVideo',
+    },
+  ];
+}
+
+export function generateRealityScripts(job: Job): RealityScene[] {
+  return [
+    {
+      id: `scene_intro_${job.id}`,
+      jobId: job.id,
+      type: 'intro',
+      roleType: 'hr',
+      title: '第一幕：岗位概览',
+      script: `你好，我是这个岗位的AI招聘体验官。接下来我不会先考你，而是先带你了解这个岗位真实做什么、怎么面试、适合什么样的人。你可以随时退出，也可以直接投递。这个岗位是${job.title}，主要面向${job.department}，工作地点在${job.location}，薪资范围为${job.salaryMin}k-${job.salaryMax}k。`,
+      candidateActions: ['了解岗位职责', '了解面试流程', '直接投递'],
+      keySignals: ['是否愿意继续了解', '是否关注流程透明度'],
+    },
+    {
+      id: `scene_day_${job.id}`,
+      jobId: job.id,
+      type: 'dayInLife',
+      roleType: 'teammate',
+      title: '第二幕：未来同事带你过一天',
+      script: `我是你未来可能合作的同事。如果你加入我们，这个岗位的一天通常会从需求沟通和任务拆解开始，中间会涉及${job.responsibilities}。项目节点前会有阶段性压力，我们希望你不只是完成任务，而是能理解业务目标并推动问题解决。`,
+      candidateActions: ['了解团队氛围', '了解成长空间', '了解工作节奏'],
+      keySignals: ['是否关注团队', '是否关注成长', '是否接受工作节奏'],
+    },
+    {
+      id: `scene_task_${job.id}`,
+      jobId: job.id,
+      type: 'taskChallenge',
+      roleType: 'manager',
+      title: '第三幕：主管给出真实任务场景',
+      script:
+        '现在给你一个真实工作场景：产品临时提出复杂筛选功能，后端接口还没有完全确定，但上线时间比较紧。你会怎么推进？',
+      candidateActions: ['选择处理方式', '说明项目经历', '继续投递'],
+      keySignals: ['协作方式', '风险意识', '沟通意识', '技术判断'],
+    },
+  ];
+}
+
+export function detectJobRealityRisk(job: Job): JobRealityRisk {
+  const missingInfo: string[] = [];
+
+  if (!job.teamInfo || job.teamInfo.length < 20) {
+    missingInfo.push('团队协作方式描述不足');
+  }
+  if (!job.interviewProcess || job.interviewProcess.length < 10) {
+    missingInfo.push('面试流程不够清晰');
+  }
+  if (!containsAny(job.responsibilities, ['协作', '沟通', '联调', '评审', 'review'])) {
+    missingInfo.push('跨部门协作说明不足');
+  }
+  if (!containsAny(`${job.workload} ${job.teamInfo} ${job.challenges}`, ['节奏', '压力', '节点', '挑战'])) {
+    missingInfo.push('工作节奏和压力说明不足');
+  }
+
+  const riskLevel = missingInfo.length >= 3 ? '高' : missingInfo.length >= 1 ? '中' : '低';
+  return {
+    clarity: missingInfo.length === 0 ? '高' : missingInfo.length <= 2 ? '中' : '低',
+    misunderstandingRisk: riskLevel,
+    missingInfo,
+    suggestions:
+      missingInfo.length > 0
+        ? missingInfo.map((item) => `建议补充：${item}`)
+        : ['岗位信息较完整，可直接生成岗位实境舱脚本。'],
+    realityTags: ['岗位透明度', '真实工作节奏', '团队协作', '候选人预期管理'],
+  };
+}
+
+export function getScenarioChoices(): ScenarioChoice[] {
+  return [
+    {
+      id: 'choice_wait_api',
+      label: 'A',
+      text: '等接口稳定后再开发，避免返工',
+      signalTags: ['谨慎', '风险规避'],
+      analysis: {
+        collaboration: '谨慎等待型',
+        riskAwareness: '中',
+        communication: '中',
+        technicalJudgment: '待确认',
+      },
+    },
+    {
+      id: 'choice_mock_first',
+      label: 'B',
+      text: '先与后端约定Mock字段，推进前端结构',
+      signalTags: ['主动推进', '协作意识', '工程化'],
+      analysis: {
+        collaboration: '主动推进型',
+        riskAwareness: '高',
+        communication: '高',
+        technicalJudgment: '强',
+      },
+    },
+    {
+      id: 'choice_static_first',
+      label: 'C',
+      text: '先做静态页面，后续再联调',
+      signalTags: ['执行落地', '分步推进'],
+      analysis: {
+        collaboration: '执行落地型',
+        riskAwareness: '中',
+        communication: '中',
+        technicalJudgment: '待确认',
+      },
+    },
+    {
+      id: 'choice_confirm_priority',
+      label: 'D',
+      text: '先找产品确认这个需求是否真的必须上线',
+      signalTags: ['需求澄清', '沟通意识', '优先级判断'],
+      analysis: {
+        collaboration: '需求澄清型',
+        riskAwareness: '高',
+        communication: '高',
+        technicalJudgment: '强',
+      },
+    },
+  ];
+}
+
+export function generateJobTruthLabel(job: Job): JobTruthLabel {
+  const corpus = `${job.responsibilities} ${job.requirements} ${job.teamInfo} ${job.workload} ${job.challenges} ${job.growthPath}`;
+  const highCollaboration = containsAny(corpus, ['跨部门', '协作', '沟通', '联调', '评审', 'review']);
+  const fastPace = containsAny(corpus, ['节奏', '快速', '节点', '上线', '迭代', '压力']);
+  const uncertain = containsAny(corpus, ['需求变化', '变化', '复杂', '不确定', '业务复杂']);
+  const growth = containsAny(corpus, ['成长', '晋升', 'owner', '技术分享', 'Code Review', '架构']);
+
+  return {
+    jobId: job.id,
+    workPace: fastPace ? '中高' : '中',
+    collaborationDensity: highCollaboration ? '高' : '中',
+    uncertainty: uncertain ? '高' : '中',
+    overtimeVolatility: fastPace ? '项目节点前较高，日常以排期协作为主' : '整体稳定，关键节点需提前确认',
+    autonomy: containsAny(corpus, ['owner', '负责', '方案', '推进']) ? '中' : '低',
+    growthSpeed: growth ? '高' : '中',
+    communicationCost: highCollaboration ? '高' : '中',
+    pressureSources: unique([
+      uncertain ? '需求变化' : '业务理解',
+      highCollaboration ? '跨部门协作' : '任务边界确认',
+      fastPace ? '项目节点交付' : '日常交付质量',
+      containsAny(corpus, ['复杂', '权限', '数据']) ? '复杂业务场景' : '',
+    ]).filter(Boolean),
+    suitableFor: [
+      '喜欢主动推进问题的人',
+      highCollaboration ? '能接受频繁沟通和跨职能协作的人' : '愿意把问题讲清楚的人',
+      uncertain ? '能接受业务变化并拆解优先级的人' : '能稳定交付并持续复盘的人',
+    ],
+    notSuitableFor: [
+      '只想长期做单一模块的人',
+      highCollaboration ? '不愿频繁沟通和同步进展的人' : '不愿说明过程和风险的人',
+      fastPace ? '完全不能接受阶段性项目压力的人' : '不愿在节点前确认排期的人',
+    ],
+  };
+}
+
+export function getBranchScenarios(job: Job): BranchScenario[] {
+  const idPrefix = `branch_${job.id}`;
+  return [
+    {
+      id: `${idPrefix}_needs`,
+      jobId: job.id,
+      round: 1,
+      title: '第1轮：需求不清',
+      description: '产品临时提出复杂筛选功能，但目标用户、字段范围和上线优先级还没有完全讲清楚。',
+      choices: [
+        branchChoice('choice_needs_wait', 'A', '先等产品补齐完整文档，再开始开发', `${idPrefix}_api`, '谨慎等待型', '中', '中', '待确认', '等待输入再执行'),
+        branchChoice('choice_needs_align', 'B', '先约产品确认核心目标，同时拆出可先做的页面结构', `${idPrefix}_api`, '主动澄清型', '高', '高', '强', '边界澄清 + 并行推进'),
+        branchChoice('choice_needs_static', 'C', '先做静态页面，等需求明确后再补逻辑', `${idPrefix}_api`, '执行落地型', '中', '中', '待确认', '先落地可见产物'),
+        branchChoice('choice_needs_pushback', 'D', '先评估是否影响当前版本目标，再建议拆到下一期', `${idPrefix}_api`, '优先级判断型', '高', '高', '强', '风险前置 + 版本拆分'),
+      ],
+    },
+    {
+      id: `${idPrefix}_api`,
+      jobId: job.id,
+      round: 2,
+      title: '第2轮：接口变化',
+      description: '后端反馈字段还会变，产品又希望今天看到Demo，团队需要你给出推进方式。',
+      choices: [
+        branchChoice('choice_api_pause', 'A', '暂停前端开发，等接口完全稳定后再继续', `${idPrefix}_launch`, '谨慎等待型', '中', '中', '待确认', '降低返工但牺牲节奏'),
+        branchChoice('choice_api_mock', 'B', '和后端约定Mock字段，前端先搭结构并标注接口风险', `${idPrefix}_launch`, '主动推进型', '高', '高', '强', 'Mock并行 + 风险同步'),
+        branchChoice('choice_api_local', 'C', '先写本地假数据，后面接口好了再统一替换', `${idPrefix}_launch`, '执行落地型', '中', '中', '待确认', '局部推进 + 后续联调'),
+        branchChoice('choice_api_meeting', 'D', '拉产品和后端快速对齐最小字段集，再推进Demo', `${idPrefix}_launch`, '需求澄清型', '高', '高', '强', '三方对齐 + 最小闭环'),
+      ],
+    },
+    {
+      id: `${idPrefix}_launch`,
+      jobId: job.id,
+      round: 3,
+      title: '第3轮：上线压力',
+      description: '上线时间不变，但功能范围、接口稳定性和测试时间都存在压力。',
+      choices: [
+        branchChoice('choice_launch_overtime', 'A', '全部功能都按原计划做完，必要时靠加班补齐', undefined, '硬扛交付型', '中', '中', '待确认', '强执行但风险后置'),
+        branchChoice('choice_launch_split', 'B', '拆分必做和可延期功能，先保证核心路径上线', undefined, '主动取舍型', '高', '高', '强', '范围拆分 + 核心交付'),
+        branchChoice('choice_launch_quality', 'C', '优先保证质量，建议整体延期', undefined, '质量优先型', '高', '中', '强', '质量优先 + 节奏放缓'),
+        branchChoice('choice_launch_sync', 'D', '同步风险清单，让产品、后端、测试一起确认上线边界', undefined, '协同控险型', '高', '高', '强', '风险共识 + 协同收口'),
+      ],
+    },
+  ];
+}
+
+function branchChoice(
+  id: string,
+  label: BranchChoice['label'],
+  text: string,
+  nextScenarioId: string | undefined,
+  collaboration: string,
+  riskAwareness: BranchChoice['analysis']['riskAwareness'],
+  communication: BranchChoice['analysis']['communication'],
+  technicalJudgment: BranchChoice['analysis']['technicalJudgment'],
+  executionStyle: string,
+): BranchChoice {
+  return {
+    id,
+    label,
+    text,
+    nextScenarioId,
+    analysis: {
+      collaboration,
+      riskAwareness,
+      communication,
+      technicalJudgment,
+      executionStyle,
+    },
+  };
+}
+
+export function analyzeDecisionPath(branchChoices: BranchChoice[]): DecisionPathAnalysis {
+  const highRisk = branchChoices.filter((choice) => choice.analysis.riskAwareness === '高').length;
+  const highCommunication = branchChoices.filter((choice) => choice.analysis.communication === '高').length;
+  const strongJudgment = branchChoices.filter((choice) => choice.analysis.technicalJudgment === '强').length;
+  const active = branchChoices.some((choice) => containsAny(choice.analysis.collaboration, ['主动', '协同', '澄清', '取舍']));
+  const executionStyle = branchChoices.map((choice) => choice.analysis.executionStyle).join(' / ') || '待补充选择路径';
+
+  return {
+    collaboration: active ? '主动推进型' : '谨慎执行型',
+    riskAwareness: highRisk >= 2 ? '高' : highRisk === 1 ? '中' : '低',
+    communication: highCommunication >= 2 ? '高' : highCommunication === 1 ? '中' : '低',
+    technicalJudgment: strongJudgment >= 2 ? '强' : strongJudgment === 1 ? '待确认' : '偏弱',
+    executionStyle,
+    summary:
+      branchChoices.length > 0
+        ? `候选人在${branchChoices.length}轮任务沙盘中呈现“${active ? '先澄清边界，再并行推进' : '先等待确定信息，再执行落地'}”的推进方式。`
+        : '候选人尚未完成分岔任务沙盘，决策路径需要HR初沟确认。',
+  };
+}
+
+export function generateConcernRadar(candidate: Candidate, session: TrialSession): ConcernRadar {
+  const reverseText = session.reverseQuestions.map((item) => `${item.type} ${item.question} ${item.answer}`).join(' ');
+  const corpus = [
+    candidate.concerns,
+    candidate.motivation,
+    candidate.followUpQuestion,
+    candidate.rhythmAcceptance,
+    session.askedTopics.join(' '),
+    session.focusedTruthPoints.join(' '),
+    reverseText,
+  ]
+    .filter(Boolean)
+    .join(' ');
+
+  return {
+    salary: concernScore(corpus, ['薪资', '工资', '待遇', '福利']),
+    commute: concernScore(corpus, ['通勤', '距离', '地点', '远']),
+    growth: concernScore(corpus, ['成长', '晋升', '学习', '技术氛围']),
+    team: concernScore(corpus, ['团队', '氛围', '同事', '协作']),
+    workload: concernScore(corpus, ['加班', '节奏', '压力', '忙', '节点']),
+    roleClarity: concernScore(corpus, ['职责', '做什么', '边界', '岗位', '需求']),
+  };
+}
+
+function concernScore(corpus: string, words: string[]) {
+  const hits = words.filter((word) => containsAny(corpus, [word])).length;
+  return Math.min(95, hits === 0 ? 25 : 45 + hits * 20);
+}
+
+export function answerReverseQuestion(job: Job, truthLabel: JobTruthLabel, type: ReverseQuestionType): ReverseQuestion {
+  const answers: Record<ReverseQuestionType, string> = {
+    工作节奏: `这个岗位的工作节奏为${truthLabel.workPace}。${truthLabel.overtimeVolatility}，建议在面试中进一步确认项目周期和排期方式。`,
+    薪资福利: `当前公开薪资范围为${job.salaryMin}k-${job.salaryMax}k，具体薪资会结合经验和面试沟通确认，建议在面试中进一步确认薪资沟通节点。`,
+    团队氛围: `岗位真相标签显示协作密度为${truthLabel.collaborationDensity}，沟通成本为${truthLabel.communicationCost}。团队协作方式建议在面试中进一步确认。`,
+    成长空间: `这个岗位成长速度为${truthLabel.growthSpeed}，成长主要来自${truthLabel.pressureSources.join('、')}等真实业务场景，建议在面试中进一步确认培养机制。`,
+    岗位挑战: `岗位主要压力来源包括${truthLabel.pressureSources.join('、')}。如果你对挑战强度敏感，建议在面试中进一步确认任务边界。`,
+    面试流程: `当前公开面试流程为：${job.interviewProcess || 'HR初沟 - 业务面试 - 综合沟通'}，建议在面试中进一步确认每一轮重点。`,
+  };
+
+  return {
+    id: `reverse_${type}_${Date.now()}`,
+    type,
+    question: `我想了解${type}的真实情况`,
+    answer: answers[type],
+    createdAt: nowIso(),
+  };
+}
+
 export function detectIntent(text: string) {
   if (containsAny(text, ['加班', '压力', '节奏', '忙'])) return '工作节奏';
   if (containsAny(text, ['薪资', '工资', '福利', '待遇'])) return '薪资福利';
@@ -177,7 +529,7 @@ export function generateHRStoryCard(candidate: Candidate, job: Job, conversation
   const intentionSignals = unique([
     asksGrowthOrTeam >= 2 ? '多次关注成长、团队与技术氛围' : '',
     candidate.motivation ? `求职动机：${candidate.motivation}` : '',
-    candidateMessages.length >= 3 ? '愿意完成多轮岗位预体验对话' : '',
+    candidateMessages.length >= 3 ? '愿意完成多轮云试岗互动' : '',
   ]).filter(Boolean);
 
   const riskFlags = unique([
@@ -221,6 +573,247 @@ export function generateHRStoryCard(candidate: Candidate, job: Job, conversation
   };
 }
 
+export function generateRealityReport(
+  candidate: Candidate,
+  job: Job,
+  session: TrialSession,
+  selectedChoices: ScenarioChoice[],
+  branchChoices: BranchChoice[] = [],
+  truthLabel: JobTruthLabel = generateJobTruthLabel(job),
+): RealityReport {
+  const askedText = session.askedTopics.join(' ');
+  const profileText = [
+    candidate.skills,
+    candidate.projectExperience,
+    candidate.motivation,
+    candidate.concerns,
+    candidate.rhythmAcceptance,
+    candidate.followUpQuestion,
+    candidate.scenarioReflection,
+  ]
+    .filter(Boolean)
+    .join(' ');
+  const evidenceCorpus = `${askedText} ${profileText}`;
+
+  const attentionMap = {
+    growth: containsAny(evidenceCorpus, ['成长', '发展', '晋升', '学习']) ? 85 : 40,
+    salary: containsAny(evidenceCorpus, ['薪资', '工资', '待遇', '福利']) ? 75 : 30,
+    team: containsAny(evidenceCorpus, ['团队', '氛围', '同事', '协作']) ? 82 : 40,
+    workload: containsAny(evidenceCorpus, ['加班', '压力', '节奏', '忙', '节点']) ? 72 : 35,
+    technology: containsAny(evidenceCorpus, ['技术', 'Vue', 'React', 'TypeScript', '架构', 'Code Review']) ? 88 : 45,
+  };
+  const concernRadar = generateConcernRadar(candidate, session);
+  const decisionPathAnalysis = analyzeDecisionPath(branchChoices);
+
+  const skillEvidence = ['Vue', 'React', 'TypeScript', 'B端SaaS', 'Code Review', '接口联调', '组件化开发'].filter((skill) =>
+    containsAny(evidenceCorpus, [skill, skill.toLowerCase()]),
+  );
+  const hasStrongChoice = selectedChoices.some(
+    (choice) => choice.analysis.communication === '高' && choice.analysis.riskAwareness === '高',
+  );
+  const hasCompletedTrial = session.completionRate >= 80;
+  const hasMeaningfulInput = profileText.length > 28 || askedText.length > 12;
+  const realIntention = hasCompletedTrial && hasMeaningfulInput ? '高' : session.completionRate >= 50 ? '中' : '低';
+  const jobUnderstanding =
+    session.completedSceneIds.length >= 3 && selectedChoices.length > 0
+      ? '清晰'
+      : session.completedSceneIds.length >= 2
+        ? '部分清晰'
+        : '存在偏差';
+
+  const potentialMismatchRisks = [
+    attentionMap.salary > 70 ? '候选人较关注薪资沟通，建议面试前确认薪资预期。' : '',
+    attentionMap.workload > 65 ? '候选人关注工作节奏，建议进一步说明项目节点压力。' : '',
+    skillEvidence.length < 2 ? '技能证据链较少，建议面试中追问具体项目细节。' : '',
+  ].filter(Boolean);
+
+  let hrActionSuggestion: RealityReport['hrActionSuggestion'] = '建议补充确认';
+  if (hasCompletedTrial && hasStrongChoice && skillEvidence.length >= 3) {
+    hrActionSuggestion = '优先邀约';
+  } else if (!hasCompletedTrial || skillEvidence.length < 2) {
+    hrActionSuggestion = '建议入库观察';
+  }
+
+  const sceneChoiceSummary = [
+    ...selectedChoices.map(
+      (choice) =>
+        `${choice.label}. ${choice.text} → ${choice.analysis.collaboration}，风险意识${choice.analysis.riskAwareness}，沟通意识${choice.analysis.communication}，技术判断${choice.analysis.technicalJudgment}`,
+    ),
+    ...branchChoices.map(
+      (choice) =>
+        `${choice.label}. ${choice.text} → ${choice.analysis.collaboration}，风险意识${choice.analysis.riskAwareness}，沟通意识${choice.analysis.communication}，技术判断${choice.analysis.technicalJudgment}，推进方式${choice.analysis.executionStyle}`,
+    ),
+  ];
+
+  const report: RealityReport = {
+    id: `report_${candidate.id}`,
+    candidateId: candidate.id,
+    candidateName: candidate.name,
+    jobId: job.id,
+    trialCompletion: session.completionRate,
+    realIntention,
+    jobUnderstanding,
+    noShowRisk: hasCompletedTrial && realIntention === '高' ? '低' : session.completionRate >= 50 ? '中' : '高',
+    attentionMap,
+    jobTruthViewSummary: {
+      viewed: session.viewedTruthPoints.length > 0,
+      viewedPoints: session.viewedTruthPoints,
+      focusedPoints: session.focusedTruthPoints,
+    },
+    decisionPathAnalysis,
+    concernRadar,
+    sceneChoiceSummary: sceneChoiceSummary.length > 0 ? sceneChoiceSummary : ['候选人尚未完成任务沙盘选择，建议HR初沟确认推进方式。'],
+    skillEvidence: skillEvidence.length > 0 ? skillEvidence : ['待面试中补充项目证据'],
+    potentialMismatchRisks:
+      potentialMismatchRisks.length > 0 ? potentialMismatchRisks : ['暂无明显潜在失配风险，建议HR继续人工复核。'],
+    noShowPreventionCard: {
+      possibleReasons: [],
+      preInviteActions: [],
+      invitationScript: '',
+    },
+    interviewBattleCard: {
+      interviewGoals: [],
+      keyQuestions: [],
+      needsClarification: [],
+      shouldExplain: [],
+      shouldAvoidAsking: [],
+    },
+    invitationScript: '',
+    reverseQuestions: session.reverseQuestions,
+    interviewQuestions: [
+      `请说明你在${job.title}相关项目中具体负责过哪些模块？`,
+      '遇到接口不稳定或需求变更时，你通常如何和后端、产品推进？',
+      '你对当前岗位中阶段性项目压力和Code Review机制是否能接受？',
+    ],
+    hrActionSuggestion,
+    evidenceSources: {
+      fromTrialScenes: session.completedSceneIds,
+      fromCandidateInput: skillEvidence,
+      fromScenarioChoices: selectedChoices.map((choice) => choice.id),
+    },
+    complianceNote:
+      '本报告由AI基于候选人授权的云试岗行为、场景选择和主动填写内容生成，仅供HR面试前参考，不作为单独招聘决策依据，最终招聘决策由企业人工完成，候选人可申请解释或删除相关数据。',
+  };
+  const noShowPreventionCard = generateNoShowPreventionCard(report);
+  const interviewBattleCard = generateInterviewBattleCard(report);
+
+  return {
+    ...report,
+    noShowPreventionCard,
+    interviewBattleCard,
+    invitationScript: noShowPreventionCard.invitationScript,
+  };
+}
+
+export function generateNoShowPreventionCard(report: RealityReport): NoShowPreventionCard {
+  const focused = report.jobTruthViewSummary.focusedPoints;
+  const highConcerns = Object.entries(report.concernRadar)
+    .filter(([, value]) => value >= 65)
+    .map(([key]) => concernLabel(key as keyof ConcernRadar));
+  const possibleReasons = unique([
+    report.noShowRisk !== '低' ? '候选人云试岗完成度或互动深度仍需确认' : '',
+    focused.includes('工作节奏') || report.concernRadar.workload >= 65 ? '候选人对工作节奏仍有疑问' : '',
+    report.concernRadar.growth >= 65 ? '候选人关注成长空间，需要更具体的团队培养信息' : '',
+    report.concernRadar.salary >= 65 ? '候选人关注薪资沟通节点，需要提前说明沟通范围' : '',
+    report.concernRadar.team >= 65 ? '候选人对团队氛围较敏感，需要补充协作方式' : '',
+  ]).filter(Boolean);
+  const preInviteActions = unique([
+    highConcerns.includes('成长顾虑') ? '面试前补充团队技术分享和成长机制' : '',
+    highConcerns.includes('工作节奏顾虑') ? '说明项目节点压力是否常态化，以及排期如何协同' : '',
+    highConcerns.includes('薪资顾虑') ? '明确一面可沟通薪资范围和薪资确认节点' : '',
+    highConcerns.includes('团队氛围顾虑') ? '附上团队协作方式或未来同事数字人片段' : '',
+    '邀约时说明本轮面试会围绕候选人关注点展开',
+  ]).filter(Boolean);
+
+  return {
+    possibleReasons: possibleReasons.length > 0 ? possibleReasons : ['当前爽约风险较低，建议保持清晰邀约节奏。'],
+    preInviteActions,
+    invitationScript: `${report.candidateName}你好，我看到你在云试岗中特别关注${highConcerns.slice(0, 3).join('、') || '岗位真实情况'}。这轮面试我们会重点沟通岗位任务场景、团队协作方式和成长路径。如果你对工作节奏或薪资沟通节点有疑问，也可以在一面前提前确认。`,
+  };
+}
+
+export function generateInterviewBattleCard(report: RealityReport): InterviewBattleCard {
+  return {
+    interviewGoals: [
+      '验证候选人与岗位核心任务的项目深度',
+      '确认候选人是否接受阶段性项目压力和协作密度',
+      '补充说明候选人最关注的岗位真相点',
+    ],
+    keyQuestions: [
+      '请说明你在B端SaaS项目中负责的具体模块和结果。',
+      '遇到需求不清、接口变化或上线压力时，你通常如何推进？',
+      '你如何判断需求优先级，并和产品、后端同步风险？',
+    ],
+    needsClarification: [
+      report.concernRadar.salary >= 65 ? '薪资预期和薪资沟通节点' : '核心求职诉求',
+      report.concernRadar.workload >= 65 ? '对工作节奏和阶段性压力的接受度' : '可接受的团队协作方式',
+      '跨部门协作经验和任务边界意识',
+    ],
+    shouldExplain: [
+      '团队Code Review机制',
+      '技术分享制度和成长路径',
+      '项目排期方式和节点压力是否常态化',
+    ],
+    shouldAvoidAsking: [
+      '年龄、婚育、家庭情况等与岗位无关问题',
+      '与岗位无关的个人隐私',
+      '基于AI报告直接追问候选人是否有风险',
+    ],
+  };
+}
+
+function concernLabel(key: keyof ConcernRadar) {
+  const labels: Record<keyof ConcernRadar, string> = {
+    salary: '薪资顾虑',
+    commute: '通勤顾虑',
+    growth: '成长顾虑',
+    team: '团队氛围顾虑',
+    workload: '工作节奏顾虑',
+    roleClarity: '岗位职责顾虑',
+  };
+  return labels[key];
+}
+
+export function generateTruthVideoScript(job: Job, roles: RealityRole[], scenes: RealityScene[]): TruthVideoScript {
+  const roleName = (type: RealityRole['type'], fallback: string) => roles.find((role) => role.type === type)?.name ?? fallback;
+  const intro = scenes.find((scene) => scene.type === 'intro')?.script ?? `${job.title}岗位概览。`;
+  const day = scenes.find((scene) => scene.type === 'dayInLife')?.script ?? '未来同事带你了解真实一天。';
+  const task = scenes.find((scene) => scene.type === 'taskChallenge')?.script ?? '主管说明岗位挑战。';
+  const segments: TruthVideoScript['segments'] = [
+    {
+      timeRange: '0-10秒',
+      roleType: 'hr',
+      title: `${roleName('hr', 'HR数字人')}讲岗位概览`,
+      script: intro,
+    },
+    {
+      timeRange: '10-30秒',
+      roleType: 'teammate',
+      title: `${roleName('teammate', '未来同事')}讲真实一天`,
+      script: day,
+    },
+    {
+      timeRange: '30-45秒',
+      roleType: 'manager',
+      title: `${roleName('manager', '未来主管')}讲岗位挑战`,
+      script: task,
+    },
+    {
+      timeRange: '45-60秒',
+      roleType: 'hr',
+      title: '邀请候选人进入云试岗',
+      script: `如果你愿意了解${job.title}的真实工作方式，可以先进入分岔式云试岗，再决定是否投递。`,
+    },
+  ];
+
+  return {
+    jobId: job.id,
+    title: `${job.title} · 60秒岗位真相短片`,
+    segments,
+    fullScript: segments.map((segment) => `${segment.timeRange} ${segment.title}：${segment.script}`).join('\n'),
+  };
+}
+
 export function buildCandidatePreview(card: HRStoryCard) {
   return {
     candidateId: card.candidateId,
@@ -234,6 +827,6 @@ export function buildCandidatePreview(card: HRStoryCard) {
       card.recommendation === '强推荐面试'
         ? '你的经历和岗位有较多可对齐点，建议进入后续沟通。'
         : '建议在后续沟通中补充项目证据、岗位理解和关键关注点。',
-    nextStep: '你的投递已进入HR工作台，HR可基于故事卡安排后续沟通。',
+    nextStep: '你的投递已进入HR工作台，HR可基于云试岗线索安排后续沟通。',
   };
 }

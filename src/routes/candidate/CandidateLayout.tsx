@@ -6,9 +6,11 @@ export function CandidateLayout() {
       <header className="candidate-top">
         <Link to="/" className="candidate-brand">
           <span>职</span>
-          职遇岗位预体验
+          职遇 Reality
         </Link>
-        <Link to="/hr" className="mini-link">HR端</Link>
+        <Link to="/hr" className="mini-link">
+          HR端
+        </Link>
       </header>
       <Outlet />
     </div>

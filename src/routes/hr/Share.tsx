@@ -1,11 +1,13 @@
 import { Link, useParams } from 'react-router-dom';
 import { Badge } from '../../components/Badge';
+import { TruthVideoPreview } from '../../components/TruthVideoPreview';
 import { useDemoState } from '../../store/demoStore';
 
 export function Share() {
   const { jobId } = useParams();
-  const { jobs } = useDemoState();
+  const { jobs, truthVideoScripts } = useDemoState();
   const job = jobs.find((item) => item.id === jobId);
+  const truthVideoScript = truthVideoScripts.find((item) => item.jobId === jobId);
   const link = `${window.location.origin}/candidate/job/${jobId}`;
 
   if (!job) {
@@ -24,9 +26,9 @@ export function Share() {
     <main className="page">
       <div className="page-header">
         <div>
-          <span className="eyebrow">体验入口</span>
-          <h1>{job.title} 分享页</h1>
-          <p>把链接或二维码发给候选人，候选人可先聊再投，也可直接投递。</p>
+          <span className="eyebrow">岗位实境舱分享入口</span>
+          <h1>岗位实境舱已生成</h1>
+          <p>候选人可以先云试岗，再投递。通过HR数字人、未来同事数字人和未来主管数字人，提前了解岗位真实一天。</p>
         </div>
         <Link className="primary-button" to={`/candidate/job/${job.id}`}>
           打开候选人页
@@ -42,7 +44,7 @@ export function Share() {
           </div>
           <div className="share-copy">
             <Badge tone="blue">分享文案</Badge>
-            <p>花3分钟先了解岗位真实情况，再决定是否投递。你可以随时退出，也可以直接投递简历。</p>
+            <p>这个岗位支持“先云试岗，再投递”。点击链接，和岗位数字人一起体验真实工作场景，再决定是否投递。</p>
           </div>
         </article>
         <article className="panel qr-panel">
@@ -55,6 +57,8 @@ export function Share() {
           <p>二维码占位 · 演示时可直接打开右侧链接</p>
         </article>
       </section>
+
+      {truthVideoScript ? <TruthVideoPreview script={truthVideoScript} /> : null}
     </main>
   );
 }

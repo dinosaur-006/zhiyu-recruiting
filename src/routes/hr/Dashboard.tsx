@@ -4,7 +4,7 @@ import { StatCard } from '../../components/StatCard';
 import { useDemoState } from '../../store/demoStore';
 
 export function Dashboard() {
-  const { jobs, candidates, metrics, storyCards } = useDemoState();
+  const { jobs, candidates, metrics, realityReports } = useDemoState();
   const latestCandidates = candidates.slice(0, 4);
   const completionRate = metrics.chatStarts ? Math.round((metrics.chatCompletions / metrics.chatStarts) * 100) : 0;
   const showRate = metrics.interviewInvites ? Math.round((metrics.attendedInterviews / metrics.interviewInvites) * 100) : 0;
@@ -14,8 +14,8 @@ export function Dashboard() {
       <div className="page-header">
         <div>
           <span className="eyebrow">HR工作台</span>
-          <h1>招聘预筛选概览</h1>
-          <p>聚焦岗位访问、对话完成、故事卡和邀约动作，帮助HR优先处理高意愿候选人。</p>
+          <h1>岗位实境舱运营工作台</h1>
+          <p>聚焦云试岗完成度、真实意愿、岗位理解和报告回流，帮助HR减少无效面试。</p>
         </div>
         <Link className="primary-button" to="/hr/jobs/new">
           新建职位
@@ -24,8 +24,8 @@ export function Dashboard() {
 
       <section className="stat-grid">
         <StatCard label="发布职位" value={jobs.length} hint="当前演示企业" />
-        <StatCard label="对话完成率" value={`${completionRate}%`} hint="完成对话 / 进入对话" trend="+12%" />
-        <StatCard label="故事卡数量" value={storyCards.length} hint="AI辅助整理" />
+        <StatCard label="云试岗完成率" value={`${completionRate}%`} hint="完成云试岗 / 开始人数" trend="+12%" />
+        <StatCard label="云试岗报告" value={realityReports.length} hint="AI辅助整理" />
         <StatCard label="到面率" value={`${showRate}%`} hint="实际到面 / 邀约人数" trend="+20%" />
       </section>
 
@@ -37,7 +37,7 @@ export function Dashboard() {
           </div>
           <div className="candidate-list compact-list">
             {latestCandidates.map((candidate) => {
-              const card = storyCards.find((item) => item.candidateId === candidate.id);
+              const report = realityReports.find((item) => item.candidateId === candidate.id);
               return (
                 <Link key={candidate.id} to={`/hr/candidates/${candidate.id}`} className="list-row">
                   <div>
@@ -45,7 +45,7 @@ export function Dashboard() {
                     <span>{candidate.sourceChannel}</span>
                   </div>
                   <Badge tone={candidate.status === '已邀约' ? 'green' : 'blue'}>{candidate.status}</Badge>
-                  <Badge tone="purple">{card?.recommendation ?? 'AI辅助建议'}</Badge>
+                  <Badge tone="purple">{report?.hrActionSuggestion ?? 'HR行动建议'}</Badge>
                 </Link>
               );
             })}

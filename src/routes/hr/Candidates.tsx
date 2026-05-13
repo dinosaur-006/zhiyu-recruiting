@@ -4,20 +4,20 @@ import { EmptyState } from '../../components/EmptyState';
 import { useDemoState } from '../../store/demoStore';
 
 export function Candidates() {
-  const { candidates, jobs, storyCards, conversations } = useDemoState();
+  const { candidates, jobs, realityReports } = useDemoState();
 
   return (
     <main className="page">
       <div className="page-header">
         <div>
-          <span className="eyebrow">候选人列表</span>
-          <h1>故事卡驱动的预筛选</h1>
-          <p>按意愿、岗位理解、技能线索和风险提示优先处理候选人。</p>
+          <span className="eyebrow">云试岗候选人队列</span>
+          <h1>按真实意愿和证据链处理候选人</h1>
+          <p>查看云试岗完成度、岗位理解、场景选择和HR行动建议，减少无效面试。</p>
         </div>
       </div>
 
       {candidates.length === 0 ? (
-        <EmptyState title="暂无候选人" description="候选人完成岗位预体验或直接投递后，会出现在这里。" />
+        <EmptyState title="暂无候选人" description="候选人完成云试岗或直接投递后，会出现在这里。" />
       ) : (
         <section className="panel">
           <table className="data-table">
@@ -26,8 +26,12 @@ export function Candidates() {
                 <th>候选人</th>
                 <th>岗位</th>
                 <th>来源</th>
-                <th>对话时长</th>
-                <th>AI辅助建议</th>
+                <th>云试岗完成度</th>
+                <th>真实意愿</th>
+                <th>岗位理解</th>
+                <th>爽约风险</th>
+                <th>技能证据</th>
+                <th>HR行动建议</th>
                 <th>状态</th>
                 <th>操作</th>
               </tr>
@@ -35,8 +39,7 @@ export function Candidates() {
             <tbody>
               {candidates.map((candidate) => {
                 const job = jobs.find((item) => item.id === candidate.jobId);
-                const card = storyCards.find((item) => item.candidateId === candidate.id);
-                const conversation = conversations.find((item) => item.id === candidate.conversationId);
+                const report = realityReports.find((item) => item.candidateId === candidate.id);
                 return (
                   <tr key={candidate.id}>
                     <td>
@@ -45,17 +48,27 @@ export function Candidates() {
                     </td>
                     <td>{job?.title ?? '未知岗位'}</td>
                     <td>{candidate.sourceChannel}</td>
-                    <td>{conversation ? `${Math.round(conversation.durationSeconds / 60)}分钟` : '待确认'}</td>
+                    <td>{report ? `${report.trialCompletion}%` : '待确认'}</td>
                     <td>
-                      <Badge tone={card?.recommendation === '强推荐面试' ? 'green' : card?.recommendation === '暂缓邀约' ? 'amber' : 'blue'}>
-                        {card?.recommendation ?? 'AI辅助建议'}
+                      <Badge tone={report?.realIntention === '高' ? 'green' : report?.realIntention === '低' ? 'amber' : 'blue'}>{report?.realIntention ?? '待确认'}</Badge>
+                    </td>
+                    <td>
+                      <Badge tone="blue">{report?.jobUnderstanding ?? '待确认'}</Badge>
+                    </td>
+                    <td>
+                      <Badge tone={report?.noShowRisk === '低' ? 'green' : report?.noShowRisk === '高' ? 'amber' : 'blue'}>{report?.noShowRisk ?? '待确认'}</Badge>
+                    </td>
+                    <td>{report?.skillEvidence.slice(0, 2).join('、') ?? '待补充'}</td>
+                    <td>
+                      <Badge tone={report?.hrActionSuggestion === '优先邀约' ? 'green' : report?.hrActionSuggestion === '建议入库观察' ? 'amber' : 'purple'}>
+                        {report?.hrActionSuggestion ?? 'HR行动建议'}
                       </Badge>
                     </td>
                     <td>
                       <Badge tone={candidate.status === '已邀约' ? 'green' : 'purple'}>{candidate.status}</Badge>
                     </td>
                     <td>
-                      <Link to={`/hr/candidates/${candidate.id}`}>查看故事卡</Link>
+                      <Link to={`/hr/candidates/${candidate.id}`}>查看云试岗报告</Link>
                     </td>
                   </tr>
                 );
