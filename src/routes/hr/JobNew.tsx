@@ -1,8 +1,9 @@
 import { FormEvent, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Badge } from '../../components/Badge';
+import { CommitmentConsistencyPanel } from '../../components/CommitmentConsistencyPanel';
 import { JobTruthLabelPanel } from '../../components/JobTruthLabelPanel';
-import { detectJobRealityRisk, generateJobTruthLabel } from '../../mock/ai';
+import { detectJobRealityRisk, generateCommitmentConsistencyCheck, generateJobTruthContract, generateJobTruthLabel, generateRealityScripts } from '../../mock/ai';
 import { addJob } from '../../store/demoStore';
 import type { Job, JobInput } from '../../types';
 
@@ -99,6 +100,14 @@ export function JobNew() {
               <ul className="clean-list">{createdJob.analysis.faq.map((item) => <li key={item}>{item}</li>)}</ul>
               <RealityRiskBlock job={createdJob} />
               <JobTruthLabelPanel label={generateJobTruthLabel(createdJob)} compact />
+              <CommitmentConsistencyPanel
+                check={generateCommitmentConsistencyCheck(
+                  createdJob,
+                  generateJobTruthLabel(createdJob),
+                  generateJobTruthContract(createdJob, generateJobTruthLabel(createdJob)),
+                  generateRealityScripts(createdJob),
+                )}
+              />
               <Link className="ghost-button full" to={`/hr/avatar/${createdJob.id}`}>配置三角色数字人</Link>
             </>
           ) : (

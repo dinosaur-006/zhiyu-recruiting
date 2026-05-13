@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createInitialState } from '../mock/data';
-import { normalizeDemoState } from './demoStore';
+import { markTrustRepairTaskHandled, normalizeDemoState } from './demoStore';
 
 describe('normalizeDemoState', () => {
   it('adds Reality fields to older stored state shapes', () => {
@@ -74,5 +74,67 @@ describe('normalizeDemoState', () => {
     expect(normalized.trialSessions[0].mutualConfirmation.candidateConfirmedItems).toBeInstanceOf(Array);
     expect(normalized.realityReports[0].trustNegotiationCard.hrClarifications.length).toBeGreaterThan(0);
     expect(normalized.realityReports[0].candidateFairnessIndex.total).toBeGreaterThanOrEqual(0);
+  });
+
+  it('adds Trust Intelligence fields to older state shapes', () => {
+    const legacy = createInitialState();
+    const normalized = normalizeDemoState({
+      ...legacy,
+      trialSessions: [
+        {
+          ...legacy.trialSessions[0],
+          exitReason: undefined,
+        },
+      ],
+      realityReports: [
+        {
+          ...legacy.realityReports[0],
+          trustLoopGraph: undefined,
+          trustGapDiagnosis: undefined,
+          commitmentConsistencyCheck: undefined,
+          aiAdviceRelianceNotice: undefined,
+        } as never,
+      ],
+    });
+
+    expect(normalized.realityReports[0].trustLoopGraph.length).toBeGreaterThan(0);
+    expect(normalized.realityReports[0].trustGapDiagnosis.length).toBeGreaterThan(0);
+    expect(normalized.realityReports[0].commitmentConsistencyCheck.findings.length).toBeGreaterThan(0);
+    expect(normalized.realityReports[0].aiAdviceRelianceNotice.reminders.length).toBeGreaterThan(0);
+  });
+
+  it('adds Trust Governance fields to older state shapes', () => {
+    const legacy = createInitialState();
+    const normalized = normalizeDemoState({
+      ...legacy,
+      trustAuditEvents: undefined,
+      trustRepairTasks: undefined,
+      realityReports: [
+        {
+          ...legacy.realityReports[0],
+          trustAuditLog: undefined,
+          silenceRisk: undefined,
+          trustRepairTasks: undefined,
+          auditCompletenessRate: undefined,
+        } as never,
+      ],
+    });
+
+    expect(normalized.trustAuditEvents.length).toBeGreaterThan(0);
+    expect(normalized.trustRepairTasks.length).toBeGreaterThan(0);
+    expect(normalized.realityReports[0].trustAuditLog.length).toBeGreaterThan(0);
+    expect(normalized.realityReports[0].silenceRisk.level).toBeTypeOf('string');
+    expect(normalized.realityReports[0].auditCompletenessRate).toBeGreaterThanOrEqual(0);
+  });
+
+  it('marks trust repair tasks as handled and updates metrics', () => {
+    const initial = createInitialState();
+    const taskId = initial.trustRepairTasks[0].id;
+
+    const next = markTrustRepairTaskHandled(taskId);
+    const task = next.trustRepairTasks.find((item) => item.id === taskId);
+
+    expect(task?.status).toBe('已处理');
+    expect(next.metrics.handledTrustRepairTasks).toBeGreaterThan(0);
   });
 });

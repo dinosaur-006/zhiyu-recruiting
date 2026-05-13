@@ -168,6 +168,8 @@ export function createInitialState(): DemoState {
     jobTruthContracts: [jobTruthContract],
     branchScenarios,
     truthVideoScripts: [truthVideoScript],
+    trustAuditEvents: realityReport.trustAuditLog,
+    trustRepairTasks: realityReport.trustRepairTasks,
     trialSessions: [trialSession],
     realityReports: [realityReport],
     drafts: [],
@@ -205,6 +207,14 @@ export function createInitialState(): DemoState {
       highConfirmationCandidateRatio: 58,
       unconfirmedReasonTop3: ['薪资沟通节点', '工作节奏', '面试反馈时效'],
       candidateFairnessIndex: realityReport.candidateFairnessIndex.total,
+      commitmentConsistencyIssues: realityReport.commitmentConsistencyCheck.riskLevel === '低' ? 0 : 1,
+      evidenceSupportedAdviceCount: realityReport.aiAdviceRelianceNotice.evidenceSupportedCount,
+      humanConfirmationAdviceCount: realityReport.aiAdviceRelianceNotice.needsHumanConfirmationCount,
+      pendingTrustRepairTasks: realityReport.trustRepairTasks.length,
+      handledTrustRepairTasks: 0,
+      highSilenceRiskCandidates: realityReport.silenceRisk.possibleReasons.length >= 3 ? 1 : 0,
+      auditCompletenessRate: realityReport.auditCompletenessRate,
+      candidateExitReasonTop3: ['薪资信息不明确', '岗位节奏不适合', '成长路径不清晰'],
     },
   };
 }

@@ -16,9 +16,9 @@ export function Analytics() {
     <main className="page">
       <div className="page-header">
         <div>
-          <span className="eyebrow">Reality Pro 价值看板</span>
-          <h1>AI岗位真相舱试点指标</h1>
-          <p>用AI辅助估算展示岗位真相标签、分岔云试岗和邀约转化作战卡对招聘效率的改善空间。</p>
+          <span className="eyebrow">Governance Metrics</span>
+          <h1>招聘信任治理看板</h1>
+          <p>所有指标均为AI辅助估算和试点目标，用于观察岗位真相、信任修复和治理链路对招聘转化的改善空间。</p>
         </div>
       </div>
 
@@ -46,41 +46,46 @@ export function Analytics() {
         <StatCard label="双向确认完成数" value={metrics.mutualConfirmations ?? 0} hint="试点目标" />
         <StatCard label="高确认候选人占比" value={`${metrics.highConfirmationCandidateRatio ?? 0}%`} hint="AI辅助估算" />
         <StatCard label="候选人体验公平指数" value={`${metrics.candidateFairnessIndex ?? 0}/100`} hint="改善招聘环境" />
+        <StatCard label="承诺一致性待补充" value={metrics.commitmentConsistencyIssues ?? 0} hint="需HR补充说明" />
+        <StatCard label="证据充分AI建议" value={metrics.evidenceSupportedAdviceCount ?? 0} hint="AI辅助估算" />
+        <StatCard label="需人工确认建议" value={metrics.humanConfirmationAdviceCount ?? 0} hint="面试前参考" />
+        <StatCard label="待处理信任修复任务" value={metrics.pendingTrustRepairTasks ?? 0} hint="治理待办" />
+        <StatCard label="已处理信任修复任务" value={metrics.handledTrustRepairTasks ?? 0} hint="试点目标" />
+        <StatCard label="高沉默风险候选人" value={metrics.highSilenceRiskCandidates ?? 0} hint="邀约前建议澄清" />
+        <StatCard label="审计日志完整率" value={`${metrics.auditCompletenessRate ?? 0}%`} hint="AI辅助估算" />
       </section>
 
-      <section className="panel">
-        <h2>云试岗试点目标</h2>
-        <div className="goal-grid">
-          <div><strong>HR初筛时间</strong><span>降低30%-40%</span></div>
-          <div><strong>无效面试</strong><span>降低20%-30%</span></div>
-          <div><strong>岗位误解</strong><span>提前识别</span></div>
-          <div><strong>报告采纳率</strong><span>超过60%</span></div>
-        </div>
-      </section>
-
-      <section className="panel">
-        <h2>低信任原因 Top3</h2>
-        <div className="goal-grid">
-          {(metrics.lowTrustReasonTop3 ?? ['薪资沟通节点', '工作节奏', '成长路径']).map((reason) => (
-            <div key={reason}>
-              <strong>{reason}</strong>
-              <span>邀约前建议补充说明</span>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="panel">
-        <h2>未确认原因 Top3</h2>
-        <div className="goal-grid">
-          {(metrics.unconfirmedReasonTop3 ?? ['薪资沟通节点', '工作节奏', '面试反馈时效']).map((reason) => (
-            <div key={reason}>
-              <strong>{reason}</strong>
-              <span>双向确认前建议澄清</span>
-            </div>
-          ))}
-        </div>
-      </section>
+      <InsightSection
+        title="低信任原因Top3"
+        items={metrics.lowTrustReasonTop3 ?? ['薪资沟通节点', '工作节奏', '成长路径']}
+        hint="邀约前建议补充说明"
+      />
+      <InsightSection
+        title="未确认原因Top3"
+        items={metrics.unconfirmedReasonTop3 ?? ['薪资沟通节点', '工作节奏', '面试反馈时效']}
+        hint="双向确认前建议澄清"
+      />
+      <InsightSection
+        title="候选人退出原因Top3"
+        items={metrics.candidateExitReasonTop3 ?? ['薪资信息不明确', '岗位节奏不适合', '成长路径不清晰']}
+        hint="建议优化岗位真相表达"
+      />
     </main>
+  );
+}
+
+function InsightSection({ title, items, hint }: { title: string; items: string[]; hint: string }) {
+  return (
+    <section className="panel">
+      <h2>{title}</h2>
+      <div className="goal-grid">
+        {items.map((item) => (
+          <div key={item}>
+            <strong>{item}</strong>
+            <span>{hint}</span>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }

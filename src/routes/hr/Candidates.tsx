@@ -11,8 +11,8 @@ export function Candidates() {
       <div className="page-header">
         <div>
           <span className="eyebrow">云试岗候选人队列</span>
-          <h1>按真实意愿和证据链处理候选人</h1>
-          <p>查看云试岗完成度、岗位理解、场景选择和HR行动建议，减少无效面试。</p>
+          <h1>按真实意愿、信任状态和治理任务处理候选人</h1>
+          <p>查看云试岗完成度、信任指数、沉默风险和HR行动建议，优先处理需要先澄清再邀约的人。</p>
         </div>
       </div>
 
@@ -31,6 +31,7 @@ export function Candidates() {
                 <th>真实意愿</th>
                 <th>岗位理解</th>
                 <th>爽约风险</th>
+                <th>沉默风险</th>
                 <th>技能证据</th>
                 <th>HR行动建议</th>
                 <th>状态</th>
@@ -41,6 +42,7 @@ export function Candidates() {
               {candidates.map((candidate) => {
                 const job = jobs.find((item) => item.id === candidate.jobId);
                 const report = realityReports.find((item) => item.candidateId === candidate.id);
+                const silenceSignals = report?.silenceRisk.possibleReasons.length ?? 0;
                 return (
                   <tr key={candidate.id}>
                     <td>
@@ -52,13 +54,22 @@ export function Candidates() {
                     <td>{report ? `${report.trialCompletion}%` : '待确认'}</td>
                     <td>{report ? `${report.candidateTrustIndex.total}/100` : '待确认'}</td>
                     <td>
-                      <Badge tone={report?.realIntention === '高' ? 'green' : report?.realIntention === '低' ? 'amber' : 'blue'}>{report?.realIntention ?? '待确认'}</Badge>
+                      <Badge tone={report?.realIntention === '高' ? 'green' : report?.realIntention === '低' ? 'amber' : 'blue'}>
+                        {report?.realIntention ?? '待确认'}
+                      </Badge>
                     </td>
                     <td>
                       <Badge tone="blue">{report?.jobUnderstanding ?? '待确认'}</Badge>
                     </td>
                     <td>
-                      <Badge tone={report?.noShowRisk === '低' ? 'green' : report?.noShowRisk === '高' ? 'amber' : 'blue'}>{report?.noShowRisk ?? '待确认'}</Badge>
+                      <Badge tone={report?.noShowRisk === '低' ? 'green' : report?.noShowRisk === '高' ? 'amber' : 'blue'}>
+                        {report?.noShowRisk ?? '待确认'}
+                      </Badge>
+                    </td>
+                    <td>
+                      <Badge tone={silenceSignals >= 3 ? 'red' : silenceSignals >= 2 ? 'amber' : 'green'}>
+                        {report?.silenceRisk.level ?? '待确认'}
+                      </Badge>
                     </td>
                     <td>{report?.skillEvidence.slice(0, 2).join('、') ?? '待补充'}</td>
                     <td>

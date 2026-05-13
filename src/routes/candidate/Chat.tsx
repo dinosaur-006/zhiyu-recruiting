@@ -7,11 +7,12 @@ import {
   askReverseQuestion,
   completeRealityScene,
   recordAskedTopic,
+  recordCandidateExitReason,
   selectBranchChoice,
   startTrialSession,
   useDemoState,
 } from '../../store/demoStore';
-import type { BranchChoice, RealityRoleType, RealityScene, ReverseQuestion, ReverseQuestionType } from '../../types';
+import type { BranchChoice, CandidateExitReason, RealityRoleType, RealityScene, ReverseQuestion, ReverseQuestionType } from '../../types';
 
 const sceneOrder: Record<RealityScene['type'], number> = {
   intro: 0,
@@ -26,6 +27,15 @@ const roleNames: Record<RealityRoleType, string> = {
 };
 
 const reverseQuestionTypes: ReverseQuestionType[] = ['工作节奏', '薪资福利', '团队氛围', '成长空间', '岗位挑战', '面试流程'];
+const exitReasons: CandidateExitReason[] = [
+  '岗位节奏不适合',
+  '薪资信息不明确',
+  '成长路径不清晰',
+  '工作内容不符合预期',
+  'AI流程让我不放心',
+  '暂时没有时间',
+  '其他',
+];
 
 export function Chat() {
   const { jobId } = useParams();
@@ -51,6 +61,7 @@ export function Chat() {
   const [branchRoundIndex, setBranchRoundIndex] = useState(0);
   const [localBranchChoiceIds, setLocalBranchChoiceIds] = useState<string[]>([]);
   const [reverseAnswer, setReverseAnswer] = useState<ReverseQuestion | null>(null);
+  const [showExitReasons, setShowExitReasons] = useState(false);
   const session = state.trialSessions.find((item) => item.id === sessionId);
 
   useEffect(() => {
@@ -121,10 +132,19 @@ export function Chat() {
     navigate(`/candidate/profile/${job.id}?sessionId=${sessionId ?? ''}`);
   };
 
+  const leaveWithReason = (reason: CandidateExitReason) => {
+    if (sessionId) {
+      recordCandidateExitReason(sessionId, reason);
+    }
+    navigate(`/candidate/job/${job.id}`);
+  };
+
   return (
     <main className="chat-page trial-page">
       <section className="chat-header">
-        <Link to={`/candidate/job/${job.id}`}>返回岗位</Link>
+        <button className="ghost-button tiny" type="button" onClick={() => setShowExitReasons(true)}>
+          暂不继续
+        </button>
         <div>
           <strong>岗位实境舱</strong>
           <span>
@@ -222,6 +242,26 @@ export function Chat() {
           </>
         )}
       </section>
+
+      {showExitReasons ? (
+        <div className="modal-backdrop" role="dialog" aria-modal="true">
+          <div className="consent-modal">
+            <span className="eyebrow">退出原因捕获</span>
+            <h2>你暂时不继续，是因为？</h2>
+            <p>这个选择只用于帮助企业优化岗位表达和邀约前说明，不评价你的能力。</p>
+            <div className="exit-reason-grid">
+              {exitReasons.map((reason) => (
+                <button className="ghost-button" type="button" key={reason} onClick={() => leaveWithReason(reason)}>
+                  {reason}
+                </button>
+              ))}
+            </div>
+            <button className="primary-button full" type="button" onClick={() => setShowExitReasons(false)}>
+              继续云试岗
+            </button>
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }

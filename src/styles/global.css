@@ -172,6 +172,12 @@ p {
   background: #fff;
 }
 
+.ghost-button.tiny {
+  min-height: 34px;
+  padding: 0 12px;
+  font-size: 12px;
+}
+
 .danger-button {
   color: #fff;
   background: var(--red);
@@ -1645,6 +1651,99 @@ select:focus {
   background: #f7fffb;
 }
 
+.trust-loop-panel,
+.trust-diagnosis-panel,
+.consistency-panel,
+.reliance-panel {
+  border: 1px solid #d9e5ff;
+  border-radius: 16px;
+  padding: 18px;
+  background:
+    linear-gradient(135deg, rgba(36, 107, 254, 0.045), rgba(124, 58, 237, 0.04)),
+    #fff;
+}
+
+.trust-loop-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.trust-loop-node {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fff;
+}
+
+.trust-loop-node > span {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  color: #fff;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--blue), var(--purple));
+  font-weight: 900;
+}
+
+.trust-loop-node p,
+.diagnosis-card p,
+.consistency-panel p,
+.reliance-panel p {
+  color: var(--muted);
+  line-height: 1.65;
+  margin: 4px 0 0;
+}
+
+.diagnosis-list {
+  display: grid;
+  gap: 12px;
+}
+
+.diagnosis-card {
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fff;
+}
+
+.diagnosis-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.diagnosis-script {
+  padding: 12px;
+  border-radius: 12px;
+  background: #f5f8ff;
+}
+
+.consistency-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.consistency-grid > div {
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+}
+
+.exit-reason-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 16px 0;
+}
+
 .truth-evidence-grid {
   display: grid;
   gap: 10px;
@@ -1701,6 +1800,101 @@ select:focus {
 
 .fairness-score {
   background: #123f4f;
+}
+
+.governance-panel {
+  border: 1px solid #d9e5ff;
+  border-radius: 16px;
+  padding: 18px;
+  background:
+    linear-gradient(135deg, rgba(36, 107, 254, 0.045), rgba(15, 159, 110, 0.045)),
+    #fff;
+}
+
+.dashboard-task-panel {
+  margin-top: 18px;
+}
+
+.governance-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.governance-grid > div,
+.task-empty {
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+}
+
+.audit-timeline,
+.task-list {
+  display: grid;
+  gap: 10px;
+}
+
+.audit-item {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fff;
+}
+
+.audit-item time {
+  color: var(--purple);
+  font-weight: 900;
+}
+
+.audit-title,
+.task-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.audit-item p,
+.repair-task p,
+.task-empty {
+  color: var(--muted);
+  line-height: 1.65;
+  margin: 6px 0 0;
+}
+
+.audit-item span,
+.repair-task span {
+  display: block;
+  color: var(--blue-dark);
+  font-size: 12px;
+  font-weight: 900;
+  margin-top: 8px;
+}
+
+.repair-task {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 0.75fr);
+  gap: 14px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fff;
+}
+
+.repair-task.handled {
+  background: #f6fbf8;
+  border-color: #c8eadb;
+}
+
+.task-action {
+  display: grid;
+  align-content: start;
+  justify-items: start;
+  gap: 10px;
 }
 
 @keyframes speakPulse {
@@ -1810,9 +2004,15 @@ select:focus {
   .contract-grid,
   .rights-grid,
   .risk-review-grid,
+  .governance-grid,
+  .audit-item,
+  .repair-task,
   .trust-gap-row,
   .contract-actions,
-  .trust-index-hero {
+  .trust-index-hero,
+  .trust-loop-node,
+  .consistency-grid,
+  .exit-reason-grid {
     grid-template-columns: 1fr;
   }
 

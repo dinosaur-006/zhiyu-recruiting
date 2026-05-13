@@ -1,10 +1,13 @@
 import type {
   AvatarConfig,
+  AIAdviceRelianceNotice,
   BranchChoice,
   BranchScenario,
   Candidate,
+  CandidateExitReason,
   CandidateTrustIndex,
   CandidateFairnessIndex,
+  CommitmentConsistencyCheck,
   ConcernRadar,
   Conversation,
   ConversationMessage,
@@ -31,7 +34,12 @@ import type {
   TruthVideoScript,
   TrustNegotiationCard,
   InterviewMutualConfirmation,
+  TrustGapDiagnosisItem,
   TrustGapSummary,
+  SilenceRisk,
+  TrustAuditEvent,
+  TrustLoopNode,
+  TrustRepairTask,
   TrialSession,
 } from '../types';
 
@@ -669,6 +677,410 @@ export function generateTrialReplay(session: TrialSession): TrialReplayEvent[] {
     });
 }
 
+export function generateCommitmentConsistencyCheck(
+  job: Job,
+  truthLabel: JobTruthLabel,
+  contract: JobTruthContract,
+  scenes: RealityScene[],
+): CommitmentConsistencyCheck {
+  const findings: string[] = [];
+  const suggestions: string[] = [];
+  const sceneText = scenes.map((scene) => scene.script).join(' ');
+  const commitmentText = contract.commitments.map((item) => `${item.title} ${item.detail}`).join(' ');
+
+  if (containsAny(`${job.growthPath} ${job.teamInfo}`, ['成长', '培养', '晋升', 'Owner']) && job.growthPath.length < 28) {
+    findings.push('JD强调成长，但成长路径缺少具体机制或示例。');
+    suggestions.push('补充新人培养节奏、导师机制、技术分享频率或成长里程碑。');
+  }
+  if ((truthLabel.workPace === '中高' || truthLabel.workPace === '高') && !containsAny(commitmentText, ['节奏', '压力', '节点'])) {
+    findings.push('岗位真相标签提示节奏较高，但岗位真相合约未充分说明节奏和压力。');
+    suggestions.push('在岗位真相合约中补充阶段性压力、排期协同和工作节奏边界。');
+  }
+  if (containsAny(sceneText, ['压力', '上线', '节点']) && !containsAny(job.workload, ['压力', '节点', '上线', '节奏'])) {
+    findings.push('数字人脚本提到项目压力，但HR配置的工作节奏信息不够明确。');
+    suggestions.push('在HR配置中补充项目节点压力是否常态化，以及如何协同排期。');
+  }
+  if (!containsAny(job.interviewProcess, ['反馈', 'Offer', '沟通', '工作日'])) {
+    findings.push('面试流程尚未明确反馈时效或薪资沟通节点。');
+    suggestions.push('补充面试后反馈节点、薪资沟通阶段和候选人可追问渠道。');
+  }
+  if (truthLabel.evidence.some((item) => !item.evidenceText.trim())) {
+    findings.push('部分岗位真相缺少证据文本。');
+    suggestions.push('请HR补充岗位职责、团队介绍或面试流程中的对应证据。');
+  }
+
+  const riskLevel: CommitmentConsistencyCheck['riskLevel'] =
+    findings.length >= 3 ? '高' : findings.length >= 1 ? '中' : '低';
+
+  return {
+    riskLevel,
+    findings: findings.length > 0 ? findings : ['岗位表达在JD、真相标签、合约和数字人脚本之间保持一致。'],
+    suggestions: suggestions.length > 0 ? suggestions : ['保持当前透明表达，并在真实面试中继续人工复核候选人关注点。'],
+  };
+}
+
+export function generateTrustGapDiagnosis(report: RealityReport): TrustGapDiagnosisItem[] {
+  const items: TrustGapDiagnosisItem[] = [];
+  const name = report.candidateName;
+
+  if (report.candidateTrustIndex.gapReasons.some((gap) => gap.includes('薪资')) || report.concernRadar.salary >= 65) {
+    items.push({
+      type: '信息缺口',
+      trigger: '候选人关注薪资沟通节点或薪资范围确认方式。',
+      impact: '如果邀约前不说明薪资沟通阶段，候选人可能降低回复意愿。',
+      repairAction: '在邀约前说明薪资会在一面后由HR沟通范围和期望。',
+      repairScript: `${name}你好，薪资沟通会在一面后由HR与你确认范围和期望，你也可以在面试前先表达关注点。`,
+    });
+  }
+  if (report.concernRadar.workload >= 65 || report.jobTruthViewSummary.focusedPoints.includes('工作节奏')) {
+    items.push({
+      type: '情绪缺口',
+      trigger: '候选人重点查看工作节奏，并在顾虑雷达中呈现较高节奏顾虑。',
+      impact: '候选人可能担心岗位长期高压，建议先降低不确定感。',
+      repairAction: '解释项目节点压力是否常态化，以及团队如何协同排期。',
+      repairScript: `${name}你好，这个岗位在关键版本前会有阶段性压力，但不是长期高压，我们会在面试中说明排期方式。`,
+    });
+  }
+  if (
+    report.candidateTrustIndex.gapReasons.some((gap) => gap.includes('成长')) ||
+    report.commitmentConsistencyCheck?.findings.some((finding) => finding.includes('成长'))
+  ) {
+    items.push({
+      type: '证据缺口',
+      trigger: '成长路径被候选人关注，但当前证据更偏概念描述。',
+      impact: '候选人可能认可方向，但需要看到团队真实成长机制。',
+      repairAction: '补充新人培养、Code Review、技术分享和模块Owner路径案例。',
+      repairScript: `${name}你好，关于成长路径，我们会重点介绍团队Code Review、技术分享和模块Owner培养方式。`,
+    });
+  }
+  if (
+    report.truthContractSummary.unresolvedConcerns.length > 0 ||
+    report.mutualConfirmation.unresolvedReasons.length > 0 ||
+    report.commitmentConsistencyCheck?.findings.some((finding) => finding.includes('反馈'))
+  ) {
+    items.push({
+      type: '承诺缺口',
+      trigger: '岗位真相合约或双向确认单仍存在未解决疑问。',
+      impact: '候选人对后续流程的确定性不足，可能影响面试投入意愿。',
+      repairAction: '明确本轮面试会回应候选人关心的问题，并说明反馈节点。',
+      repairScript: `${name}你好，本轮面试会优先回应你关心的问题，面试后我们会尽量说明反馈节点和下一步安排。`,
+    });
+  }
+
+  return items.length > 0
+    ? items
+    : [
+        {
+          type: '信息缺口',
+          trigger: '当前未发现明显信任缺口。',
+          impact: '可保持清晰邀约节奏。',
+          repairAction: '继续强调人工复核、候选人权益和岗位真实信息。',
+          repairScript: `${name}你好，我们会围绕岗位真实任务和你的关注点进行沟通，所有AI内容仅作为面试前参考。`,
+        },
+      ];
+}
+
+export function generateAIAdviceRelianceNotice(report: RealityReport): AIAdviceRelianceNotice {
+  const evidenceSupportedCount = [
+    report.evidenceSources.fromTrialScenes.length > 0,
+    report.evidenceSources.fromCandidateInput.length > 0,
+    report.evidenceSources.fromScenarioChoices.length > 0,
+    report.evidenceSources.fromJobTruthLabel.length > 0,
+    report.trialReplay.length > 0,
+    report.truthContractSummary.acknowledged,
+    report.reverseQuestions.length > 0,
+  ].filter(Boolean).length;
+  const consistencyNeedsReview = report.commitmentConsistencyCheck?.riskLevel !== '低';
+  const weakEvidence =
+    report.evidenceSources.fromJobTruthLabel.length === 0 ||
+    report.skillEvidence.includes('待面试中补充项目证据') ||
+    report.trustGapDiagnosis?.some((item) => item.type === '证据缺口');
+  const needsHumanConfirmationCount = [consistencyNeedsReview, weakEvidence, report.candidateExitReason].filter(Boolean).length;
+
+  return {
+    evidenceSupportedCount,
+    needsHumanConfirmationCount,
+    reminders: [
+      `当前报告中${evidenceSupportedCount}类AI辅助建议具备行为或岗位证据来源。`,
+      `${needsHumanConfirmationCount}类建议需要HR在面试或邀约前人工确认。`,
+      '全部AI辅助建议均不得作为最终招聘决定。',
+    ],
+  };
+}
+
+export function generateTrustLoopGraph(report: RealityReport): TrustLoopNode[] {
+  const node = (id: string, title: string, status: TrustLoopNode['status'], summary: string, anchor: string): TrustLoopNode => ({
+    id,
+    title,
+    status,
+    summary,
+    anchor,
+  });
+
+  return [
+    node(
+      'truth',
+      '岗位真相公开',
+      report.evidenceSources.fromJobTruthLabel.length > 0 ? '已完成' : '需HR补充',
+      report.evidenceSources.fromJobTruthLabel.length > 0 ? '真相标签已关联来源与证据。' : '真相标签缺少来源，需HR补充证据。',
+      'job-truth-summary',
+    ),
+    node(
+      'contract',
+      '候选人知情确认',
+      report.truthContractSummary.acknowledged
+        ? report.truthContractSummary.unresolvedConcerns.length > 0
+          ? '有缺口'
+          : '已完成'
+        : '需HR补充',
+      report.truthContractSummary.acknowledged
+        ? `已确认${report.truthContractSummary.acknowledgedItems.length}项，仍有${report.truthContractSummary.unresolvedConcerns.length}项疑问。`
+        : '候选人尚未确认岗位真相合约。',
+      'truth-contract-summary',
+    ),
+    node(
+      'branch',
+      '分岔云试岗选择',
+      report.evidenceSources.fromScenarioChoices.length > 0 ? '已完成' : '有缺口',
+      report.decisionPathAnalysis.summary,
+      'decision-path',
+    ),
+    node(
+      'concern',
+      '候选人顾虑暴露',
+      Object.values(report.concernRadar).some((value) => value >= 70) ? '有缺口' : '已完成',
+      topConcernText(report.concernRadar),
+      'concern-radar',
+    ),
+    node(
+      'gap',
+      '信任缺口识别',
+      report.trustGapDiagnosis.length > 0 ? '有缺口' : '已完成',
+      report.trustGapDiagnosis.slice(0, 2).map((item) => item.type).join('、') || '未发现明显缺口。',
+      'trust-gap-diagnosis',
+    ),
+    node(
+      'repair',
+      '信任修复建议',
+      report.trustRepairScript ? '已完成' : '需HR补充',
+      report.trustRepairScript ? '已生成信任修复话术和邀约前动作。' : '缺少信任修复话术。',
+      'trust-repair',
+    ),
+    node(
+      'mutual',
+      '双向面试确认',
+      report.mutualConfirmation.candidateConfirmedItems.length >= 3
+        ? report.mutualConfirmation.unresolvedReasons.length > 0
+          ? '有缺口'
+          : '已完成'
+        : '需HR补充',
+      `候选人确认${report.mutualConfirmation.candidateConfirmedItems.length}项，未确认${report.mutualConfirmation.unresolvedReasons.length}项。`,
+      'mutual-confirmation',
+    ),
+    node(
+      'review',
+      'HR人工复核',
+      report.aiRiskReview.result === '复核通过' ? '已完成' : '需HR补充',
+      report.aiRiskReview.result === '复核通过' ? 'AI风险复核通过，仍需HR最终人工判断。' : '风险复核提示需人工确认。',
+      'ai-risk-review',
+    ),
+  ];
+}
+
+export function generateTrustAuditLog(report: RealityReport, session: TrialSession, candidate: Candidate): TrustAuditEvent[] {
+  const baseTime = session.startedAt;
+  const event = (
+    type: TrustAuditEvent['type'],
+    actor: TrustAuditEvent['actor'],
+    title: string,
+    description: string,
+    occurredAt = baseTime,
+    evidenceLevel: TrustAuditEvent['evidenceLevel'] = '充分',
+  ): TrustAuditEvent => ({
+    id: `audit_${report.id}_${type}_${Math.random().toString(36).slice(2, 8)}`,
+    candidateId: candidate.id,
+    jobId: candidate.jobId,
+    type,
+    actor,
+    title,
+    description,
+    occurredAt,
+    evidenceLevel,
+  });
+
+  const events: TrustAuditEvent[] = [
+    event(
+      'job_truth_label_generated',
+      'system',
+      '生成岗位真相标签',
+      `已生成${report.evidenceSources.fromJobTruthLabel.length}条岗位真相来源证据。`,
+      candidate.submittedAt,
+      report.evidenceSources.fromJobTruthLabel.length > 0 ? '充分' : '需人工确认',
+    ),
+    ...session.viewedTruthPoints.map((point) =>
+      event('truth_point_viewed', 'candidate', `候选人查看「${point}」`, '候选人主动查看岗位真相点。', session.startedAt),
+    ),
+  ];
+
+  if (session.truthContractAcknowledgement.acknowledged) {
+    events.push(
+      event(
+        'truth_contract_acknowledged',
+        'candidate',
+        '候选人确认岗位真相合约',
+        `确认${session.truthContractAcknowledgement.acknowledgedItems.length}项，仍有${session.truthContractAcknowledgement.unresolvedConcerns.length}项疑问。`,
+        session.truthContractAcknowledgement.acknowledgedAt ?? session.startedAt,
+        session.truthContractAcknowledgement.unresolvedConcerns.length > 0 ? '需人工确认' : '充分',
+      ),
+    );
+  }
+
+  if (session.branchChoiceIds.length > 0 || report.evidenceSources.fromScenarioChoices.length > 0) {
+    events.push(
+      event(
+        'branch_choice_completed',
+        'candidate',
+        '候选人完成分岔任务选择',
+        `记录${session.branchChoiceIds.length || report.evidenceSources.fromScenarioChoices.length}个任务沙盘选择。`,
+        session.completedAt ?? session.startedAt,
+      ),
+    );
+  }
+
+  events.push(
+    event(
+      'trust_repair_suggestion_generated',
+      'ai',
+      'AI生成信任修复建议',
+      `已生成${report.trustGapDiagnosis.length}条缺口诊断和${report.trustRepairTasks?.length ?? 0}条修复任务。`,
+      candidate.submittedAt,
+      report.trustGapDiagnosis.length > 0 ? '充分' : '需人工确认',
+    ),
+    event(
+      'ai_risk_review_completed',
+      'ai',
+      'AI风险复核完成',
+      report.aiRiskReview.result,
+      candidate.submittedAt,
+      report.aiRiskReview.result === '复核通过' ? '充分' : '需人工确认',
+    ),
+    event('hr_report_viewed', 'hr', 'HR查看Pro报告', '系统已生成可供HR面试前参考的治理报告。', candidate.submittedAt),
+  );
+
+  if (candidate.status === '已邀约') {
+    events.push(event('hr_invitation_sent', 'hr', 'HR发出邀约', 'HR已基于报告和人工判断发出邀约。', candidate.submittedAt));
+  }
+
+  return events.sort((a, b) => new Date(a.occurredAt).getTime() - new Date(b.occurredAt).getTime());
+}
+
+export function calculateAuditCompleteness(events: TrustAuditEvent[]) {
+  const required: TrustAuditEvent['type'][] = [
+    'job_truth_label_generated',
+    'truth_point_viewed',
+    'branch_choice_completed',
+    'trust_repair_suggestion_generated',
+    'ai_risk_review_completed',
+    'hr_report_viewed',
+  ];
+  const covered = required.filter((type) => events.some((event) => event.type === type)).length;
+  return Math.round((covered / required.length) * 100);
+}
+
+export function generateSilenceRisk(report: RealityReport, session: TrialSession): SilenceRisk {
+  const possibleReasons = unique([
+    session.exitReason ? `候选人已留下退出或中断原因：${session.exitReason}` : '',
+    session.completionRate < 80 ? '云试岗完成度不足，可能尚未形成继续面试的确定性。' : '',
+    !session.truthContractAcknowledgement.acknowledged ? '候选人尚未确认岗位真相合约。' : '',
+    session.truthContractAcknowledgement.unresolvedConcerns.length > 0
+      ? `仍有疑问：${session.truthContractAcknowledgement.unresolvedConcerns.join('、')}`
+      : '',
+    session.reverseQuestions.length === 0 ? '候选人未使用反向问答室，真实顾虑可能尚未表达。' : '',
+    report.candidateTrustIndex.total < 65 ? '候选人信任指数偏低，岗位信息可能不足以支撑立即邀约。' : '',
+  ]).filter(Boolean);
+
+  const level: SilenceRisk['level'] =
+    session.exitReason || session.completionRate < 50 || report.candidateTrustIndex.total < 55
+      ? '高'
+      : possibleReasons.length >= 2
+        ? '中'
+        : '低';
+  const suggestedActions = unique([
+    level !== '低' ? '先发送岗位真相补充说明，再进行正式邀约。' : '保持清晰邀约节奏。',
+    report.concernRadar.salary >= 65 ? '补充薪资沟通节点和可确认范围。' : '',
+    report.concernRadar.workload >= 65 ? '说明工作节奏和阶段性压力是否常态化。' : '',
+    '提醒候选人可以直接投递，不必完成全部云试岗。',
+    '提供15分钟HR澄清沟通入口。',
+  ]).filter(Boolean);
+
+  return {
+    level,
+    possibleReasons: possibleReasons.length > 0 ? possibleReasons : ['当前未发现明显沉默风险。'],
+    suggestedActions,
+    wakeUpScript: `${report.candidateName}你好，我看到你对岗位信息还有一些需要确认的地方。你可以不完成全部云试岗，也可以直接投递；如果你愿意，我们可以先用15分钟说明工作节奏、薪资沟通节点和AI使用边界。这个提醒只用于帮助HR补充岗位信息，不评价你的能力。`,
+  };
+}
+
+export function generateTrustRepairTasks(report: RealityReport): TrustRepairTask[] {
+  const createdAt = nowIso();
+  const tasks: TrustRepairTask[] = [];
+  const addTask = (
+    source: TrustRepairTask['source'],
+    title: string,
+    trigger: string,
+    suggestedAction: string,
+    index: number,
+  ) => {
+    tasks.push({
+      id: `task_${report.candidateId}_${source}_${index}`.replace(/\s/g, '_'),
+      candidateId: report.candidateId,
+      candidateName: report.candidateName,
+      title,
+      trigger,
+      suggestedAction,
+      source,
+      status: '待处理',
+      createdAt,
+    });
+  };
+
+  report.trustGapDiagnosis.slice(0, 3).forEach((item, index) => {
+    addTask('信任缺口', `修复${item.type}`, item.trigger, item.repairAction, index);
+  });
+
+  if (report.silenceRisk?.level === '中' || report.silenceRisk?.level === '高') {
+    addTask(
+      '沉默风险',
+      `处理${report.silenceRisk.level}沉默风险`,
+      report.silenceRisk.possibleReasons[0] ?? '候选人可能暂缓继续沟通。',
+      report.silenceRisk.suggestedActions[0] ?? '先发送岗位补充说明。',
+      tasks.length,
+    );
+  }
+
+  if (report.commitmentConsistencyCheck.riskLevel !== '低') {
+    addTask(
+      '承诺一致性',
+      '补齐岗位承诺一致性说明',
+      report.commitmentConsistencyCheck.findings[0] ?? '岗位表达存在不一致。',
+      report.commitmentConsistencyCheck.suggestions[0] ?? '请HR补充说明。',
+      tasks.length,
+    );
+  }
+
+  if (report.aiRiskReview.result !== '复核通过') {
+    addTask(
+      'AI风险复核',
+      '人工确认AI风险复核提示',
+      report.aiRiskReview.reminders[0] ?? 'AI风险复核提示需要人工确认。',
+      'HR查看风险复核提示后再使用报告建议。',
+      tasks.length,
+    );
+  }
+
+  return tasks;
+}
+
 export function generateAIRiskReview(report: RealityReport): AIRiskReview {
   const reportText = JSON.stringify(report);
   const forbidden = ['淘' + '汰', '拒' + '绝', '自动' + '筛掉', '自动' + '录用'];
@@ -680,10 +1092,18 @@ export function generateAIRiskReview(report: RealityReport): AIRiskReview {
     (report.evidenceSources.fromCandidateInput.length > 0 ||
       report.evidenceSources.fromScenarioChoices.length > 0 ||
       report.trialReplay.length > 0);
+  const hasCommitmentIssue = report.commitmentConsistencyCheck?.riskLevel === '高';
+  const hasWeakAdviceEvidence = (report.aiAdviceRelianceNotice?.needsHumanConfirmationCount ?? 0) > 2;
+  const auditCompletenessRate = report.auditCompletenessRate ?? 0;
+  const hasAuditGap = auditCompletenessRate > 0 && auditCompletenessRate < 70;
   const reminders = unique([
     forbiddenHits.length > 0 ? `发现需人工确认的越界表述：${forbiddenHits.join('、')}` : '',
     hasJobTruthEvidence ? '岗位真相标签已标注可信来源和证据文本。' : '岗位真相标签缺少可信来源，需要HR补充证据。',
     hasEvidence ? '每条HR辅助建议均可回溯到候选人的云试岗行为、选择或主动填写内容。' : '部分建议缺少证据来源，建议HR人工确认后再使用。',
+    hasCommitmentIssue ? '承诺一致性存在风险，需HR补充说明。' : '岗位承诺一致性未发现明显高风险问题。',
+    hasWeakAdviceEvidence ? '部分AI建议证据不足，需要人工确认后再使用。' : '',
+    auditCompletenessRate >= 70 ? `审计日志完整率${auditCompletenessRate}%，治理链路可追溯。` : '',
+    hasAuditGap ? `审计日志完整率${auditCompletenessRate}%，建议HR补充关键治理事件。` : '',
     hasHumanReview ? '本报告仅供HR面试前参考，最终招聘决策由企业人工完成。' : '报告需要补充人工复核声明。',
     '系统未分析候选人的外貌、表情或声音情绪。',
   ]).filter(Boolean);
@@ -692,12 +1112,17 @@ export function generateAIRiskReview(report: RealityReport): AIRiskReview {
     '未出现自动化最终决策表述',
     hasJobTruthEvidence ? '岗位真相具备来源标注' : '',
     hasEvidence ? '已关联证据来源' : '',
+    auditCompletenessRate >= 70 ? '审计日志覆盖关键治理事件' : '',
+    !hasCommitmentIssue ? '岗位承诺一致性已检查' : '',
     hasHumanReview ? '已包含人工复核声明' : '',
     '未分析外貌、表情、声音情绪',
   ]).filter(Boolean);
 
   return {
-    result: forbiddenHits.length === 0 && hasHumanReview && hasEvidence ? '复核通过' : '需要人工确认',
+    result:
+      forbiddenHits.length === 0 && hasHumanReview && hasEvidence && !hasCommitmentIssue && !hasWeakAdviceEvidence && !hasAuditGap
+        ? '复核通过'
+        : '需要人工确认',
     checkedItems,
     reminders,
   };
@@ -1043,6 +1468,28 @@ export function generateRealityReport(
       },
       optimizationSuggestions: [],
     },
+    trustLoopGraph: [],
+    trustGapDiagnosis: [],
+    commitmentConsistencyCheck: {
+      riskLevel: '低',
+      findings: [],
+      suggestions: [],
+    },
+    aiAdviceRelianceNotice: {
+      evidenceSupportedCount: 0,
+      needsHumanConfirmationCount: 0,
+      reminders: [],
+    },
+    candidateExitReason: session.exitReason,
+    trustAuditLog: [],
+    silenceRisk: {
+      level: '低',
+      possibleReasons: [],
+      suggestedActions: [],
+      wakeUpScript: '',
+    },
+    trustRepairTasks: [],
+    auditCompletenessRate: 0,
     decisionPathAnalysis,
     concernRadar,
     sceneChoiceSummary: sceneChoiceSummary.length > 0 ? sceneChoiceSummary : ['候选人尚未完成任务沙盘选择，建议HR初沟确认推进方式。'],
@@ -1101,14 +1548,52 @@ export function generateRealityReport(
     mutualConfirmation,
     trustNegotiationCard: generateTrustNegotiationCard(reportWithTrust),
   };
-  const reportWithReview: RealityReport = {
+  const truthContract = generateJobTruthContract(job, truthLabel);
+  const commitmentConsistencyCheck = generateCommitmentConsistencyCheck(job, truthLabel, truthContract, generateRealityScripts(job));
+  const reportWithIntelligenceBase: RealityReport = {
     ...reportWithTrustPlus,
-    aiRiskReview: generateAIRiskReview(reportWithTrustPlus),
+    commitmentConsistencyCheck,
+  };
+  const trustGapDiagnosis = generateTrustGapDiagnosis(reportWithIntelligenceBase);
+  const reportWithIntelligence: RealityReport = {
+    ...reportWithIntelligenceBase,
+    trustGapDiagnosis,
+  };
+  const aiAdviceRelianceNotice = generateAIAdviceRelianceNotice(reportWithIntelligence);
+  const reportWithReliance: RealityReport = {
+    ...reportWithIntelligence,
+    aiAdviceRelianceNotice,
+  };
+  const reportWithReview: RealityReport = {
+    ...reportWithReliance,
+    aiRiskReview: generateAIRiskReview(reportWithReliance),
+  };
+  const reportWithSilence: RealityReport = {
+    ...reportWithReview,
+    silenceRisk: generateSilenceRisk(reportWithReview, session),
+  };
+  const reportWithTasks: RealityReport = {
+    ...reportWithSilence,
+    trustRepairTasks: generateTrustRepairTasks(reportWithSilence),
+  };
+  const trustAuditLog = generateTrustAuditLog(reportWithTasks, session, candidate);
+  const reportWithGovernance: RealityReport = {
+    ...reportWithTasks,
+    trustAuditLog,
+    auditCompletenessRate: calculateAuditCompleteness(trustAuditLog),
+  };
+  const reportWithFinalReview: RealityReport = {
+    ...reportWithGovernance,
+    aiRiskReview: generateAIRiskReview(reportWithGovernance),
+  };
+  const reportWithGraph: RealityReport = {
+    ...reportWithFinalReview,
+    trustLoopGraph: generateTrustLoopGraph(reportWithFinalReview),
   };
 
   return {
-    ...reportWithReview,
-    candidateFairnessIndex: generateCandidateFairnessIndex(reportWithReview),
+    ...reportWithGraph,
+    candidateFairnessIndex: generateCandidateFairnessIndex(reportWithGraph),
   };
 }
 
@@ -1179,6 +1664,15 @@ function concernLabel(key: keyof ConcernRadar) {
     roleClarity: '岗位职责顾虑',
   };
   return labels[key];
+}
+
+function topConcernText(radar: ConcernRadar) {
+  const top = Object.entries(radar)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 2)
+    .map(([key, value]) => `${concernLabel(key as keyof ConcernRadar)} ${value}%`);
+
+  return top.length > 0 ? top.join('、') : '当前顾虑信号较低。';
 }
 
 export function generateTruthVideoScript(job: Job, roles: RealityRole[], scenes: RealityScene[]): TruthVideoScript {

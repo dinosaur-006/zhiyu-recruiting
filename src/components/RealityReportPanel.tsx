@@ -1,13 +1,20 @@
 import { Badge } from './Badge';
+import { AIAdviceReliancePanel } from './AIAdviceReliancePanel';
 import { AIRiskReviewPanel } from './AIRiskReviewPanel';
 import { CandidateFairnessIndexPanel } from './CandidateFairnessIndexPanel';
 import { CandidateTrustIndexPanel } from './CandidateTrustIndexPanel';
+import { CommitmentConsistencyPanel } from './CommitmentConsistencyPanel';
 import { ConcernRadarPanel } from './ConcernRadarPanel';
 import { InterviewBattleCardPanel } from './InterviewBattleCardPanel';
 import { MutualConfirmationPanel } from './MutualConfirmationPanel';
 import { NoShowPreventionCardPanel } from './NoShowPreventionCardPanel';
 import { TrialReplayPanel } from './TrialReplayPanel';
+import { TrustAuditLogPanel } from './TrustAuditLogPanel';
+import { TrustGapDiagnosisPanel } from './TrustGapDiagnosisPanel';
+import { TrustLoopGraphPanel } from './TrustLoopGraphPanel';
 import { TrustNegotiationCardPanel } from './TrustNegotiationCardPanel';
+import { TrustRepairTaskPanel } from './TrustRepairTaskPanel';
+import { SilenceRiskPanel } from './SilenceRiskPanel';
 import type { RealityReport, RealityScene } from '../types';
 
 interface RealityReportPanelProps {
@@ -67,9 +74,14 @@ export function RealityReportPanel({ report, scenes = [], mode = 'hr' }: Reality
         <SummaryCell label="爽约风险" value={report.noShowRisk} />
       </div>
 
+      <TrustLoopGraphPanel nodes={report.trustLoopGraph} />
       <CandidateTrustIndexPanel trustIndex={report.candidateTrustIndex} />
+      <TrustGapDiagnosisPanel items={report.trustGapDiagnosis} />
+      <CommitmentConsistencyPanel check={report.commitmentConsistencyCheck} />
+      <SilenceRiskPanel risk={report.silenceRisk} />
+      <TrustRepairTaskPanel tasks={report.trustRepairTasks} />
 
-      <div className="story-block">
+      <div className="story-block" id="trial-scenes">
         <h3>云试岗轨迹</h3>
         <div className="timeline-list">
           {scenes.map((scene) => (
@@ -83,8 +95,9 @@ export function RealityReportPanel({ report, scenes = [], mode = 'hr' }: Reality
       </div>
 
       <TrialReplayPanel events={report.trialReplay} />
+      <TrustAuditLogPanel events={report.trustAuditLog} completenessRate={report.auditCompletenessRate} />
 
-      <div className="story-block">
+      <div className="story-block" id="job-truth-summary">
         <h3>岗位真相查看摘要</h3>
         <div className="report-summary-grid compact">
           <SummaryCell label="已查看标签" value={report.jobTruthViewSummary.viewed ? '是' : '待确认'} />
@@ -93,7 +106,7 @@ export function RealityReportPanel({ report, scenes = [], mode = 'hr' }: Reality
         </div>
       </div>
 
-      <div className="story-block">
+      <div className="story-block" id="truth-contract-summary">
         <h3>岗位真相合约确认情况</h3>
         <div className="report-summary-grid compact">
           <SummaryCell label="确认状态" value={report.truthContractSummary.acknowledged ? '已确认' : '待确认'} />
@@ -101,6 +114,10 @@ export function RealityReportPanel({ report, scenes = [], mode = 'hr' }: Reality
           <SummaryCell label="未解决疑问" value={report.truthContractSummary.unresolvedConcerns.join('、') || '暂无'} />
         </div>
       </div>
+
+      {report.candidateExitReason ? (
+        <StoryBlock title="候选人退出/中断原因" content={report.candidateExitReason} />
+      ) : null}
 
       <div className="story-block">
         <h3>关注点地图</h3>
@@ -115,7 +132,7 @@ export function RealityReportPanel({ report, scenes = [], mode = 'hr' }: Reality
         </div>
       </div>
 
-      <div className="story-block">
+      <div className="story-block" id="decision-path">
         <h3>分岔决策路径</h3>
         <p>{report.decisionPathAnalysis.summary}</p>
         <div className="report-summary-grid compact">
@@ -126,22 +143,31 @@ export function RealityReportPanel({ report, scenes = [], mode = 'hr' }: Reality
         <p className="story-list">推进方式：{report.decisionPathAnalysis.executionStyle}</p>
       </div>
 
-      <ConcernRadarPanel radar={report.concernRadar} />
+      <div id="concern-radar">
+        <ConcernRadarPanel radar={report.concernRadar} />
+      </div>
       <StoryTags title="场景选择记录" items={report.sceneChoiceSummary} tone="purple" />
       <StoryTags title="技能证据链" items={report.skillEvidence} tone="blue" />
       <StoryTags title="潜在失配风险" items={report.potentialMismatchRisks} tone="amber" />
       <StoryTags title="候选人真实提问" items={report.reverseQuestions.map((item) => `${item.type}：${item.answer}`)} tone="blue" />
       <StoryTags title="信任缺口" items={report.trustGapSummary.majorGaps} tone="amber" />
       <StoryList title="邀约前信任修复建议" items={report.trustGapSummary.repairSuggestions} />
-      <CopyableScript title="信任修复话术" content={report.trustRepairScript} />
+      <div id="trust-repair">
+        <CopyableScript title="信任修复话术" content={report.trustRepairScript} />
+      </div>
       <CopyableScript title="正式邀约话术" content={report.invitationScript} />
       <TrustNegotiationCardPanel card={report.trustNegotiationCard} />
-      <MutualConfirmationPanel confirmation={report.mutualConfirmation} />
+      <div id="mutual-confirmation">
+        <MutualConfirmationPanel confirmation={report.mutualConfirmation} />
+      </div>
       <StoryList title="建议面试追问" items={report.interviewQuestions} />
       <NoShowPreventionCardPanel card={report.noShowPreventionCard} />
       <InterviewBattleCardPanel card={report.interviewBattleCard} />
       <CandidateFairnessIndexPanel fairness={report.candidateFairnessIndex} />
-      <AIRiskReviewPanel review={report.aiRiskReview} />
+      <AIAdviceReliancePanel notice={report.aiAdviceRelianceNotice} />
+      <div id="ai-risk-review">
+        <AIRiskReviewPanel review={report.aiRiskReview} />
+      </div>
       <div className="story-compliance">{report.complianceNote}</div>
     </section>
   );

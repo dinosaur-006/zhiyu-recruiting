@@ -319,6 +319,7 @@ export type TrialEventType =
   | 'branch_choice_selected'
   | 'reverse_question_asked'
   | 'profile_submitted'
+  | 'candidate_exit_reason'
   | 'direct_apply';
 
 export interface TrialEvent {
@@ -388,6 +389,87 @@ export interface CandidateFairnessIndex {
   optimizationSuggestions: string[];
 }
 
+export type TrustLoopNodeStatus = '已完成' | '有缺口' | '需HR补充';
+
+export interface TrustLoopNode {
+  id: string;
+  title: string;
+  status: TrustLoopNodeStatus;
+  summary: string;
+  anchor: string;
+}
+
+export interface TrustGapDiagnosisItem {
+  type: '信息缺口' | '情绪缺口' | '证据缺口' | '承诺缺口';
+  trigger: string;
+  impact: string;
+  repairAction: string;
+  repairScript: string;
+}
+
+export interface CommitmentConsistencyCheck {
+  riskLevel: Level;
+  findings: string[];
+  suggestions: string[];
+}
+
+export type CandidateExitReason =
+  | '岗位节奏不适合'
+  | '薪资信息不明确'
+  | '成长路径不清晰'
+  | '工作内容不符合预期'
+  | 'AI流程让我不放心'
+  | '暂时没有时间'
+  | '其他';
+
+export interface AIAdviceRelianceNotice {
+  evidenceSupportedCount: number;
+  needsHumanConfirmationCount: number;
+  reminders: string[];
+}
+
+export type TrustAuditEventType =
+  | 'job_truth_label_generated'
+  | 'truth_contract_acknowledged'
+  | 'truth_point_viewed'
+  | 'branch_choice_completed'
+  | 'trust_repair_suggestion_generated'
+  | 'ai_risk_review_completed'
+  | 'hr_report_viewed'
+  | 'hr_invitation_sent';
+
+export interface TrustAuditEvent {
+  id: string;
+  candidateId: string;
+  jobId: string;
+  type: TrustAuditEventType;
+  actor: 'system' | 'candidate' | 'ai' | 'hr';
+  title: string;
+  description: string;
+  occurredAt: string;
+  evidenceLevel: '充分' | '需人工确认';
+}
+
+export interface SilenceRisk {
+  level: Level;
+  possibleReasons: string[];
+  suggestedActions: string[];
+  wakeUpScript: string;
+}
+
+export interface TrustRepairTask {
+  id: string;
+  candidateId: string;
+  candidateName: string;
+  title: string;
+  trigger: string;
+  suggestedAction: string;
+  source: '信任缺口' | '沉默风险' | '承诺一致性' | 'AI风险复核';
+  status: '待处理' | '已处理';
+  createdAt: string;
+  handledAt?: string;
+}
+
 export interface TrialSession {
   id: string;
   jobId: string;
@@ -403,6 +485,7 @@ export interface TrialSession {
   truthContractAcknowledgement: TruthContractAcknowledgement;
   mutualConfirmation: InterviewMutualConfirmation;
   trialEvents: TrialEvent[];
+  exitReason?: CandidateExitReason;
   directApply: boolean;
   startedAt: string;
   completedAt?: string;
@@ -443,6 +526,15 @@ export interface RealityReport {
   trustNegotiationCard: TrustNegotiationCard;
   mutualConfirmation: InterviewMutualConfirmation;
   candidateFairnessIndex: CandidateFairnessIndex;
+  trustLoopGraph: TrustLoopNode[];
+  trustGapDiagnosis: TrustGapDiagnosisItem[];
+  commitmentConsistencyCheck: CommitmentConsistencyCheck;
+  aiAdviceRelianceNotice: AIAdviceRelianceNotice;
+  candidateExitReason?: CandidateExitReason;
+  trustAuditLog: TrustAuditEvent[];
+  silenceRisk: SilenceRisk;
+  trustRepairTasks: TrustRepairTask[];
+  auditCompletenessRate: number;
   decisionPathAnalysis: DecisionPathAnalysis;
   concernRadar: ConcernRadar;
   sceneChoiceSummary: string[];
@@ -494,6 +586,14 @@ export interface FunnelMetrics {
   highConfirmationCandidateRatio?: number;
   unconfirmedReasonTop3?: string[];
   candidateFairnessIndex?: number;
+  commitmentConsistencyIssues?: number;
+  evidenceSupportedAdviceCount?: number;
+  humanConfirmationAdviceCount?: number;
+  candidateExitReasonTop3?: string[];
+  pendingTrustRepairTasks?: number;
+  handledTrustRepairTasks?: number;
+  highSilenceRiskCandidates?: number;
+  auditCompletenessRate?: number;
 }
 
 export interface Company {
@@ -515,6 +615,8 @@ export interface DemoState {
   jobTruthContracts: JobTruthContract[];
   branchScenarios: BranchScenario[];
   truthVideoScripts: TruthVideoScript[];
+  trustAuditEvents: TrustAuditEvent[];
+  trustRepairTasks: TrustRepairTask[];
   trialSessions: TrialSession[];
   realityReports: RealityReport[];
   drafts: ConversationDraft[];

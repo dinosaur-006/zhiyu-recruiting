@@ -2,10 +2,12 @@ import { useEffect, useState } from 'react';
 import {
   buildDefaultAvatarConfig,
   answerReverseQuestion,
+  generateAIAdviceRelianceNotice,
   generateAIRiskReview,
   calculateCandidateTrustIndex,
   createDefaultRealityRoles,
   detectIntent,
+  generateCommitmentConsistencyCheck,
   generateJobTruthContract,
   generateJobTruthLabel,
   generateCandidateFairnessIndex,
@@ -14,9 +16,15 @@ import {
   generateRealityReport,
   generateRealityScripts,
   generateTrialReplay,
+  generateTrustGapDiagnosis,
   generateTrustNegotiationCard,
+  generateTrustLoopGraph,
   generateTrustGapSummary,
   generateTrustRepairScript,
+  generateTrustAuditLog,
+  generateSilenceRisk,
+  generateTrustRepairTasks,
+  calculateAuditCompleteness,
   generateTruthVideoScript,
   getBranchScenarios,
   getScenarioChoices,
@@ -33,6 +41,7 @@ import type {
   DemoState,
   Job,
   JobInput,
+  CandidateExitReason,
   ReverseQuestionType,
   RealityRole,
   TrialEvent,
@@ -162,11 +171,19 @@ export function normalizeDemoState(state: Partial<DemoState>): DemoState {
       truthContractAcknowledgement,
       mutualConfirmation: session.mutualConfirmation ?? emptyMutualConfirmation(),
       trialEvents,
+      exitReason: session.exitReason,
     };
   });
   const realityReports = (state.realityReports ?? initial.realityReports).map((report) => {
     const candidate = (state.candidates ?? initial.candidates).find((item) => item.id === report.candidateId);
+    const job = jobs.find((item) => item.id === report.jobId);
     const session = trialSessions.find((item) => item.candidateId === report.candidateId);
+    const truthLabel =
+      (job ? jobTruthLabels.find((item) => item.jobId === job.id) : undefined) ?? (job ? generateJobTruthLabel(job) : undefined);
+    const truthContract =
+      (job ? jobTruthContracts.find((item) => item.jobId === job.id) : undefined) ??
+      (job && truthLabel ? generateJobTruthContract(job, truthLabel) : undefined);
+    const scenes = job ? realityScenes.filter((scene) => scene.jobId === job.id) : [];
     const trialReplay = report.trialReplay ?? (session ? generateTrialReplay(session) : []);
     const truthContractSummary =
       report.truthContractSummary ??
@@ -231,6 +248,25 @@ export function normalizeDemoState(state: Partial<DemoState>): DemoState {
           },
           optimizationSuggestions: [],
         },
+      trustLoopGraph: report.trustLoopGraph ?? [],
+      trustGapDiagnosis: report.trustGapDiagnosis ?? [],
+      commitmentConsistencyCheck:
+        report.commitmentConsistencyCheck ??
+        (job && truthLabel && truthContract
+          ? generateCommitmentConsistencyCheck(job, truthLabel, truthContract, scenes)
+          : {
+              riskLevel: '中' as const,
+              findings: ['旧报告缺少岗位承诺一致性检测。'],
+              suggestions: ['建议HR重新生成报告或补充岗位真相证据。'],
+            }),
+      aiAdviceRelianceNotice:
+        report.aiAdviceRelianceNotice ??
+        {
+          evidenceSupportedCount: 0,
+          needsHumanConfirmationCount: 0,
+          reminders: [],
+        },
+      candidateExitReason: report.candidateExitReason ?? session?.exitReason,
       aiRiskReview:
         report.aiRiskReview ??
         {
@@ -262,15 +298,75 @@ export function normalizeDemoState(state: Partial<DemoState>): DemoState {
           ? report.trustNegotiationCard
           : generateTrustNegotiationCard(enrichedReport),
     };
-    return {
+    const withDiagnosis = {
       ...withTrustPlus,
-      aiRiskReview: report.aiRiskReview ?? generateAIRiskReview(withTrustPlus),
+      trustGapDiagnosis:
+        report.trustGapDiagnosis && report.trustGapDiagnosis.length > 0
+          ? report.trustGapDiagnosis
+          : generateTrustGapDiagnosis(withTrustPlus),
+    };
+    const withReliance = {
+      ...withDiagnosis,
+      aiAdviceRelianceNotice:
+        report.aiAdviceRelianceNotice && report.aiAdviceRelianceNotice.reminders.length > 0
+          ? report.aiAdviceRelianceNotice
+          : generateAIAdviceRelianceNotice(withDiagnosis),
+    };
+    const withReview = {
+      ...withReliance,
+      aiRiskReview: report.aiRiskReview ?? generateAIRiskReview(withReliance),
+    };
+    const withSilence = {
+      ...withReview,
+      silenceRisk: report.silenceRisk ?? (session ? generateSilenceRisk(withReview, session) : initial.realityReports[0]?.silenceRisk),
+    };
+    const withTasks = {
+      ...withSilence,
+      trustRepairTasks:
+        report.trustRepairTasks && report.trustRepairTasks.length > 0
+          ? report.trustRepairTasks
+          : generateTrustRepairTasks(withSilence),
+    };
+    const trustAuditLog =
+      report.trustAuditLog && report.trustAuditLog.length > 0
+        ? report.trustAuditLog
+        : candidate && session
+          ? generateTrustAuditLog(withTasks, session, candidate)
+          : [];
+    const auditCompletenessRate = report.auditCompletenessRate ?? calculateAuditCompleteness(trustAuditLog);
+    const withGovernance = {
+      ...withTasks,
+      trustAuditLog,
+      auditCompletenessRate,
+      aiRiskReview: generateAIRiskReview({ ...withTasks, trustAuditLog, auditCompletenessRate }),
+    };
+    return {
+      ...withGovernance,
+      trustLoopGraph:
+        report.trustLoopGraph && report.trustLoopGraph.length > 0
+          ? report.trustLoopGraph
+          : generateTrustLoopGraph(withGovernance),
       candidateFairnessIndex:
         report.candidateFairnessIndex && report.candidateFairnessIndex.total > 0
           ? report.candidateFairnessIndex
-          : generateCandidateFairnessIndex(withTrustPlus),
+          : generateCandidateFairnessIndex(withGovernance),
     };
   });
+
+  const trustAuditEvents =
+    state.trustAuditEvents && state.trustAuditEvents.length > 0
+      ? state.trustAuditEvents
+      : realityReports.flatMap((report) => report.trustAuditLog);
+  const trustRepairTasks =
+    state.trustRepairTasks && state.trustRepairTasks.length > 0
+      ? state.trustRepairTasks
+      : realityReports.flatMap((report) => report.trustRepairTasks);
+  const pendingTrustRepairTasks = trustRepairTasks.filter((task) => !task.handledAt).length;
+  const handledTrustRepairTasks = trustRepairTasks.filter((task) => Boolean(task.handledAt)).length;
+  const highSilenceRiskCandidates = realityReports.filter((report) => report.silenceRisk.possibleReasons.length >= 3).length;
+  const auditCompletenessRate = realityReports.length
+    ? Math.round(realityReports.reduce((sum, report) => sum + report.auditCompletenessRate, 0) / realityReports.length)
+    : 0;
 
   return {
     company: state.company ?? initial.company,
@@ -282,6 +378,8 @@ export function normalizeDemoState(state: Partial<DemoState>): DemoState {
     jobTruthContracts,
     branchScenarios,
     truthVideoScripts,
+    trustAuditEvents,
+    trustRepairTasks,
     trialSessions,
     realityReports,
     drafts: state.drafts ?? [],
@@ -291,6 +389,10 @@ export function normalizeDemoState(state: Partial<DemoState>): DemoState {
     metrics: {
       ...initial.metrics,
       ...(state.metrics ?? {}),
+      pendingTrustRepairTasks,
+      handledTrustRepairTasks,
+      highSilenceRiskCandidates,
+      auditCompletenessRate,
     },
   };
 }
@@ -617,6 +719,33 @@ export function askReverseQuestion(sessionId: string, type: ReverseQuestionType)
   return reverseQuestion;
 }
 
+export function recordCandidateExitReason(sessionId: string, reason: CandidateExitReason) {
+  updateDemoState((state) => {
+    const nextTopReasons = Array.from(new Set([reason, ...(state.metrics.candidateExitReasonTop3 ?? [])])).slice(0, 3);
+
+    return {
+      ...state,
+      trialSessions: state.trialSessions.map((session) =>
+        session.id === sessionId
+          ? {
+              ...session,
+              exitReason: reason,
+              trialEvents: [
+                ...session.trialEvents,
+                createTrialEvent('candidate_exit_reason', `候选人暂不继续：${reason}`, { reason }),
+              ],
+            }
+          : session,
+      ),
+      metrics: {
+        ...state.metrics,
+        trialDropOffs: (state.metrics.trialDropOffs ?? 0) + 1,
+        candidateExitReasonTop3: nextTopReasons,
+      },
+    };
+  });
+}
+
 export function saveConversationDraft(jobId: string, messages: ConversationMessage[]) {
   const draft: ConversationDraft = {
     id: createId('draft'),
@@ -710,6 +839,7 @@ export function submitCandidateApplication(
     trialEvents: existingSession?.trialEvents ?? [
       createTrialEvent(!existingSession ? 'direct_apply' : 'trial_started', !existingSession ? '候选人选择直接投递' : '进入岗位真相舱'),
     ],
+    exitReason: existingSession?.exitReason,
     directApply: !existingSession,
     startedAt: existingSession?.startedAt ?? nowIso(),
     completedAt: nowIso(),
@@ -757,6 +887,14 @@ export function submitCandidateApplication(
     realityReports: [
       realityReport,
       ...current.realityReports.filter((report) => report.candidateId !== candidate.id),
+    ],
+    trustAuditEvents: [
+      ...realityReport.trustAuditLog,
+      ...current.trustAuditEvents.filter((event) => event.candidateId !== candidate.id),
+    ],
+    trustRepairTasks: [
+      ...realityReport.trustRepairTasks,
+      ...current.trustRepairTasks.filter((task) => task.candidateId !== candidate.id),
     ],
     drafts: current.drafts.filter((item) => item.id !== draftId),
     metrics: {
@@ -810,6 +948,39 @@ export function submitCandidateApplication(
           ? (current.metrics.aiRiskReviewPasses ?? 0) + 1
           : (current.metrics.aiRiskReviewPasses ?? 0),
       lowTrustReasonTop3: realityReport.candidateTrustIndex.gapReasons.slice(0, 3),
+      mutualConfirmations:
+        realityReport.mutualConfirmation.candidateConfirmedItems.length >= 3
+          ? (current.metrics.mutualConfirmations ?? 0) + 1
+          : (current.metrics.mutualConfirmations ?? 0),
+      highConfirmationCandidateRatio:
+        realityReport.mutualConfirmation.unresolvedReasons.length === 0
+          ? Math.min(100, (current.metrics.highConfirmationCandidateRatio ?? 0) + 5)
+          : current.metrics.highConfirmationCandidateRatio ?? 0,
+      unconfirmedReasonTop3: realityReport.mutualConfirmation.unresolvedReasons.slice(0, 3),
+      candidateFairnessIndex: realityReport.candidateFairnessIndex.total,
+      commitmentConsistencyIssues:
+        realityReport.commitmentConsistencyCheck.riskLevel !== '低'
+          ? (current.metrics.commitmentConsistencyIssues ?? 0) + 1
+          : (current.metrics.commitmentConsistencyIssues ?? 0),
+      evidenceSupportedAdviceCount:
+        (current.metrics.evidenceSupportedAdviceCount ?? 0) + realityReport.aiAdviceRelianceNotice.evidenceSupportedCount,
+      humanConfirmationAdviceCount:
+        (current.metrics.humanConfirmationAdviceCount ?? 0) +
+        realityReport.aiAdviceRelianceNotice.needsHumanConfirmationCount,
+      candidateExitReasonTop3: completedSession.exitReason
+        ? Array.from(new Set([completedSession.exitReason, ...(current.metrics.candidateExitReasonTop3 ?? [])])).slice(0, 3)
+        : current.metrics.candidateExitReasonTop3,
+      pendingTrustRepairTasks: (current.metrics.pendingTrustRepairTasks ?? 0) + realityReport.trustRepairTasks.length,
+      handledTrustRepairTasks: current.metrics.handledTrustRepairTasks ?? 0,
+      highSilenceRiskCandidates:
+        realityReport.silenceRisk.possibleReasons.length >= 3
+          ? (current.metrics.highSilenceRiskCandidates ?? 0) + 1
+          : current.metrics.highSilenceRiskCandidates ?? 0,
+      auditCompletenessRate: Math.round(
+        (((current.metrics.auditCompletenessRate ?? realityReport.auditCompletenessRate) * Math.max(1, current.realityReports.length)) +
+          realityReport.auditCompletenessRate) /
+          Math.max(1, current.realityReports.length + 1),
+      ),
     },
   }));
 
@@ -854,6 +1025,23 @@ export function completeTrialSession(sessionId: string, candidateId: string) {
     ...current,
     trialSessions: current.trialSessions.map((item) => (item.id === sessionId ? completedSession : item)),
     realityReports: [report, ...current.realityReports.filter((item) => item.candidateId !== candidateId)],
+    trustAuditEvents: [
+      ...report.trustAuditLog,
+      ...current.trustAuditEvents.filter((event) => event.candidateId !== candidateId),
+    ],
+    trustRepairTasks: [
+      ...report.trustRepairTasks,
+      ...current.trustRepairTasks.filter((task) => task.candidateId !== candidateId),
+    ],
+    metrics: {
+      ...current.metrics,
+      pendingTrustRepairTasks: (current.metrics.pendingTrustRepairTasks ?? 0) + report.trustRepairTasks.length,
+      highSilenceRiskCandidates:
+        report.silenceRisk.possibleReasons.length >= 3
+          ? (current.metrics.highSilenceRiskCandidates ?? 0) + 1
+          : current.metrics.highSilenceRiskCandidates ?? 0,
+      auditCompletenessRate: report.auditCompletenessRate,
+    },
   }));
 
   return report;
@@ -863,7 +1051,73 @@ export function getRealityReport(candidateId: string) {
   return getDemoState().realityReports.find((report) => report.candidateId === candidateId);
 }
 
+export function markTrustRepairTaskHandled(taskId: string) {
+  return updateDemoState((state) => {
+    const handledAt = nowIso();
+    const trustRepairTasks = state.trustRepairTasks.map((task) =>
+      task.id === taskId ? { ...task, status: '已处理' as const, handledAt } : task,
+    );
+    const realityReports = state.realityReports.map((report) => ({
+      ...report,
+      trustRepairTasks: report.trustRepairTasks.map((task) =>
+        task.id === taskId ? { ...task, status: '已处理' as const, handledAt } : task,
+      ),
+    }));
+
+    return {
+      ...state,
+      trustRepairTasks,
+      realityReports,
+      metrics: {
+        ...state.metrics,
+        pendingTrustRepairTasks: trustRepairTasks.filter((task) => !task.handledAt).length,
+        handledTrustRepairTasks: trustRepairTasks.filter((task) => Boolean(task.handledAt)).length,
+      },
+    };
+  });
+}
+
 export function inviteCandidate(candidateId: string) {
+  updateDemoState((state) => {
+    const candidate = state.candidates.find((item) => item.id === candidateId);
+    const auditEvent = candidate
+      ? {
+          id: createId('audit'),
+          candidateId,
+          jobId: candidate.jobId,
+          type: 'hr_invitation_sent' as const,
+          actor: 'hr' as const,
+          title: 'HR发出邀约',
+          description: 'HR基于云试岗报告和人工复核发出面试邀约。',
+          occurredAt: nowIso(),
+          evidenceLevel: '充分' as const,
+        }
+      : undefined;
+
+    return {
+      ...state,
+      candidates: state.candidates.map((item) =>
+        item.id === candidateId ? { ...item, status: '已邀约' } : item,
+      ),
+      trustAuditEvents: auditEvent ? [auditEvent, ...state.trustAuditEvents] : state.trustAuditEvents,
+      realityReports: state.realityReports.map((report) => {
+        if (report.candidateId !== candidateId || !auditEvent) return report;
+        const trustAuditLog = [...report.trustAuditLog, auditEvent];
+        return {
+          ...report,
+          trustAuditLog,
+          auditCompletenessRate: calculateAuditCompleteness(trustAuditLog),
+        };
+      }),
+      metrics: {
+        ...state.metrics,
+        interviewInvites: state.metrics.interviewInvites + 1,
+      },
+    };
+  });
+}
+
+export function legacyInviteCandidate(candidateId: string) {
   updateDemoState((state) => ({
     ...state,
     candidates: state.candidates.map((candidate) =>

@@ -1,10 +1,11 @@
 import { Link } from 'react-router-dom';
 import { Badge } from '../../components/Badge';
 import { StatCard } from '../../components/StatCard';
+import { TrustRepairTaskPanel } from '../../components/TrustRepairTaskPanel';
 import { useDemoState } from '../../store/demoStore';
 
 export function Dashboard() {
-  const { jobs, candidates, metrics, realityReports } = useDemoState();
+  const { jobs, candidates, metrics, realityReports, trustRepairTasks } = useDemoState();
   const latestCandidates = candidates.slice(0, 4);
   const completionRate = metrics.chatStarts ? Math.round((metrics.chatCompletions / metrics.chatStarts) * 100) : 0;
   const showRate = metrics.interviewInvites ? Math.round((metrics.attendedInterviews / metrics.interviewInvites) * 100) : 0;
@@ -14,8 +15,8 @@ export function Dashboard() {
       <div className="page-header">
         <div>
           <span className="eyebrow">HR工作台</span>
-          <h1>岗位实境舱运营工作台</h1>
-          <p>聚焦云试岗完成度、真实意愿、岗位理解和报告回流，帮助HR减少无效面试。</p>
+          <h1>招聘信任治理工作台</h1>
+          <p>把云试岗报告、沉默风险和信任修复任务收拢到同一个运营界面，帮助HR先修复顾虑再邀约。</p>
         </div>
         <Link className="primary-button" to="/hr/jobs/new">
           新建职位
@@ -27,6 +28,10 @@ export function Dashboard() {
         <StatCard label="云试岗完成率" value={`${completionRate}%`} hint="完成云试岗 / 开始人数" trend="+12%" />
         <StatCard label="云试岗报告" value={realityReports.length} hint="AI辅助整理" />
         <StatCard label="到面率" value={`${showRate}%`} hint="实际到面 / 邀约人数" trend="+20%" />
+        <StatCard label="待修复任务" value={metrics.pendingTrustRepairTasks ?? 0} hint="信任治理待办" />
+        <StatCard label="高沉默风险" value={metrics.highSilenceRiskCandidates ?? 0} hint="邀约前建议澄清" />
+        <StatCard label="审计完整率" value={`${metrics.auditCompletenessRate ?? 0}%`} hint="AI辅助估算" />
+        <StatCard label="已处理任务" value={metrics.handledTrustRepairTasks ?? 0} hint="试点目标" />
       </section>
 
       <section className="dashboard-grid">
@@ -45,7 +50,9 @@ export function Dashboard() {
                     <span>{candidate.sourceChannel}</span>
                   </div>
                   <Badge tone={candidate.status === '已邀约' ? 'green' : 'blue'}>{candidate.status}</Badge>
-                  <Badge tone="purple">{report?.hrActionSuggestion ?? 'HR行动建议'}</Badge>
+                  <Badge tone={(report?.silenceRisk.possibleReasons.length ?? 0) >= 3 ? 'red' : 'purple'}>
+                    沉默风险 {report?.silenceRisk.level ?? '待确认'}
+                  </Badge>
                 </Link>
               );
             })}
@@ -60,8 +67,8 @@ export function Dashboard() {
           <div className="funnel">
             {[
               ['岗位访问', metrics.visits],
-              ['进入对话', metrics.chatStarts],
-              ['完成对话', metrics.chatCompletions],
+              ['进入云试岗', metrics.chatStarts],
+              ['完成云试岗', metrics.chatCompletions],
               ['提交投递', metrics.applications],
               ['面试邀约', metrics.interviewInvites],
             ].map(([label, value], index) => (
@@ -72,6 +79,10 @@ export function Dashboard() {
             ))}
           </div>
         </article>
+      </section>
+
+      <section className="panel dashboard-task-panel">
+        <TrustRepairTaskPanel tasks={trustRepairTasks} compact />
       </section>
     </main>
   );
