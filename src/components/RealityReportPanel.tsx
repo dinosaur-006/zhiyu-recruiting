@@ -1,7 +1,10 @@
 import { Badge } from './Badge';
+import { AIRiskReviewPanel } from './AIRiskReviewPanel';
+import { CandidateTrustIndexPanel } from './CandidateTrustIndexPanel';
 import { ConcernRadarPanel } from './ConcernRadarPanel';
 import { InterviewBattleCardPanel } from './InterviewBattleCardPanel';
 import { NoShowPreventionCardPanel } from './NoShowPreventionCardPanel';
+import { TrialReplayPanel } from './TrialReplayPanel';
 import type { RealityReport, RealityScene } from '../types';
 
 interface RealityReportPanelProps {
@@ -31,6 +34,7 @@ export function RealityReportPanel({ report, scenes = [], mode = 'hr' }: Reality
         </div>
         <StoryBlock title="我关注的岗位信息" content={topAttention(report).join('、') || '岗位职责、团队协作、成长路径'} />
         <StoryTags title="我看过的岗位真相点" items={report.jobTruthViewSummary.viewedPoints} tone="blue" />
+        <StoryTags title="我确认过的岗位真相合约" items={report.truthContractSummary.acknowledgedItems.slice(0, 5)} tone="blue" />
         <StoryBlock title="我的分岔选择路径摘要" content={report.decisionPathAnalysis.summary} />
         <StoryTags title="我的技能标签" items={report.skillEvidence} tone="blue" />
         <StoryTags title="我的场景选择" items={report.sceneChoiceSummary} tone="purple" />
@@ -53,10 +57,13 @@ export function RealityReportPanel({ report, scenes = [], mode = 'hr' }: Reality
 
       <div className="report-summary-grid">
         <SummaryCell label="云试岗完成度" value={`${report.trialCompletion}%`} />
+        <SummaryCell label="信任指数" value={`${report.candidateTrustIndex.total}/100`} />
         <SummaryCell label="真实意愿" value={report.realIntention} />
         <SummaryCell label="岗位理解" value={report.jobUnderstanding} />
         <SummaryCell label="爽约风险" value={report.noShowRisk} />
       </div>
+
+      <CandidateTrustIndexPanel trustIndex={report.candidateTrustIndex} />
 
       <div className="story-block">
         <h3>云试岗轨迹</h3>
@@ -71,12 +78,23 @@ export function RealityReportPanel({ report, scenes = [], mode = 'hr' }: Reality
         </div>
       </div>
 
+      <TrialReplayPanel events={report.trialReplay} />
+
       <div className="story-block">
         <h3>岗位真相查看摘要</h3>
         <div className="report-summary-grid compact">
           <SummaryCell label="已查看标签" value={report.jobTruthViewSummary.viewed ? '是' : '待确认'} />
           <SummaryCell label="查看真相点" value={`${report.jobTruthViewSummary.viewedPoints.length}项`} />
           <SummaryCell label="重点关注" value={report.jobTruthViewSummary.focusedPoints.slice(0, 2).join('、') || '待确认'} />
+        </div>
+      </div>
+
+      <div className="story-block">
+        <h3>岗位真相合约确认情况</h3>
+        <div className="report-summary-grid compact">
+          <SummaryCell label="确认状态" value={report.truthContractSummary.acknowledged ? '已确认' : '待确认'} />
+          <SummaryCell label="确认项目" value={`${report.truthContractSummary.acknowledgedItems.length}项`} />
+          <SummaryCell label="未解决疑问" value={report.truthContractSummary.unresolvedConcerns.join('、') || '暂无'} />
         </div>
       </div>
 
@@ -109,11 +127,36 @@ export function RealityReportPanel({ report, scenes = [], mode = 'hr' }: Reality
       <StoryTags title="技能证据链" items={report.skillEvidence} tone="blue" />
       <StoryTags title="潜在失配风险" items={report.potentialMismatchRisks} tone="amber" />
       <StoryTags title="候选人真实提问" items={report.reverseQuestions.map((item) => `${item.type}：${item.answer}`)} tone="blue" />
+      <StoryTags title="信任缺口" items={report.trustGapSummary.majorGaps} tone="amber" />
+      <StoryList title="邀约前信任修复建议" items={report.trustGapSummary.repairSuggestions} />
+      <CopyableScript title="信任修复话术" content={report.trustRepairScript} />
+      <CopyableScript title="正式邀约话术" content={report.invitationScript} />
       <StoryList title="建议面试追问" items={report.interviewQuestions} />
       <NoShowPreventionCardPanel card={report.noShowPreventionCard} />
       <InterviewBattleCardPanel card={report.interviewBattleCard} />
+      <AIRiskReviewPanel review={report.aiRiskReview} />
       <div className="story-compliance">{report.complianceNote}</div>
     </section>
+  );
+}
+
+function CopyableScript({ title, content }: { title: string; content: string }) {
+  const copy = () => {
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      void navigator.clipboard.writeText(content);
+    }
+  };
+
+  return (
+    <div className="story-block invitation-script">
+      <div className="copy-script-head">
+        <h3>{title}</h3>
+        <button className="ghost-button" type="button" onClick={copy}>
+          复制话术
+        </button>
+      </div>
+      <p>{content}</p>
+    </div>
   );
 }
 

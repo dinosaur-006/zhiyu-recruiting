@@ -3,21 +3,27 @@ import {
   buildDefaultAvatarConfig,
   analyzeDecisionPath,
   answerReverseQuestion,
+  calculateCandidateTrustIndex,
   detectJobRealityRisk,
+  generateAIRiskReview,
   generateConcernRadar,
   generateAvatarReply,
   generateHRStoryCard,
   generateInterviewBattleCard,
+  generateJobTruthContract,
   generateJobTruthLabel,
   generateNoShowPreventionCard,
   generateRealityReport,
   generateRealityScripts,
+  generateTrialReplay,
+  generateTrustGapSummary,
+  generateTrustRepairScript,
   generateTruthVideoScript,
   getBranchScenarios,
   getScenarioChoices,
   parseJobDescription,
 } from './ai';
-import type { Candidate, Conversation, Job } from '../types';
+import type { Candidate, Conversation, Job, TrialSession } from '../types';
 
 const jobInput = {
   title: '前端开发工程师',
@@ -150,7 +156,7 @@ describe('Reality cabin AI', () => {
       status: '已投递',
       submittedAt: '2026-05-13T00:00:00.000Z',
     };
-    const session = {
+    const session: TrialSession = {
       id: 'trial-reality',
       jobId: job.id,
       candidateId: candidate.id,
@@ -162,6 +168,8 @@ describe('Reality cabin AI', () => {
       viewedTruthPoints: [],
       focusedTruthPoints: [],
       reverseQuestions: [],
+      truthContractAcknowledgement: { acknowledged: false, acknowledgedItems: [], unresolvedConcerns: [] },
+      trialEvents: [],
       directApply: false,
       startedAt: '2026-05-13T00:00:00.000Z',
       completedAt: '2026-05-13T00:05:00.000Z',
@@ -226,7 +234,7 @@ describe('Reality Pro AI', () => {
       status: '已投递',
       submittedAt: '2026-05-13T00:00:00.000Z',
     };
-    const session = {
+    const session: TrialSession = {
       id: 'trial-pro',
       jobId: job.id,
       candidateId: candidate.id,
@@ -238,6 +246,8 @@ describe('Reality Pro AI', () => {
       viewedTruthPoints: ['工作节奏', '成长速度'],
       focusedTruthPoints: ['工作节奏'],
       reverseQuestions: [],
+      truthContractAcknowledgement: { acknowledged: false, acknowledgedItems: [], unresolvedConcerns: [] },
+      trialEvents: [],
       directApply: false,
       startedAt: '2026-05-13T00:00:00.000Z',
       completedAt: '2026-05-13T00:05:00.000Z',
@@ -276,7 +286,7 @@ describe('Reality Pro AI', () => {
       status: '已投递',
       submittedAt: '2026-05-13T00:00:00.000Z',
     };
-    const session = {
+    const session: TrialSession = {
       id: 'trial-card',
       jobId: job.id,
       candidateId: candidate.id,
@@ -288,6 +298,8 @@ describe('Reality Pro AI', () => {
       viewedTruthPoints: ['工作节奏', '协作密度', '成长速度'],
       focusedTruthPoints: ['工作节奏', '成长速度'],
       reverseQuestions: [answerReverseQuestion(job, generateJobTruthLabel(job), '成长空间')],
+      truthContractAcknowledgement: { acknowledged: false, acknowledgedItems: [], unresolvedConcerns: [] },
+      trialEvents: [],
       directApply: false,
       startedAt: '2026-05-13T00:00:00.000Z',
       completedAt: '2026-05-13T00:05:00.000Z',
@@ -311,5 +323,107 @@ describe('Reality Pro AI', () => {
     expect(script.jobId).toBe(job.id);
     expect(script.segments).toHaveLength(4);
     expect(script.segments[0].timeRange).toBe('0-10秒');
+  });
+});
+
+describe('Trust Layer AI', () => {
+  const candidate: Candidate = {
+    id: 'candidate-trust',
+    jobId: job.id,
+    conversationId: 'conversation-trust',
+    name: '周同学',
+    phone: '13500000000',
+    email: 'zhou@example.com',
+    sourceChannel: '岗位真相舱链接',
+    skills: 'Vue React TypeScript B端SaaS',
+    projectExperience: '负责过B端SaaS复杂筛选、接口联调和Code Review。',
+    motivation: '希望加入成长路径更清晰、团队协作更透明的团队。',
+    concerns: '薪资沟通节点、工作节奏、成长路径',
+    rhythmAcceptance: '可以接受阶段性压力，但希望确认项目节点是否常态化。',
+    followUpQuestion: '想知道薪资沟通节点和新人培养机制。',
+    scenarioReflection: '我会先澄清边界，再和后端约定Mock字段推进。',
+    status: '已投递',
+    submittedAt: '2026-05-13T00:00:00.000Z',
+  };
+  const selectedChoice = getScenarioChoices()[1];
+  const branchChoices = getBranchScenarios(job).map((scenario) => scenario.choices[1]);
+  const session: TrialSession = {
+    id: 'trial-trust',
+    jobId: job.id,
+    candidateId: candidate.id,
+    currentSceneId: `scene_task_${job.id}`,
+    completedSceneIds: [`scene_intro_${job.id}`, `scene_day_${job.id}`, `scene_task_${job.id}`],
+    askedTopics: ['薪资福利', '成长空间', '工作节奏', '团队氛围'],
+    selectedChoiceIds: [selectedChoice.id],
+    branchChoiceIds: branchChoices.map((choice) => choice.id),
+    viewedTruthPoints: ['工作节奏', '加班波动', '成长速度', '薪资沟通节点'],
+    focusedTruthPoints: ['工作节奏', '薪资沟通节点'],
+    reverseQuestions: [answerReverseQuestion(job, generateJobTruthLabel(job), '薪资福利')],
+    truthContractAcknowledgement: {
+      acknowledged: true,
+      acknowledgedItems: ['工作节奏说明', '加班波动说明', 'AI辅助边界'],
+      unresolvedConcerns: ['薪资沟通节点', '成长路径说明'],
+      acknowledgedAt: '2026-05-13T00:03:00.000Z',
+    },
+    trialEvents: [
+      { id: 'event-1', type: 'truth_label_viewed', label: '查看岗位真相标签', occurredAt: '2026-05-13T00:00:00.000Z' },
+      { id: 'event-2', type: 'truth_contract_acknowledged', label: '确认岗位真相合约', occurredAt: '2026-05-13T00:03:00.000Z' },
+      { id: 'event-3', type: 'branch_choice_selected', label: '完成分岔任务选择', occurredAt: '2026-05-13T00:06:00.000Z' },
+    ],
+    directApply: false,
+    startedAt: '2026-05-13T00:00:00.000Z',
+    completedAt: '2026-05-13T00:08:00.000Z',
+    completionRate: 100,
+  };
+
+  it('generates a Job Truth Contract from the truth label', () => {
+    const contract = generateJobTruthContract(job, generateJobTruthLabel(job));
+
+    expect(contract.jobId).toBe(job.id);
+    expect(contract.commitments.map((item) => item.title)).toEqual(
+      expect.arrayContaining(['工作节奏说明', '加班波动说明', '成长路径说明', 'AI辅助边界', '候选人数据使用边界']),
+    );
+    expect(contract.aiDecisionBoundary).toContain('不评价候选人能力');
+    expect(contract.dataUsageNotice).toContain('主动提问');
+  });
+
+  it('calculates a candidate trust index without scoring candidate ability', () => {
+    const report = generateRealityReport(candidate, job, session, [selectedChoice], branchChoices, generateJobTruthLabel(job));
+    const trustIndex = calculateCandidateTrustIndex(candidate, session, report);
+
+    expect(trustIndex.total).toBeGreaterThan(50);
+    expect(trustIndex.dimensions.aiTransparency).toBeGreaterThan(70);
+    expect(trustIndex.gapReasons).toEqual(expect.arrayContaining(['薪资沟通节点仍需补充说明']));
+    expect(trustIndex.explanation).toContain('不评价候选人能力');
+  });
+
+  it('generates trust gap summary and repair script from concerns', () => {
+    const report = generateRealityReport(candidate, job, session, [selectedChoice], branchChoices, generateJobTruthLabel(job));
+    const trustIndex = calculateCandidateTrustIndex(candidate, session, report);
+    const summary = generateTrustGapSummary(trustIndex, report);
+    const script = generateTrustRepairScript(candidate, trustIndex, summary);
+
+    expect(summary.repairSuggestions.length).toBeGreaterThan(0);
+    expect(script).toContain(candidate.name);
+    expect(script).toContain('工作节奏');
+    expect(script).toContain('15分钟沟通');
+  });
+
+  it('generates a replay timeline with the key trial events', () => {
+    const replay = generateTrialReplay(session);
+
+    expect(replay.map((event) => event.label)).toEqual(
+      expect.arrayContaining(['查看岗位真相标签', '确认岗位真相合约', '完成分岔任务选择']),
+    );
+    expect(replay[0].timeLabel).toBe('00:00');
+  });
+
+  it('reviews report risk boundaries and evidence sources', () => {
+    const report = generateRealityReport(candidate, job, session, [selectedChoice], branchChoices, generateJobTruthLabel(job));
+    const review = generateAIRiskReview(report);
+
+    expect(review.result).toBe('复核通过');
+    expect(review.checkedItems).toEqual(expect.arrayContaining(['未出现自动化最终决策表述', '已包含人工复核声明']));
+    expect(review.reminders.join('')).toContain('最终招聘决策由企业人工完成');
   });
 });

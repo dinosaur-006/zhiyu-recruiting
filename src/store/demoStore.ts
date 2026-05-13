@@ -2,12 +2,18 @@ import { useEffect, useState } from 'react';
 import {
   buildDefaultAvatarConfig,
   answerReverseQuestion,
+  generateAIRiskReview,
+  calculateCandidateTrustIndex,
   createDefaultRealityRoles,
   detectIntent,
+  generateJobTruthContract,
   generateJobTruthLabel,
   generateHRStoryCard,
   generateRealityReport,
   generateRealityScripts,
+  generateTrialReplay,
+  generateTrustGapSummary,
+  generateTrustRepairScript,
   generateTruthVideoScript,
   getBranchScenarios,
   getScenarioChoices,
@@ -26,13 +32,31 @@ import type {
   JobInput,
   ReverseQuestionType,
   RealityRole,
+  TrialEvent,
   TrialSession,
+  TruthContractAcknowledgement,
 } from '../types';
 
 const STORAGE_KEY = 'zhiyu-demo-state-v1';
 const STORE_EVENT = 'zhiyu-demo-store-updated';
 
 const nowIso = () => new Date().toISOString();
+
+const emptyTruthContractAcknowledgement = (): TruthContractAcknowledgement => ({
+  acknowledged: false,
+  acknowledgedItems: [],
+  unresolvedConcerns: [],
+});
+
+function createTrialEvent(type: TrialEvent['type'], label: string, metadata?: TrialEvent['metadata']): TrialEvent {
+  return {
+    id: createId('event'),
+    type,
+    label,
+    occurredAt: nowIso(),
+    metadata,
+  };
+}
 
 export function createId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -48,6 +72,7 @@ export function normalizeDemoState(state: Partial<DemoState>): DemoState {
   const existingScenes = state.realityScenes ?? [];
   const existingRoles = state.realityRoles ?? [];
   const existingTruthLabels = state.jobTruthLabels ?? [];
+  const existingTruthContracts = state.jobTruthContracts ?? [];
   const existingBranchScenarios = state.branchScenarios ?? [];
   const existingTruthVideoScripts = state.truthVideoScripts ?? [];
 
@@ -57,6 +82,15 @@ export function normalizeDemoState(state: Partial<DemoState>): DemoState {
     existingRoles.length > 0 ? existingRoles : jobs.flatMap((job) => createDefaultRealityRoles(job.id));
   const jobTruthLabels =
     existingTruthLabels.length > 0 ? existingTruthLabels : jobs.map((job) => generateJobTruthLabel(job));
+  const jobTruthContracts =
+    existingTruthContracts.length > 0
+      ? existingTruthContracts
+      : jobs.map((job) =>
+          generateJobTruthContract(
+            job,
+            jobTruthLabels.find((label) => label.jobId === job.id) ?? generateJobTruthLabel(job),
+          ),
+        );
   const branchScenarios =
     existingBranchScenarios.length > 0 ? existingBranchScenarios : jobs.flatMap((job) => getBranchScenarios(job));
   const truthVideoScripts =
@@ -69,6 +103,114 @@ export function normalizeDemoState(state: Partial<DemoState>): DemoState {
             realityScenes.filter((scene) => scene.jobId === job.id),
           ),
         );
+  const trialSessions = (state.trialSessions ?? []).map((session) => {
+    const truthContractAcknowledgement =
+      session.truthContractAcknowledgement ?? emptyTruthContractAcknowledgement();
+    const trialEvents =
+      session.trialEvents?.length
+        ? session.trialEvents
+        : [
+            ...(session.viewedTruthPoints ?? []).map((point, index) => ({
+              id: `legacy-event-truth-${session.id}-${index}`,
+              type: 'truth_label_viewed' as const,
+              label: `查看岗位真相：${point}`,
+              occurredAt: session.startedAt,
+            })),
+            ...(truthContractAcknowledgement.acknowledged
+              ? [
+                  {
+                    id: `legacy-event-contract-${session.id}`,
+                    type: 'truth_contract_acknowledged' as const,
+                    label: '确认岗位真相合约',
+                    occurredAt: truthContractAcknowledgement.acknowledgedAt ?? session.startedAt,
+                  },
+                ]
+              : []),
+            ...(session.branchChoiceIds ?? []).map((choiceId, index) => ({
+              id: `legacy-event-branch-${session.id}-${index}`,
+              type: 'branch_choice_selected' as const,
+              label: `完成分岔任务选择：${choiceId}`,
+              occurredAt: session.completedAt ?? session.startedAt,
+            })),
+          ];
+
+    return {
+      ...session,
+      branchChoiceIds: session.branchChoiceIds ?? [],
+      viewedTruthPoints: session.viewedTruthPoints ?? [],
+      focusedTruthPoints: session.focusedTruthPoints ?? [],
+      reverseQuestions: session.reverseQuestions ?? [],
+      truthContractAcknowledgement,
+      trialEvents,
+    };
+  });
+  const realityReports = (state.realityReports ?? initial.realityReports).map((report) => {
+    const candidate = (state.candidates ?? initial.candidates).find((item) => item.id === report.candidateId);
+    const session = trialSessions.find((item) => item.candidateId === report.candidateId);
+    const trialReplay = report.trialReplay ?? (session ? generateTrialReplay(session) : []);
+    const truthContractSummary =
+      report.truthContractSummary ??
+      {
+        acknowledged: session?.truthContractAcknowledgement.acknowledged ?? false,
+        acknowledgedItems: session?.truthContractAcknowledgement.acknowledgedItems ?? [],
+        unresolvedConcerns: session?.truthContractAcknowledgement.unresolvedConcerns ?? [],
+      };
+    const baseReport = {
+      ...report,
+      truthContractSummary,
+      trialReplay,
+      candidateTrustIndex:
+        report.candidateTrustIndex ??
+        (candidate && session
+          ? calculateCandidateTrustIndex(candidate, session, report)
+          : {
+              total: 0,
+              dimensions: {
+                jobInfoClarity: 0,
+                salaryCertainty: 0,
+                teamTrust: 0,
+                growthCredibility: 0,
+                rhythmAcceptance: 0,
+                aiTransparency: 0,
+                interviewWillingness: 0,
+              },
+              gapReasons: [],
+              repairSuggestions: [],
+              explanation: '候选人信任指数衡量岗位信息是否足以支撑候选人继续投入面试时间，不评价候选人能力。',
+            }),
+      trustGapSummary:
+        report.trustGapSummary ??
+        {
+          majorGaps: [],
+          repairSuggestions: [],
+        },
+      trustRepairScript: report.trustRepairScript ?? '',
+      aiRiskReview:
+        report.aiRiskReview ??
+        {
+          result: '需要人工确认' as const,
+          checkedItems: [],
+          reminders: [],
+        },
+    };
+    const trustGapSummary =
+      report.trustGapSummary ?? generateTrustGapSummary(baseReport.candidateTrustIndex, baseReport);
+    const trustRepairScript =
+      report.trustRepairScript && report.trustRepairScript.length > 0
+        ? report.trustRepairScript
+        : candidate
+          ? generateTrustRepairScript(candidate, baseReport.candidateTrustIndex, trustGapSummary)
+          : '';
+    const enrichedReport = {
+      ...baseReport,
+      trustGapSummary,
+      trustRepairScript,
+    };
+    return {
+      ...enrichedReport,
+      aiRiskReview: report.aiRiskReview ?? generateAIRiskReview(enrichedReport),
+    };
+  });
 
   return {
     company: state.company ?? initial.company,
@@ -77,16 +219,11 @@ export function normalizeDemoState(state: Partial<DemoState>): DemoState {
     realityRoles,
     realityScenes,
     jobTruthLabels,
+    jobTruthContracts,
     branchScenarios,
     truthVideoScripts,
-    trialSessions: (state.trialSessions ?? []).map((session) => ({
-      ...session,
-      branchChoiceIds: session.branchChoiceIds ?? [],
-      viewedTruthPoints: session.viewedTruthPoints ?? [],
-      focusedTruthPoints: session.focusedTruthPoints ?? [],
-      reverseQuestions: session.reverseQuestions ?? [],
-    })),
-    realityReports: state.realityReports ?? initial.realityReports,
+    trialSessions,
+    realityReports,
     drafts: state.drafts ?? [],
     candidates: state.candidates ?? initial.candidates,
     conversations: state.conversations ?? initial.conversations,
@@ -166,6 +303,7 @@ export function addJob(input: JobInput) {
   const realityRoles = createDefaultRealityRoles(job.id);
   const realityScenes = generateRealityScripts(job);
   const jobTruthLabel = generateJobTruthLabel(job);
+  const jobTruthContract = generateJobTruthContract(job, jobTruthLabel);
   const branchScenarios = getBranchScenarios(job);
   const truthVideoScript = generateTruthVideoScript(job, realityRoles, realityScenes);
 
@@ -176,6 +314,7 @@ export function addJob(input: JobInput) {
     realityRoles: [...realityRoles, ...state.realityRoles.filter((role) => role.jobId !== job.id)],
     realityScenes: [...realityScenes, ...state.realityScenes.filter((scene) => scene.jobId !== job.id)],
     jobTruthLabels: [jobTruthLabel, ...state.jobTruthLabels.filter((label) => label.jobId !== job.id)],
+    jobTruthContracts: [jobTruthContract, ...state.jobTruthContracts.filter((contract) => contract.jobId !== job.id)],
     branchScenarios: [...branchScenarios, ...state.branchScenarios.filter((scenario) => scenario.jobId !== job.id)],
     truthVideoScripts: [truthVideoScript, ...state.truthVideoScripts.filter((script) => script.jobId !== job.id)],
   }));
@@ -190,6 +329,7 @@ export function createRealityCabin(jobId: string) {
     const roles = createDefaultRealityRoles(job.id);
     const scenes = generateRealityScripts(job);
     const truthLabel = generateJobTruthLabel(job);
+    const truthContract = generateJobTruthContract(job, truthLabel);
     const branchScenarios = getBranchScenarios(job);
     const truthVideoScript = generateTruthVideoScript(job, roles, scenes);
     return {
@@ -197,6 +337,7 @@ export function createRealityCabin(jobId: string) {
       realityRoles: [...roles, ...state.realityRoles.filter((role) => role.jobId !== job.id)],
       realityScenes: [...scenes, ...state.realityScenes.filter((scene) => scene.jobId !== job.id)],
       jobTruthLabels: [truthLabel, ...state.jobTruthLabels.filter((label) => label.jobId !== job.id)],
+      jobTruthContracts: [truthContract, ...state.jobTruthContracts.filter((contract) => contract.jobId !== job.id)],
       branchScenarios: [...branchScenarios, ...state.branchScenarios.filter((scenario) => scenario.jobId !== job.id)],
       truthVideoScripts: [truthVideoScript, ...state.truthVideoScripts.filter((script) => script.jobId !== job.id)],
     };
@@ -234,6 +375,10 @@ export function startTrialSession(jobId: string, directApply = false) {
     viewedTruthPoints: [],
     focusedTruthPoints: [],
     reverseQuestions: [],
+    truthContractAcknowledgement: emptyTruthContractAcknowledgement(),
+    trialEvents: [
+      createTrialEvent(directApply ? 'direct_apply' : 'trial_started', directApply ? '候选人选择直接投递' : '进入岗位真相舱'),
+    ],
     directApply,
     startedAt: nowIso(),
     completionRate: 0,
@@ -262,6 +407,10 @@ export function completeRealityScene(sessionId: string, sceneId: string) {
         ...session,
         currentSceneId: sceneId,
         completedSceneIds,
+        trialEvents: [
+          ...session.trialEvents,
+          createTrialEvent('scene_completed', `完成云试岗场景：${sceneId}`, { sceneId }),
+        ],
         completionRate: Math.min(100, Math.round((completedSceneIds.length / sceneCount) * 100)),
       };
     }),
@@ -307,12 +456,55 @@ export function recordTruthPoint(sessionId: string, point: string, focused = fal
             focusedTruthPoints: focused
               ? Array.from(new Set([...session.focusedTruthPoints, point]))
               : session.focusedTruthPoints,
+            trialEvents: [
+              ...session.trialEvents,
+              createTrialEvent(focused ? 'truth_point_focused' : 'truth_label_viewed', `${focused ? '重点查看' : '查看岗位真相'}：${point}`, {
+                point,
+              }),
+            ],
           }
         : session,
     ),
     metrics: {
       ...state.metrics,
       truthLabelViews: (state.metrics.truthLabelViews ?? 0) + 1,
+    },
+  }));
+}
+
+export function acknowledgeTruthContract(sessionId: string, acknowledgedItems: string[], unresolvedConcerns: string[] = []) {
+  updateDemoState((state) => ({
+    ...state,
+    trialSessions: state.trialSessions.map((session) =>
+      session.id === sessionId
+        ? {
+            ...session,
+            truthContractAcknowledgement: {
+              acknowledged: acknowledgedItems.length > 0,
+              acknowledgedItems,
+              unresolvedConcerns,
+              acknowledgedAt: nowIso(),
+            },
+            trialEvents: [
+              ...session.trialEvents,
+              createTrialEvent(
+                acknowledgedItems.length > 0 ? 'truth_contract_acknowledged' : 'truth_contract_concern_added',
+                acknowledgedItems.length > 0 ? '确认岗位真相合约' : '留下岗位真相合约疑问',
+                {
+                  acknowledgedCount: acknowledgedItems.length,
+                  unresolvedCount: unresolvedConcerns.length,
+                },
+              ),
+            ],
+          }
+        : session,
+    ),
+    metrics: {
+      ...state.metrics,
+      truthContractAcknowledgements:
+        acknowledgedItems.length > 0
+          ? (state.metrics.truthContractAcknowledgements ?? 0) + 1
+          : (state.metrics.truthContractAcknowledgements ?? 0),
     },
   }));
 }
@@ -325,6 +517,10 @@ export function selectBranchChoice(sessionId: string, choiceId: string) {
         ? {
             ...session,
             branchChoiceIds: Array.from(new Set([...session.branchChoiceIds, choiceId])),
+            trialEvents: [
+              ...session.trialEvents,
+              createTrialEvent('branch_choice_selected', `完成分岔任务选择：${choiceId}`, { choiceId }),
+            ],
           }
         : session,
     ),
@@ -348,6 +544,10 @@ export function askReverseQuestion(sessionId: string, type: ReverseQuestionType)
             ...item,
             reverseQuestions: [...item.reverseQuestions, reverseQuestion],
             askedTopics: Array.from(new Set([...item.askedTopics, type])),
+            trialEvents: [
+              ...item.trialEvents,
+              createTrialEvent('reverse_question_asked', `反向提问：${type}`, { questionType: type }),
+            ],
           }
         : item,
     ),
@@ -444,6 +644,10 @@ export function submitCandidateApplication(
     viewedTruthPoints: existingSession?.viewedTruthPoints ?? [],
     focusedTruthPoints: existingSession?.focusedTruthPoints ?? [],
     reverseQuestions: existingSession?.reverseQuestions ?? [],
+    truthContractAcknowledgement: existingSession?.truthContractAcknowledgement ?? emptyTruthContractAcknowledgement(),
+    trialEvents: existingSession?.trialEvents ?? [
+      createTrialEvent(!existingSession ? 'direct_apply' : 'trial_started', !existingSession ? '候选人选择直接投递' : '进入岗位真相舱'),
+    ],
     directApply: !existingSession,
     startedAt: existingSession?.startedAt ?? nowIso(),
     completedAt: nowIso(),
@@ -453,6 +657,10 @@ export function submitCandidateApplication(
     ...fallbackSession,
     candidateId,
     completedAt: nowIso(),
+    trialEvents: [
+      ...fallbackSession.trialEvents,
+      createTrialEvent('profile_submitted', '补充云试岗资料', { candidateId }),
+    ],
     completionRate:
       fallbackSession.completionRate > 0
         ? fallbackSession.completionRate
@@ -513,6 +721,24 @@ export function submitCandidateApplication(
       preInviteSuggestionCoverage: (current.metrics.preInviteSuggestionCoverage ?? 0) + 1,
       invitationScriptsGenerated: (current.metrics.invitationScriptsGenerated ?? 0) + 1,
       battleCardsGenerated: (current.metrics.battleCardsGenerated ?? 0) + 1,
+      averageTrustIndex: Math.round(
+        (((current.metrics.averageTrustIndex ?? realityReport.candidateTrustIndex.total) * Math.max(1, current.realityReports.length)) +
+          realityReport.candidateTrustIndex.total) /
+          Math.max(1, current.realityReports.length + 1),
+      ),
+      highTrustCandidateRatio:
+        realityReport.candidateTrustIndex.total >= 75
+          ? Math.min(100, (current.metrics.highTrustCandidateRatio ?? 0) + 5)
+          : current.metrics.highTrustCandidateRatio ?? 0,
+      truthContractAcknowledgements:
+        completedSession.truthContractAcknowledgement.acknowledged
+          ? (current.metrics.truthContractAcknowledgements ?? 0) + 1
+          : (current.metrics.truthContractAcknowledgements ?? 0),
+      aiRiskReviewPasses:
+        realityReport.aiRiskReview.result === '复核通过'
+          ? (current.metrics.aiRiskReviewPasses ?? 0) + 1
+          : (current.metrics.aiRiskReviewPasses ?? 0),
+      lowTrustReasonTop3: realityReport.candidateTrustIndex.gapReasons.slice(0, 3),
     },
   }));
 
@@ -536,6 +762,10 @@ export function completeTrialSession(sessionId: string, candidateId: string) {
     ...session,
     candidateId,
     completedAt: nowIso(),
+    trialEvents: [
+      ...session.trialEvents,
+      createTrialEvent('profile_submitted', '补充云试岗资料', { candidateId }),
+    ],
     completionRate: session.completionRate || 100,
   };
   const report = generateRealityReport(candidate, job, completedSession, selectedChoices, branchChoices, truthLabel);

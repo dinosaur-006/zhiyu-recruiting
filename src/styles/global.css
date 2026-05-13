@@ -1423,6 +1423,13 @@ select:focus {
   margin: 8px 0 0;
 }
 
+.copy-script-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
 .truth-video {
   margin-top: 18px;
 }
@@ -1475,6 +1482,167 @@ select:focus {
   color: var(--muted);
   line-height: 1.65;
   margin-bottom: 0;
+}
+
+.truth-contract-panel,
+.candidate-rights-panel {
+  display: grid;
+  gap: 18px;
+}
+
+.truth-contract-head,
+.risk-review-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.truth-contract-head p,
+.contract-boundary p,
+.candidate-rights-panel p {
+  color: var(--muted);
+  line-height: 1.7;
+  margin: 6px 0 0;
+}
+
+.contract-grid,
+.rights-grid,
+.risk-review-grid,
+.trust-gap-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.contract-item,
+.rights-card {
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+}
+
+.contract-item strong,
+.rights-card strong {
+  display: block;
+  color: var(--blue-dark);
+  margin-bottom: 6px;
+}
+
+.contract-item p {
+  color: var(--muted);
+  line-height: 1.65;
+  margin: 0;
+}
+
+.contract-item.ai {
+  background: #f7f3ff;
+  border-color: #ddd2ff;
+}
+
+.contract-item.data {
+  background: #f3fbf8;
+  border-color: #c8eadb;
+}
+
+.contract-concerns,
+.contract-boundary {
+  padding: 14px;
+  border-radius: 12px;
+  background: #f8fbff;
+  border: 1px solid #d9e5ff;
+}
+
+.contract-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.consent-modal.wide {
+  max-width: 820px;
+}
+
+.trust-index-panel {
+  border: 1px solid #cddcff;
+  background:
+    linear-gradient(135deg, rgba(36, 107, 254, 0.06), rgba(16, 185, 129, 0.06)),
+    #fff;
+}
+
+.trust-index-hero {
+  display: grid;
+  grid-template-columns: 1fr 120px;
+  gap: 18px;
+  align-items: center;
+}
+
+.trust-index-hero p {
+  color: var(--muted);
+  line-height: 1.7;
+  margin: 6px 0 0;
+}
+
+.trust-score {
+  display: flex;
+  justify-content: center;
+  align-items: baseline;
+  min-height: 112px;
+  border-radius: 16px;
+  background: #0f2f6b;
+  color: #fff;
+}
+
+.trust-score strong {
+  font-size: 44px;
+}
+
+.trust-score span {
+  opacity: 0.7;
+  font-weight: 800;
+}
+
+.trust-gap-row {
+  margin-top: 16px;
+}
+
+.replay-timeline {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.replay-item {
+  display: grid;
+  grid-template-columns: 72px 1fr;
+  gap: 12px;
+  align-items: start;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+}
+
+.replay-item time {
+  font-weight: 900;
+  color: var(--purple);
+}
+
+.replay-item strong,
+.replay-item span {
+  display: block;
+}
+
+.replay-item span {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.risk-review-panel {
+  border-color: #c8eadb;
+  background: #f7fffb;
 }
 
 @keyframes speakPulse {
@@ -1580,7 +1748,13 @@ select:focus {
 
   .truth-video-stage,
   .video-segments,
-  .truth-nutrition {
+  .truth-nutrition,
+  .contract-grid,
+  .rights-grid,
+  .risk-review-grid,
+  .trust-gap-row,
+  .contract-actions,
+  .trust-index-hero {
     grid-template-columns: 1fr;
   }
 

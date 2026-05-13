@@ -3,6 +3,7 @@ import {
   createDefaultRealityRoles,
   answerReverseQuestion,
   generateJobTruthLabel,
+  generateJobTruthContract,
   generateHRStoryCard,
   generateRealityReport,
   generateRealityScripts,
@@ -53,6 +54,7 @@ export function createInitialState(): DemoState {
   const realityRoles = createDefaultRealityRoles(job.id);
   const realityScenes = generateRealityScripts(job);
   const jobTruthLabel = generateJobTruthLabel(job);
+  const jobTruthContract = generateJobTruthContract(job, jobTruthLabel);
   const branchScenarios = getBranchScenarios(job);
   const branchChoices = branchScenarios.map((scenario) => scenario.choices[1]);
   const truthVideoScript = generateTruthVideoScript(job, realityRoles, realityScenes);
@@ -127,6 +129,22 @@ export function createInitialState(): DemoState {
     viewedTruthPoints: ['工作节奏', '协作密度', '成长速度', '压力来源'],
     focusedTruthPoints: ['工作节奏', '成长速度'],
     reverseQuestions: [answerReverseQuestion(job, jobTruthLabel, '成长空间')],
+    truthContractAcknowledgement: {
+      acknowledged: true,
+      acknowledgedItems: ['工作节奏说明', '加班波动说明', '成长路径说明', 'AI辅助边界', '候选人数据使用边界'],
+      unresolvedConcerns: ['薪资沟通节点'],
+      acknowledgedAt: '2026-05-13T09:11:30.000Z',
+    },
+    trialEvents: [
+      { id: 'event-lin-001', type: 'truth_label_viewed', label: '进入岗位真相舱并查看岗位真相标签', occurredAt: '2026-05-13T09:10:00.000Z' },
+      { id: 'event-lin-002', type: 'truth_point_focused', label: '重点查看：工作节奏', occurredAt: '2026-05-13T09:10:18.000Z' },
+      { id: 'event-lin-003', type: 'truth_contract_acknowledged', label: '确认岗位真相合约', occurredAt: '2026-05-13T09:11:30.000Z' },
+      { id: 'event-lin-004', type: 'scene_completed', label: '完成第一幕：HR数字人讲岗位概览', occurredAt: '2026-05-13T09:12:20.000Z' },
+      { id: 'event-lin-005', type: 'scene_completed', label: '完成第二幕：未来同事讲真实一天', occurredAt: '2026-05-13T09:14:10.000Z' },
+      { id: 'event-lin-006', type: 'branch_choice_selected', label: '完成分岔任务沙盘：主动推进路径', occurredAt: '2026-05-13T09:16:05.000Z' },
+      { id: 'event-lin-007', type: 'reverse_question_asked', label: '反向提问：成长空间', occurredAt: '2026-05-13T09:16:50.000Z' },
+      { id: 'event-lin-008', type: 'profile_submitted', label: '补充B端SaaS项目经历', occurredAt: '2026-05-13T09:18:00.000Z' },
+    ],
     directApply: false,
     startedAt: '2026-05-13T09:10:00.000Z',
     completedAt: '2026-05-13T09:18:00.000Z',
@@ -141,6 +159,7 @@ export function createInitialState(): DemoState {
     realityRoles,
     realityScenes,
     jobTruthLabels: [jobTruthLabel],
+    jobTruthContracts: [jobTruthContract],
     branchScenarios,
     truthVideoScripts: [truthVideoScript],
     trialSessions: [trialSession],
@@ -171,6 +190,11 @@ export function createInitialState(): DemoState {
       preInviteSuggestionCoverage: 18,
       invitationScriptsGenerated: 18,
       battleCardsGenerated: 18,
+      averageTrustIndex: realityReport.candidateTrustIndex.total,
+      highTrustCandidateRatio: 62,
+      truthContractAcknowledgements: 31,
+      aiRiskReviewPasses: 18,
+      lowTrustReasonTop3: ['薪资沟通节点', '工作节奏', '成长路径'],
     },
   };
 }

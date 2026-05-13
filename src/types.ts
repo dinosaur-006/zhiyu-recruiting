@@ -277,6 +277,79 @@ export interface TruthVideoScript {
   fullScript: string;
 }
 
+export interface TruthContractCommitment {
+  id: string;
+  title: string;
+  detail: string;
+  category: 'job' | 'process' | 'ai' | 'data';
+}
+
+export interface JobTruthContract {
+  jobId: string;
+  truthLabelId: string;
+  commitments: TruthContractCommitment[];
+  aiDecisionBoundary: string;
+  dataUsageNotice: string;
+}
+
+export interface TruthContractAcknowledgement {
+  acknowledged: boolean;
+  acknowledgedItems: string[];
+  unresolvedConcerns: string[];
+  acknowledgedAt?: string;
+}
+
+export type TrialEventType =
+  | 'truth_label_viewed'
+  | 'truth_point_focused'
+  | 'truth_contract_acknowledged'
+  | 'truth_contract_concern_added'
+  | 'trial_started'
+  | 'scene_completed'
+  | 'branch_choice_selected'
+  | 'reverse_question_asked'
+  | 'profile_submitted'
+  | 'direct_apply';
+
+export interface TrialEvent {
+  id: string;
+  type: TrialEventType;
+  label: string;
+  occurredAt: string;
+  metadata?: Record<string, string | number | boolean>;
+}
+
+export interface TrialReplayEvent extends TrialEvent {
+  timeLabel: string;
+}
+
+export interface CandidateTrustIndex {
+  total: number;
+  dimensions: {
+    jobInfoClarity: number;
+    salaryCertainty: number;
+    teamTrust: number;
+    growthCredibility: number;
+    rhythmAcceptance: number;
+    aiTransparency: number;
+    interviewWillingness: number;
+  };
+  gapReasons: string[];
+  repairSuggestions: string[];
+  explanation: string;
+}
+
+export interface TrustGapSummary {
+  majorGaps: string[];
+  repairSuggestions: string[];
+}
+
+export interface AIRiskReview {
+  result: '复核通过' | '需要人工确认';
+  checkedItems: string[];
+  reminders: string[];
+}
+
 export interface TrialSession {
   id: string;
   jobId: string;
@@ -289,6 +362,8 @@ export interface TrialSession {
   viewedTruthPoints: string[];
   focusedTruthPoints: string[];
   reverseQuestions: ReverseQuestion[];
+  truthContractAcknowledgement: TruthContractAcknowledgement;
+  trialEvents: TrialEvent[];
   directApply: boolean;
   startedAt: string;
   completedAt?: string;
@@ -316,6 +391,16 @@ export interface RealityReport {
     viewedPoints: string[];
     focusedPoints: string[];
   };
+  truthContractSummary: {
+    acknowledged: boolean;
+    acknowledgedItems: string[];
+    unresolvedConcerns: string[];
+  };
+  candidateTrustIndex: CandidateTrustIndex;
+  trustGapSummary: TrustGapSummary;
+  trustRepairScript: string;
+  trialReplay: TrialReplayEvent[];
+  aiRiskReview: AIRiskReview;
   decisionPathAnalysis: DecisionPathAnalysis;
   concernRadar: ConcernRadar;
   sceneChoiceSummary: string[];
@@ -357,6 +442,11 @@ export interface FunnelMetrics {
   preInviteSuggestionCoverage?: number;
   invitationScriptsGenerated?: number;
   battleCardsGenerated?: number;
+  averageTrustIndex?: number;
+  highTrustCandidateRatio?: number;
+  truthContractAcknowledgements?: number;
+  aiRiskReviewPasses?: number;
+  lowTrustReasonTop3?: string[];
 }
 
 export interface Company {
@@ -375,6 +465,7 @@ export interface DemoState {
   realityRoles: RealityRole[];
   realityScenes: RealityScene[];
   jobTruthLabels: JobTruthLabel[];
+  jobTruthContracts: JobTruthContract[];
   branchScenarios: BranchScenario[];
   truthVideoScripts: TruthVideoScript[];
   trialSessions: TrialSession[];

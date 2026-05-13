@@ -27,6 +27,7 @@ export function Candidates() {
                 <th>岗位</th>
                 <th>来源</th>
                 <th>云试岗完成度</th>
+                <th>信任指数</th>
                 <th>真实意愿</th>
                 <th>岗位理解</th>
                 <th>爽约风险</th>
@@ -49,6 +50,7 @@ export function Candidates() {
                     <td>{job?.title ?? '未知岗位'}</td>
                     <td>{candidate.sourceChannel}</td>
                     <td>{report ? `${report.trialCompletion}%` : '待确认'}</td>
+                    <td>{report ? `${report.candidateTrustIndex.total}/100` : '待确认'}</td>
                     <td>
                       <Badge tone={report?.realIntention === '高' ? 'green' : report?.realIntention === '低' ? 'amber' : 'blue'}>{report?.realIntention ?? '待确认'}</Badge>
                     </td>

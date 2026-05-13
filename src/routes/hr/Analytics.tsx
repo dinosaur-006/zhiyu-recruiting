@@ -39,6 +39,10 @@ export function Analytics() {
         <StatCard label="邀约前建议覆盖数" value={metrics.preInviteSuggestionCoverage ?? 0} hint="AI辅助建议" />
         <StatCard label="AI邀约话术生成数" value={metrics.invitationScriptsGenerated ?? 0} hint="试点目标" />
         <StatCard label="面试作战卡生成数" value={metrics.battleCardsGenerated ?? 0} hint="试点目标" />
+        <StatCard label="平均岗位信任指数" value={`${metrics.averageTrustIndex ?? 0}/100`} hint="AI辅助估算" />
+        <StatCard label="高信任候选人占比" value={`${metrics.highTrustCandidateRatio ?? 0}%`} hint="试点目标" />
+        <StatCard label="真相合约确认数" value={metrics.truthContractAcknowledgements ?? 0} hint="知情确认" />
+        <StatCard label="AI风险复核通过数" value={metrics.aiRiskReviewPasses ?? 0} hint="面试前参考" />
       </section>
 
       <section className="panel">
@@ -48,6 +52,18 @@ export function Analytics() {
           <div><strong>无效面试</strong><span>降低20%-30%</span></div>
           <div><strong>岗位误解</strong><span>提前识别</span></div>
           <div><strong>报告采纳率</strong><span>超过60%</span></div>
+        </div>
+      </section>
+
+      <section className="panel">
+        <h2>低信任原因 Top3</h2>
+        <div className="goal-grid">
+          {(metrics.lowTrustReasonTop3 ?? ['薪资沟通节点', '工作节奏', '成长路径']).map((reason) => (
+            <div key={reason}>
+              <strong>{reason}</strong>
+              <span>邀约前建议补充说明</span>
+            </div>
+          ))}
         </div>
       </section>
     </main>
