@@ -11,6 +11,7 @@ export function Analytics() {
   const inviteRate = metrics.applications ? Math.round((metrics.interviewInvites / metrics.applications) * 100) : 0;
   const truthViewRate = metrics.visits ? Math.round(((metrics.truthLabelViews ?? 0) / metrics.visits) * 100) : 0;
   const branchCompletionRate = trialStarts ? Math.round(((metrics.branchTrialCompletions ?? 0) / trialStarts) * 100) : 0;
+  const trustHealth = metrics.recruitingTrustHealth;
 
   return (
     <main className="page">
@@ -53,7 +54,28 @@ export function Analytics() {
         <StatCard label="已处理信任修复任务" value={metrics.handledTrustRepairTasks ?? 0} hint="试点目标" />
         <StatCard label="高沉默风险候选人" value={metrics.highSilenceRiskCandidates ?? 0} hint="邀约前建议澄清" />
         <StatCard label="审计日志完整率" value={`${metrics.auditCompletenessRate ?? 0}%`} hint="AI辅助估算" />
+        <StatCard label="招聘信任健康度" value={`${trustHealth?.total ?? 0}/100`} hint="AI辅助估算" />
       </section>
+
+      {trustHealth ? (
+        <section className="panel trust-health-panel">
+          <h2>招聘信任健康度</h2>
+          <div className="health-grid">
+            <div>
+              <strong>强项</strong>
+              {trustHealth.strengths.map((item) => (
+                <span key={item}>{item}</span>
+              ))}
+            </div>
+            <div>
+              <strong>待优化</strong>
+              {trustHealth.improvementItems.map((item) => (
+                <span key={item}>{item}</span>
+              ))}
+            </div>
+          </div>
+        </section>
+      ) : null}
 
       <InsightSection
         title="低信任原因Top3"

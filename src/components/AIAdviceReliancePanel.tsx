@@ -1,6 +1,6 @@
-import type { AIAdviceRelianceNotice } from '../types';
+import type { AIAdviceEvidenceTag, AIAdviceRelianceNotice } from '../types';
 
-export function AIAdviceReliancePanel({ notice }: { notice: AIAdviceRelianceNotice }) {
+export function AIAdviceReliancePanel({ notice, evidenceTags = [] }: { notice: AIAdviceRelianceNotice; evidenceTags?: AIAdviceEvidenceTag[] }) {
   return (
     <section className="story-block reliance-panel" id="ai-advice-reliance">
       <div className="pro-card-head">
@@ -29,6 +29,26 @@ export function AIAdviceReliancePanel({ notice }: { notice: AIAdviceRelianceNoti
           <li key={item}>{item}</li>
         ))}
       </ul>
+      {evidenceTags.length > 0 ? (
+        <div className="advice-evidence-list">
+          {evidenceTags.map((tag) => (
+            <article key={tag.id} className={tag.status === '有行为证据' ? 'advice-evidence-card supported' : 'advice-evidence-card needs-review'}>
+              <div>
+                <strong>{tag.advice}</strong>
+                <span>{tag.reason}</span>
+              </div>
+              <b>{tag.status}</b>
+              {tag.evidence.length > 0 ? (
+                <ul>
+                  {tag.evidence.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              ) : null}
+            </article>
+          ))}
+        </div>
+      ) : null}
     </section>
   );
 }

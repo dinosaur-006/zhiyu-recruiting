@@ -1,4 +1,5 @@
 import {
+  calculateRecruitingTrustHealth,
   buildDefaultAvatarConfig,
   createDefaultRealityRoles,
   answerReverseQuestion,
@@ -157,6 +158,15 @@ export function createInitialState(): DemoState {
     completionRate: 100,
   };
   const realityReport = generateRealityReport(candidate, job, trialSession, [selectedChoice], branchChoices, jobTruthLabel);
+  const recruitingTrustHealth = calculateRecruitingTrustHealth({
+    truthLabelViewRate: Math.round((42 / 128) * 100),
+    truthContractAcknowledgementRate: Math.round((1 / 18) * 100),
+    trialCompletionRate: Math.round((38 / 64) * 100),
+    trustRepairTaskHandledRate: 0,
+    aiRiskReviewPassRate: realityReport.aiRiskReview.result === '复核通过' ? 100 : 0,
+    candidateFairnessIndex: realityReport.candidateFairnessIndex.total,
+    auditCompletenessRate: realityReport.auditCompletenessRate,
+  });
 
   return {
     company: demoCompany,
@@ -214,6 +224,7 @@ export function createInitialState(): DemoState {
       handledTrustRepairTasks: 0,
       highSilenceRiskCandidates: realityReport.silenceRisk.possibleReasons.length >= 3 ? 1 : 0,
       auditCompletenessRate: realityReport.auditCompletenessRate,
+      recruitingTrustHealth,
       candidateExitReasonTop3: ['薪资信息不明确', '岗位节奏不适合', '成长路径不清晰'],
     },
   };

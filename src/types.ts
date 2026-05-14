@@ -428,6 +428,20 @@ export interface AIAdviceRelianceNotice {
   reminders: string[];
 }
 
+export interface AIAdviceEvidenceTag {
+  id: string;
+  advice: string;
+  status: '有行为证据' | '需人工确认';
+  evidence: string[];
+  reason: string;
+}
+
+export interface RecruitingTrustHealth {
+  total: number;
+  strengths: string[];
+  improvementItems: string[];
+}
+
 export type TrustAuditEventType =
   | 'job_truth_label_generated'
   | 'truth_contract_acknowledged'
@@ -468,6 +482,9 @@ export interface TrustRepairTask {
   status: '待处理' | '已处理';
   createdAt: string;
   handledAt?: string;
+  beforeTrustScore: number;
+  estimatedAfterTrustScore: number;
+  estimatedImpact: string[];
 }
 
 export interface TrialSession {
@@ -530,6 +547,7 @@ export interface RealityReport {
   trustGapDiagnosis: TrustGapDiagnosisItem[];
   commitmentConsistencyCheck: CommitmentConsistencyCheck;
   aiAdviceRelianceNotice: AIAdviceRelianceNotice;
+  adviceEvidenceTags: AIAdviceEvidenceTag[];
   candidateExitReason?: CandidateExitReason;
   trustAuditLog: TrustAuditEvent[];
   silenceRisk: SilenceRisk;
@@ -594,6 +612,7 @@ export interface FunnelMetrics {
   handledTrustRepairTasks?: number;
   highSilenceRiskCandidates?: number;
   auditCompletenessRate?: number;
+  recruitingTrustHealth?: RecruitingTrustHealth;
 }
 
 export interface Company {

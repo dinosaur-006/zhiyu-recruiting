@@ -1,5 +1,6 @@
 import type {
   AvatarConfig,
+  AIAdviceEvidenceTag,
   AIAdviceRelianceNotice,
   BranchChoice,
   BranchScenario,
@@ -25,6 +26,7 @@ import type {
   NoShowPreventionCard,
   Recommendation,
   RealityReport,
+  RecruitingTrustHealth,
   RealityRole,
   RealityScene,
   ReverseQuestion,
@@ -781,6 +783,20 @@ export function generateTrustGapDiagnosis(report: RealityReport): TrustGapDiagno
 }
 
 export function generateAIAdviceRelianceNotice(report: RealityReport): AIAdviceRelianceNotice {
+  if (report.adviceEvidenceTags?.length) {
+    const evidenceSupportedCount = report.adviceEvidenceTags.filter((tag) => tag.status === '有行为证据').length;
+    const needsHumanConfirmationCount = report.adviceEvidenceTags.filter((tag) => tag.status === '需人工确认').length;
+    return {
+      evidenceSupportedCount,
+      needsHumanConfirmationCount,
+      reminders: [
+        `当前报告中${evidenceSupportedCount}条AI辅助建议具备行为证据标签。`,
+        `${needsHumanConfirmationCount}条建议需要HR在面试或邀约前人工确认。`,
+        '全部AI辅助建议均不得作为最终招聘决定。',
+      ],
+    };
+  }
+
   const evidenceSupportedCount = [
     report.evidenceSources.fromTrialScenes.length > 0,
     report.evidenceSources.fromCandidateInput.length > 0,
@@ -805,6 +821,90 @@ export function generateAIAdviceRelianceNotice(report: RealityReport): AIAdviceR
       `${needsHumanConfirmationCount}类建议需要HR在面试或邀约前人工确认。`,
       '全部AI辅助建议均不得作为最终招聘决定。',
     ],
+  };
+}
+
+export function generateAIAdviceEvidenceTags(report: RealityReport): AIAdviceEvidenceTag[] {
+  const hasReverseQuestion = (keyword: string) =>
+    report.reverseQuestions.some((item) => `${item.type} ${item.question} ${item.answer}`.includes(keyword));
+  const hasFocusedTruthPoint = (keyword: string) =>
+    report.jobTruthViewSummary.focusedPoints.some((item) => item.includes(keyword)) ||
+    report.jobTruthViewSummary.viewedPoints.some((item) => item.includes(keyword));
+  const hasReplayEvent = (keyword: string) => report.trialReplay.some((event) => `${event.label} ${JSON.stringify(event.metadata ?? {})}`.includes(keyword));
+
+  const buildTag = (id: string, advice: string, evidence: string[], reason: string): AIAdviceEvidenceTag => ({
+    id,
+    advice,
+    status: evidence.length > 0 ? '有行为证据' : '需人工确认',
+    evidence,
+    reason: evidence.length > 0 ? reason : '当前行为证据不足，需要HR在面试中人工确认。',
+  });
+
+  const salaryEvidence = [
+    hasReverseQuestion('薪资') || hasReverseQuestion('薪') ? '候选人在反向问答室关注薪资福利。' : '',
+    hasFocusedTruthPoint('薪') ? '候选人重点查看薪资沟通相关真相点。' : '',
+    report.truthContractSummary.unresolvedConcerns.some((item) => item.includes('薪') || item.includes('钖')) ? '岗位真相合约中仍有薪资沟通疑问。' : '',
+  ].filter(Boolean);
+
+  const workloadEvidence = [
+    hasFocusedTruthPoint('节奏') || hasFocusedTruthPoint('压力') ? '候选人重点查看工作节奏或压力来源。' : '',
+    report.concernRadar.workload >= 65 ? '顾虑雷达显示工作节奏顾虑较高。' : '',
+    hasReplayEvent('分岔') ? '候选人在分岔任务沙盘中完成推进选择。' : '',
+  ].filter(Boolean);
+
+  const growthEvidence = [
+    hasReverseQuestion('成长') ? '候选人在反向问答室关注成长空间。' : '',
+    report.concernRadar.growth >= 65 ? '顾虑雷达显示成长路径顾虑较高。' : '',
+    hasFocusedTruthPoint('成长') ? '候选人重点查看成长速度真相点。' : '',
+  ].filter(Boolean);
+
+  return [
+    buildTag(`advice_${report.candidateId}_salary`, '邀约前补充薪资沟通节点', salaryEvidence, '该建议来自候选人的薪资关注和未解决疑问。'),
+    buildTag(`advice_${report.candidateId}_workload`, '面试前说明项目节奏和阶段性压力', workloadEvidence, '该建议来自工作节奏关注、顾虑雷达和云试岗路径。'),
+    buildTag(`advice_${report.candidateId}_growth`, '补充团队成长机制和Code Review方式', growthEvidence, '该建议来自成长路径关注和岗位真相查看行为。'),
+    buildTag(`advice_${report.candidateId}_stability`, '确认候选人长期稳定性', [], '当前没有足够行为证据支持稳定性判断。'),
+  ];
+}
+
+export function calculateRecruitingTrustHealth(input: {
+  truthLabelViewRate: number;
+  truthContractAcknowledgementRate: number;
+  trialCompletionRate: number;
+  trustRepairTaskHandledRate: number;
+  aiRiskReviewPassRate: number;
+  candidateFairnessIndex: number;
+  auditCompletenessRate: number;
+}): RecruitingTrustHealth {
+  const total = clampScore(
+    input.truthLabelViewRate * 0.14 +
+      input.truthContractAcknowledgementRate * 0.14 +
+      input.trialCompletionRate * 0.14 +
+      input.trustRepairTaskHandledRate * 0.14 +
+      input.aiRiskReviewPassRate * 0.16 +
+      input.candidateFairnessIndex * 0.14 +
+      input.auditCompletenessRate * 0.14,
+  );
+
+  const strengths = [
+    input.aiRiskReviewPassRate >= 85 ? 'AI风险复核完整' : '',
+    input.candidateFairnessIndex >= 85 ? '候选人权益说明清楚' : '',
+    input.auditCompletenessRate >= 85 ? '审计日志完整率高' : '',
+    input.truthLabelViewRate >= 80 ? '岗位真相查看充分' : '',
+    input.truthContractAcknowledgementRate >= 75 ? '候选人知情确认较充分' : '',
+  ].filter(Boolean);
+
+  const improvementItems = [
+    input.trustRepairTaskHandledRate < 60 ? '信任修复任务处理率偏低' : '',
+    input.truthContractAcknowledgementRate < 70 ? '真相合约确认率待提升' : '',
+    input.trialCompletionRate < 70 ? '云试岗完成率仍可提升' : '',
+    input.auditCompletenessRate < 80 ? '审计日志完整率需要补齐' : '',
+    input.truthLabelViewRate < 70 ? '岗位真相标签需要更突出' : '',
+  ].filter(Boolean);
+
+  return {
+    total,
+    strengths: strengths.length > 0 ? strengths : ['治理链路已建立'],
+    improvementItems: improvementItems.length > 0 ? improvementItems : ['保持当前信任治理节奏'],
   };
 }
 
@@ -1024,6 +1124,25 @@ export function generateSilenceRisk(report: RealityReport, session: TrialSession
 export function generateTrustRepairTasks(report: RealityReport): TrustRepairTask[] {
   const createdAt = nowIso();
   const tasks: TrustRepairTask[] = [];
+  const estimateTrustRepairEffect = (title: string, trigger: string, suggestedAction: string) => {
+    const beforeTrustScore = report.candidateTrustIndex?.total ?? 0;
+    const corpus = `${title} ${trigger} ${suggestedAction}`;
+    const estimatedImpact = unique([
+      containsAny(corpus, ['薪', '钖祫']) ? '降低薪资沟通顾虑' : '',
+      containsAny(corpus, ['节奏', '压力', '鑺傚', '鍘嬪姏']) ? '降低工作节奏不确定感' : '',
+      containsAny(corpus, ['成长', '鎴愰暱', 'Code Review']) ? '提升成长路径可信度' : '',
+      containsAny(corpus, ['沉默', '娌夐粯']) ? '降低沉默风险' : '',
+      containsAny(corpus, ['风险', '椋庨櫓', '复核', '澶嶆牳']) ? '提升AI建议使用边界清晰度' : '',
+      '提升面试投入意愿',
+    ]).filter(Boolean);
+    const lift = Math.min(12, Math.max(5, estimatedImpact.length * 3));
+
+    return {
+      beforeTrustScore,
+      estimatedAfterTrustScore: Math.min(100, beforeTrustScore + lift),
+      estimatedImpact,
+    };
+  };
   const addTask = (
     source: TrustRepairTask['source'],
     title: string,
@@ -1031,6 +1150,7 @@ export function generateTrustRepairTasks(report: RealityReport): TrustRepairTask
     suggestedAction: string,
     index: number,
   ) => {
+    const effect = estimateTrustRepairEffect(title, trigger, suggestedAction);
     tasks.push({
       id: `task_${report.candidateId}_${source}_${index}`.replace(/\s/g, '_'),
       candidateId: report.candidateId,
@@ -1041,6 +1161,7 @@ export function generateTrustRepairTasks(report: RealityReport): TrustRepairTask
       source,
       status: '待处理',
       createdAt,
+      ...effect,
     });
   };
 
@@ -1093,10 +1214,13 @@ export function generateAIRiskReview(report: RealityReport): AIRiskReview {
       report.evidenceSources.fromScenarioChoices.length > 0 ||
       report.trialReplay.length > 0);
   const hasCommitmentIssue = report.commitmentConsistencyCheck?.riskLevel === '高';
-  const hasWeakAdviceEvidence = (report.aiAdviceRelianceNotice?.needsHumanConfirmationCount ?? 0) > 2;
+  const weakAdviceEvidenceTags = report.adviceEvidenceTags?.filter((tag) => tag.status === '需人工确认' && tag.evidence.length === 0) ?? [];
+  const hasWeakAdviceEvidence =
+    (report.aiAdviceRelianceNotice?.needsHumanConfirmationCount ?? 0) > 2 || weakAdviceEvidenceTags.length > 0;
   const auditCompletenessRate = report.auditCompletenessRate ?? 0;
   const hasAuditGap = auditCompletenessRate > 0 && auditCompletenessRate < 70;
   const reminders = unique([
+    weakAdviceEvidenceTags.length > 0 ? `存在${weakAdviceEvidenceTags.length}条无证据建议，需人工确认后使用。` : '',
     forbiddenHits.length > 0 ? `发现需人工确认的越界表述：${forbiddenHits.join('、')}` : '',
     hasJobTruthEvidence ? '岗位真相标签已标注可信来源和证据文本。' : '岗位真相标签缺少可信来源，需要HR补充证据。',
     hasEvidence ? '每条HR辅助建议均可回溯到候选人的云试岗行为、选择或主动填写内容。' : '部分建议缺少证据来源，建议HR人工确认后再使用。',
@@ -1480,6 +1604,7 @@ export function generateRealityReport(
       needsHumanConfirmationCount: 0,
       reminders: [],
     },
+    adviceEvidenceTags: [],
     candidateExitReason: session.exitReason,
     trustAuditLog: [],
     silenceRisk: {
@@ -1559,9 +1684,14 @@ export function generateRealityReport(
     ...reportWithIntelligenceBase,
     trustGapDiagnosis,
   };
-  const aiAdviceRelianceNotice = generateAIAdviceRelianceNotice(reportWithIntelligence);
-  const reportWithReliance: RealityReport = {
+  const adviceEvidenceTags = generateAIAdviceEvidenceTags(reportWithIntelligence);
+  const reportWithEvidenceTags: RealityReport = {
     ...reportWithIntelligence,
+    adviceEvidenceTags,
+  };
+  const aiAdviceRelianceNotice = generateAIAdviceRelianceNotice(reportWithEvidenceTags);
+  const reportWithReliance: RealityReport = {
+    ...reportWithEvidenceTags,
     aiAdviceRelianceNotice,
   };
   const reportWithReview: RealityReport = {

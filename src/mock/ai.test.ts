@@ -29,6 +29,8 @@ import {
   generateTruthVideoScript,
   generateSilenceRisk,
   generateTrustAuditLog,
+  calculateRecruitingTrustHealth,
+  generateAIAdviceEvidenceTags,
   getBranchScenarios,
   getScenarioChoices,
   parseJobDescription,
@@ -437,9 +439,10 @@ describe('Trust Layer AI', () => {
     const report = generateRealityReport(candidate, job, session, [selectedChoice], branchChoices, generateJobTruthLabel(job));
     const review = generateAIRiskReview(report);
 
-    expect(review.result).toBe('复核通过');
+    expect(review.result).toBe('需要人工确认');
     expect(review.checkedItems).toEqual(expect.arrayContaining(['未出现自动化最终决策表述', '已包含人工复核声明']));
     expect(review.reminders.join('')).toContain('最终招聘决策由企业人工完成');
+    expect(review.reminders.join('')).toContain('无证据建议');
   });
 });
 
@@ -749,5 +752,117 @@ describe('Trust Governance AI', () => {
 
     expect(calculateAuditCompleteness(events)).toBeGreaterThanOrEqual(80);
     expect(calculateAuditCompleteness(events.slice(0, 2))).toBeLessThan(50);
+  });
+});
+
+describe('Trust Governance closure AI', () => {
+  const candidate: Candidate = {
+    id: 'candidate-closure',
+    jobId: job.id,
+    conversationId: 'conversation-closure',
+    name: '唐同学',
+    phone: '13100000000',
+    email: 'tang@example.com',
+    sourceChannel: 'Trust Closure入口',
+    skills: 'Vue React TypeScript B端SaaS',
+    projectExperience: '负责过B端SaaS筛选、权限和数据看板模块，参与接口联调和Code Review。',
+    motivation: '希望确认岗位节奏、成长路径和团队协作方式。',
+    concerns: '薪资沟通节点、工作节奏、成长路径',
+    rhythmAcceptance: '可以接受阶段性压力，希望提前确认不是长期高压。',
+    followUpQuestion: '薪资沟通节点和面试反馈时效如何？',
+    scenarioReflection: '先澄清边界，再推进Mock字段和核心功能。',
+    status: '已投递',
+    submittedAt: '2026-05-13T00:00:00.000Z',
+  };
+  const selectedChoice = getScenarioChoices()[1];
+  const branchChoices = getBranchScenarios(job).map((scenario) => scenario.choices[1]);
+  const session: TrialSession = {
+    id: 'trial-closure',
+    jobId: job.id,
+    candidateId: candidate.id,
+    currentSceneId: `scene_task_${job.id}`,
+    completedSceneIds: [`scene_intro_${job.id}`, `scene_day_${job.id}`, `scene_task_${job.id}`],
+    askedTopics: ['薪资福利', '成长空间', '工作节奏', '团队氛围'],
+    selectedChoiceIds: [selectedChoice.id],
+    branchChoiceIds: branchChoices.map((choice) => choice.id),
+    viewedTruthPoints: ['工作节奏', '协作密度', '成长速度', '薪资沟通节点'],
+    focusedTruthPoints: ['工作节奏', '薪资沟通节点'],
+    reverseQuestions: [answerReverseQuestion(job, generateJobTruthLabel(job), '薪资福利')],
+    truthContractAcknowledgement: {
+      acknowledged: true,
+      acknowledgedItems: ['工作节奏说明', '面试流程承诺', 'AI辅助边界'],
+      unresolvedConcerns: ['薪资沟通节点'],
+      acknowledgedAt: '2026-05-13T00:03:00.000Z',
+    },
+    mutualConfirmation: {
+      candidateConfirmedItems: ['我已了解岗位节奏', '我已了解面试流程', '我仍愿意继续面试'],
+      unresolvedReasons: ['薪资沟通节点'],
+      hrCommitments: [],
+      confirmedAt: '2026-05-13T00:08:30.000Z',
+    },
+    trialEvents: [
+      { id: 'event-c-1', type: 'truth_label_viewed', label: '查看岗位真相标签', occurredAt: '2026-05-13T00:00:00.000Z' },
+      { id: 'event-c-2', type: 'truth_point_focused', label: '重点查看：工作节奏', occurredAt: '2026-05-13T00:00:20.000Z' },
+      { id: 'event-c-3', type: 'truth_contract_acknowledged', label: '确认岗位真相合约', occurredAt: '2026-05-13T00:03:00.000Z' },
+      { id: 'event-c-4', type: 'branch_choice_selected', label: '完成分岔任务选择', occurredAt: '2026-05-13T00:06:00.000Z' },
+      { id: 'event-c-5', type: 'reverse_question_asked', label: '反向提问：薪资福利', occurredAt: '2026-05-13T00:07:00.000Z' },
+    ],
+    directApply: false,
+    startedAt: '2026-05-13T00:00:00.000Z',
+    completedAt: '2026-05-13T00:09:00.000Z',
+    completionRate: 100,
+  };
+
+  it('adds estimated trust impact to repair tasks', () => {
+    const report = generateRealityReport(candidate, job, session, [selectedChoice], branchChoices, generateJobTruthLabel(job));
+    const tasks = generateTrustRepairTasks(report);
+
+    expect(tasks.length).toBeGreaterThan(0);
+    expect(tasks[0].beforeTrustScore).toBe(report.candidateTrustIndex.total);
+    expect(tasks[0].estimatedAfterTrustScore).toBeGreaterThanOrEqual(tasks[0].beforeTrustScore);
+    expect(tasks[0].estimatedImpact.length).toBeGreaterThan(0);
+  });
+
+  it('calculates recruiting trust health from governance metrics', () => {
+    const health = calculateRecruitingTrustHealth({
+      truthLabelViewRate: 86,
+      truthContractAcknowledgementRate: 72,
+      trialCompletionRate: 68,
+      trustRepairTaskHandledRate: 40,
+      aiRiskReviewPassRate: 92,
+      candidateFairnessIndex: 88,
+      auditCompletenessRate: 95,
+    });
+
+    expect(health.total).toBeGreaterThan(70);
+    expect(health.strengths.length).toBeGreaterThan(0);
+    expect(health.improvementItems).toEqual(expect.arrayContaining(['信任修复任务处理率偏低']));
+  });
+
+  it('tags AI advice with evidence status', () => {
+    const report = generateRealityReport(candidate, job, session, [selectedChoice], branchChoices, generateJobTruthLabel(job));
+    const tags = generateAIAdviceEvidenceTags(report);
+
+    expect(tags.map((tag) => tag.status)).toEqual(expect.arrayContaining(['有行为证据', '需人工确认']));
+    expect(tags.find((tag) => tag.status === '有行为证据')?.evidence.length).toBeGreaterThan(0);
+  });
+
+  it('risk reviewer keeps human confirmation reminder for weak evidence tags', () => {
+    const report = generateRealityReport(candidate, job, session, [selectedChoice], branchChoices, generateJobTruthLabel(job));
+    const review = generateAIRiskReview({
+      ...report,
+      adviceEvidenceTags: [
+        {
+          id: 'weak-tag',
+          advice: '确认候选人长期稳定性',
+          status: '需人工确认',
+          evidence: [],
+          reason: '当前行为证据不足',
+        },
+      ],
+    });
+
+    expect(review.result).toBe('需要人工确认');
+    expect(review.reminders.join('')).toContain('无证据建议');
   });
 });

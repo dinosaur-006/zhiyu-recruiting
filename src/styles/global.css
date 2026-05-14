@@ -1897,6 +1897,99 @@ select:focus {
   gap: 10px;
 }
 
+.task-impact {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #bfdbfe;
+  border-radius: 12px;
+  background: #eff6ff;
+}
+
+.task-impact span {
+  margin: 0 0 4px;
+  color: var(--blue);
+}
+
+.task-impact strong {
+  display: block;
+  color: var(--blue-dark);
+  font-size: 20px;
+}
+
+.task-impact ul,
+.advice-evidence-card ul {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  color: var(--text);
+}
+
+.advice-evidence-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.advice-evidence-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fff;
+}
+
+.advice-evidence-card.supported {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+}
+
+.advice-evidence-card.needs-review {
+  border-color: #fed7aa;
+  background: #fff7ed;
+}
+
+.advice-evidence-card span {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.advice-evidence-card b {
+  color: var(--blue-dark);
+  white-space: nowrap;
+}
+
+.trust-health-panel {
+  border-color: #c7d2fe;
+  background: linear-gradient(135deg, #fff, #f8f7ff);
+}
+
+.health-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.health-grid > div {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fff;
+}
+
+.health-grid strong {
+  color: var(--blue-dark);
+}
+
+.health-grid span {
+  color: var(--muted);
+  line-height: 1.55;
+}
+
 @keyframes speakPulse {
   0%,
   100% {
@@ -2003,6 +2096,8 @@ select:focus {
   .truth-nutrition,
   .contract-grid,
   .rights-grid,
+  .health-grid,
+  .advice-evidence-card,
   .risk-review-grid,
   .governance-grid,
   .audit-item,

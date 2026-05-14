@@ -9,6 +9,7 @@ export function Dashboard() {
   const latestCandidates = candidates.slice(0, 4);
   const completionRate = metrics.chatStarts ? Math.round((metrics.chatCompletions / metrics.chatStarts) * 100) : 0;
   const showRate = metrics.interviewInvites ? Math.round((metrics.attendedInterviews / metrics.interviewInvites) * 100) : 0;
+  const trustHealth = metrics.recruitingTrustHealth;
 
   return (
     <main className="page">
@@ -32,6 +33,7 @@ export function Dashboard() {
         <StatCard label="高沉默风险" value={metrics.highSilenceRiskCandidates ?? 0} hint="邀约前建议澄清" />
         <StatCard label="审计完整率" value={`${metrics.auditCompletenessRate ?? 0}%`} hint="AI辅助估算" />
         <StatCard label="已处理任务" value={metrics.handledTrustRepairTasks ?? 0} hint="试点目标" />
+        <StatCard label="招聘信任健康度" value={`${trustHealth?.total ?? 0}/100`} hint="AI辅助估算" />
       </section>
 
       <section className="dashboard-grid">
@@ -84,6 +86,29 @@ export function Dashboard() {
       <section className="panel dashboard-task-panel">
         <TrustRepairTaskPanel tasks={trustRepairTasks} compact />
       </section>
+
+      {trustHealth ? (
+        <section className="panel trust-health-panel">
+          <div className="panel-head">
+            <h2>招聘信任健康度</h2>
+            <Badge tone={trustHealth.total >= 80 ? 'green' : trustHealth.total >= 65 ? 'blue' : 'amber'}>{trustHealth.total}/100</Badge>
+          </div>
+          <div className="health-grid">
+            <div>
+              <strong>强项</strong>
+              {trustHealth.strengths.map((item) => (
+                <span key={item}>{item}</span>
+              ))}
+            </div>
+            <div>
+              <strong>待优化</strong>
+              {trustHealth.improvementItems.map((item) => (
+                <span key={item}>{item}</span>
+              ))}
+            </div>
+          </div>
+        </section>
+      ) : null}
     </main>
   );
 }

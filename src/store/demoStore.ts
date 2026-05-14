@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import {
   buildDefaultAvatarConfig,
   answerReverseQuestion,
+  calculateRecruitingTrustHealth,
+  generateAIAdviceEvidenceTags,
   generateAIAdviceRelianceNotice,
   generateAIRiskReview,
   calculateCandidateTrustIndex,
@@ -266,6 +268,7 @@ export function normalizeDemoState(state: Partial<DemoState>): DemoState {
           needsHumanConfirmationCount: 0,
           reminders: [],
         },
+      adviceEvidenceTags: report.adviceEvidenceTags ?? [],
       candidateExitReason: report.candidateExitReason ?? session?.exitReason,
       aiRiskReview:
         report.aiRiskReview ??
@@ -305,12 +308,19 @@ export function normalizeDemoState(state: Partial<DemoState>): DemoState {
           ? report.trustGapDiagnosis
           : generateTrustGapDiagnosis(withTrustPlus),
     };
-    const withReliance = {
+    const withEvidenceTags = {
       ...withDiagnosis,
+      adviceEvidenceTags:
+        report.adviceEvidenceTags && report.adviceEvidenceTags.length > 0
+          ? report.adviceEvidenceTags
+          : generateAIAdviceEvidenceTags(withDiagnosis),
+    };
+    const withReliance = {
+      ...withEvidenceTags,
       aiAdviceRelianceNotice:
         report.aiAdviceRelianceNotice && report.aiAdviceRelianceNotice.reminders.length > 0
           ? report.aiAdviceRelianceNotice
-          : generateAIAdviceRelianceNotice(withDiagnosis),
+          : generateAIAdviceRelianceNotice(withEvidenceTags),
     };
     const withReview = {
       ...withReliance,
@@ -323,7 +333,9 @@ export function normalizeDemoState(state: Partial<DemoState>): DemoState {
     const withTasks = {
       ...withSilence,
       trustRepairTasks:
-        report.trustRepairTasks && report.trustRepairTasks.length > 0
+        report.trustRepairTasks &&
+        report.trustRepairTasks.length > 0 &&
+        report.trustRepairTasks.every((task) => task.estimatedImpact?.length > 0)
           ? report.trustRepairTasks
           : generateTrustRepairTasks(withSilence),
     };
@@ -367,6 +379,26 @@ export function normalizeDemoState(state: Partial<DemoState>): DemoState {
   const auditCompletenessRate = realityReports.length
     ? Math.round(realityReports.reduce((sum, report) => sum + report.auditCompletenessRate, 0) / realityReports.length)
     : 0;
+  const baseMetrics = {
+    ...initial.metrics,
+    ...(state.metrics ?? {}),
+  };
+  const totalTrustTasks = pendingTrustRepairTasks + handledTrustRepairTasks;
+  const recruitingTrustHealth =
+    calculateRecruitingTrustHealth({
+      truthLabelViewRate: baseMetrics.visits > 0 ? Math.round(((baseMetrics.truthLabelViews ?? 0) / baseMetrics.visits) * 100) : 0,
+      truthContractAcknowledgementRate:
+        baseMetrics.applications > 0 ? Math.round(((baseMetrics.truthContractAcknowledgements ?? 0) / baseMetrics.applications) * 100) : 0,
+      trialCompletionRate:
+        (baseMetrics.trialStarts ?? 0) > 0
+          ? Math.round(((baseMetrics.trialCompletions ?? 0) / Math.max(1, baseMetrics.trialStarts ?? 0)) * 100)
+          : 0,
+      trustRepairTaskHandledRate: totalTrustTasks > 0 ? Math.round((handledTrustRepairTasks / totalTrustTasks) * 100) : 0,
+      aiRiskReviewPassRate:
+        realityReports.length > 0 ? Math.round(((baseMetrics.aiRiskReviewPasses ?? 0) / realityReports.length) * 100) : 0,
+      candidateFairnessIndex: baseMetrics.candidateFairnessIndex ?? 0,
+      auditCompletenessRate,
+    });
 
   return {
     company: state.company ?? initial.company,
@@ -387,12 +419,12 @@ export function normalizeDemoState(state: Partial<DemoState>): DemoState {
     conversations: state.conversations ?? initial.conversations,
     storyCards: state.storyCards ?? initial.storyCards,
     metrics: {
-      ...initial.metrics,
-      ...(state.metrics ?? {}),
+      ...baseMetrics,
       pendingTrustRepairTasks,
       handledTrustRepairTasks,
       highSilenceRiskCandidates,
       auditCompletenessRate,
+      recruitingTrustHealth,
     },
   };
 }

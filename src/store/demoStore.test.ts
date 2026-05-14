@@ -135,6 +135,34 @@ describe('normalizeDemoState', () => {
     const task = next.trustRepairTasks.find((item) => item.id === taskId);
 
     expect(task?.status).toBe('已处理');
+    expect(task?.estimatedImpact.length).toBeGreaterThan(0);
     expect(next.metrics.handledTrustRepairTasks).toBeGreaterThan(0);
+  });
+
+  it('adds closure signal fields to older state shapes', () => {
+    const legacy = createInitialState();
+    const normalized = normalizeDemoState({
+      ...legacy,
+      metrics: {
+        ...legacy.metrics,
+        recruitingTrustHealth: undefined,
+      },
+      realityReports: [
+        {
+          ...legacy.realityReports[0],
+          adviceEvidenceTags: undefined,
+          trustRepairTasks: legacy.realityReports[0].trustRepairTasks.map((task) => ({
+            ...task,
+            beforeTrustScore: undefined,
+            estimatedAfterTrustScore: undefined,
+            estimatedImpact: undefined,
+          })),
+        } as never,
+      ],
+    });
+
+    expect(normalized.metrics.recruitingTrustHealth?.total).toBeGreaterThanOrEqual(0);
+    expect(normalized.realityReports[0].adviceEvidenceTags.length).toBeGreaterThan(0);
+    expect(normalized.realityReports[0].trustRepairTasks[0].estimatedImpact.length).toBeGreaterThan(0);
   });
 });

@@ -164,7 +164,7 @@ export function RealityReportPanel({ report, scenes = [], mode = 'hr' }: Reality
       <NoShowPreventionCardPanel card={report.noShowPreventionCard} />
       <InterviewBattleCardPanel card={report.interviewBattleCard} />
       <CandidateFairnessIndexPanel fairness={report.candidateFairnessIndex} />
-      <AIAdviceReliancePanel notice={report.aiAdviceRelianceNotice} />
+      <AIAdviceReliancePanel notice={report.aiAdviceRelianceNotice} evidenceTags={report.adviceEvidenceTags} />
       <div id="ai-risk-review">
         <AIRiskReviewPanel review={report.aiRiskReview} />
       </div>

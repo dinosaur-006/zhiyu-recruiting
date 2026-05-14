@@ -37,6 +37,19 @@ export function TrustRepairTaskPanel({
               </div>
               <div className="task-action">
                 <p>{task.suggestedAction}</p>
+                {task.handledAt ? (
+                  <div className="task-impact">
+                    <span>AI辅助估算</span>
+                    <strong>
+                      {task.beforeTrustScore} → {task.estimatedAfterTrustScore}
+                    </strong>
+                    <ul>
+                      {task.estimatedImpact.map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
                 {!task.handledAt ? (
                   <button type="button" className="ghost-button tiny" onClick={() => markTrustRepairTaskHandled(task.id)}>
                     标记已处理
