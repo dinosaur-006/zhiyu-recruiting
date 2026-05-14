@@ -74,6 +74,7 @@ export function RealityReportPanel({ report, scenes = [], mode = 'hr' }: Reality
         <SummaryCell label="爽约风险" value={report.noShowRisk} />
       </div>
 
+      <ReportExecutiveSummary report={report} />
       <TrustLoopGraphPanel nodes={report.trustLoopGraph} />
       <CandidateTrustIndexPanel trustIndex={report.candidateTrustIndex} />
       <TrustGapDiagnosisPanel items={report.trustGapDiagnosis} />
@@ -169,6 +170,81 @@ export function RealityReportPanel({ report, scenes = [], mode = 'hr' }: Reality
         <AIRiskReviewPanel review={report.aiRiskReview} />
       </div>
       <div className="story-compliance">{report.complianceNote}</div>
+    </section>
+  );
+}
+
+function ReportExecutiveSummary({ report }: { report: RealityReport }) {
+  const pendingTask = report.trustRepairTasks.find((task) => !task.handledAt);
+  const primaryGap =
+    report.trustGapDiagnosis[0]?.trigger ||
+    report.candidateTrustIndex.gapReasons[0] ||
+    report.trustGapSummary.majorGaps[0] ||
+    '当前没有明显信任缺口，保持清晰沟通节奏。';
+  const trustStatus =
+    report.candidateTrustIndex.total >= 80 ? '高信任' : report.candidateTrustIndex.total >= 65 ? '中高信任' : '需先修复信任';
+  const action = pendingTask?.suggestedAction || report.trustGapSummary.repairSuggestions[0] || '按报告建议完成人工复核后推进邀约。';
+
+  const cells = [
+    {
+      label: '候选人信任状态',
+      value: trustStatus,
+      detail: `信任指数 ${report.candidateTrustIndex.total}/100，用于衡量岗位信息是否足以支撑继续面试。`,
+      tone: report.candidateTrustIndex.total >= 80 ? 'green' : report.candidateTrustIndex.total >= 65 ? 'blue' : 'amber',
+    },
+    {
+      label: '沉默风险',
+      value: report.silenceRisk.level,
+      detail: report.silenceRisk.possibleReasons[0] || '当前未发现明显沉默信号。',
+      tone: report.silenceRisk.level === '高' ? 'red' : report.silenceRisk.level === '中' ? 'amber' : 'green',
+    },
+    {
+      label: '主要信任缺口',
+      value: report.trustGapDiagnosis[0]?.type || '暂无明显缺口',
+      detail: primaryGap,
+      tone: report.trustGapDiagnosis.length > 0 ? 'amber' : 'green',
+    },
+    {
+      label: 'HR建议动作',
+      value: pendingTask ? '先修复再邀约' : '可进入人工复核',
+      detail: action,
+      tone: pendingTask ? 'purple' : 'blue',
+    },
+    {
+      label: 'AI风险复核',
+      value: report.aiRiskReview.result,
+      detail: report.aiRiskReview.reminders[0] || '报告仅供面试前参考，最终决策由人工完成。',
+      tone: report.aiRiskReview.result === '复核通过' ? 'green' : 'amber',
+    },
+    {
+      label: '审计日志完整率',
+      value: `${report.auditCompletenessRate}%`,
+      detail: report.auditCompletenessRate >= 80 ? '关键行为与AI建议具备较完整留痕。' : '建议HR补充关键治理事件确认。',
+      tone: report.auditCompletenessRate >= 80 ? 'green' : report.auditCompletenessRate >= 60 ? 'blue' : 'amber',
+    },
+  ] as const;
+
+  return (
+    <section className="executive-summary" id="report-executive-summary">
+      <div className="executive-head">
+        <div>
+          <span className="eyebrow">Executive Signal</span>
+          <h3>一屏结论</h3>
+        </div>
+        <Badge tone={report.hrActionSuggestion === '优先邀约' ? 'green' : 'blue'}>{report.hrActionSuggestion}</Badge>
+      </div>
+      <div className="executive-grid">
+        {cells.map((cell) => (
+          <article key={cell.label} className="executive-cell">
+            <span>{cell.label}</span>
+            <div>
+              <strong>{cell.value}</strong>
+              <Badge tone={cell.tone}>{cell.tone === 'green' ? '已完成' : cell.tone === 'amber' ? '有缺口' : '面试前参考'}</Badge>
+            </div>
+            <p>{cell.detail}</p>
+          </article>
+        ))}
+      </div>
     </section>
   );
 }

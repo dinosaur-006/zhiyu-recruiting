@@ -41,7 +41,10 @@ export function AIAdviceReliancePanel({ notice, evidenceTags = [] }: { notice: A
               {tag.evidence.length > 0 ? (
                 <ul>
                   {tag.evidence.map((item) => (
-                    <li key={item}>{item}</li>
+                    <li key={item}>
+                      <strong>{formatEvidenceSource(item)}</strong>
+                      <span>{item}</span>
+                    </li>
                   ))}
                 </ul>
               ) : null}
@@ -51,4 +54,14 @@ export function AIAdviceReliancePanel({ notice, evidenceTags = [] }: { notice: A
       ) : null}
     </section>
   );
+}
+
+function formatEvidenceSource(evidence: string) {
+  if (evidence.includes('反向问答')) return '来自反向问答';
+  if (evidence.includes('分岔') || evidence.includes('沙盘')) return '来自分岔选择';
+  if (evidence.includes('真相')) return '来自真相点关注';
+  if (evidence.includes('顾虑雷达')) return '来自顾虑雷达';
+  if (evidence.includes('合约')) return '来自双向确认';
+  if (evidence.includes('云试岗') || evidence.includes('路径')) return '来自路径回放';
+  return '来自行为证据';
 }

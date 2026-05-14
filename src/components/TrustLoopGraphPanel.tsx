@@ -8,6 +8,8 @@ const statusTone: Record<TrustLoopNode['status'], 'green' | 'amber' | 'blue'> = 
 };
 
 export function TrustLoopGraphPanel({ nodes }: { nodes: TrustLoopNode[] }) {
+  const navigationNodes = normalizeTrustLoopNodes(nodes);
+
   return (
     <section className="story-block trust-loop-panel" id="trust-loop">
       <div className="pro-card-head">
@@ -18,7 +20,7 @@ export function TrustLoopGraphPanel({ nodes }: { nodes: TrustLoopNode[] }) {
         </div>
       </div>
       <div className="trust-loop-grid">
-        {nodes.map((node, index) => (
+        {navigationNodes.map((node, index) => (
           <a key={node.id} className="trust-loop-node" href={`#${node.anchor}`}>
             <span>{String(index + 1).padStart(2, '0')}</span>
             <div>
@@ -31,4 +33,37 @@ export function TrustLoopGraphPanel({ nodes }: { nodes: TrustLoopNode[] }) {
       </div>
     </section>
   );
+}
+
+function normalizeTrustLoopNodes(nodes: TrustLoopNode[]) {
+  const order = ['truth', 'contract', 'branch', 'concern', 'repair', 'mutual', 'review'];
+  const titleById: Record<string, string> = {
+    truth: '岗位真相公开',
+    contract: '知情确认',
+    branch: '云试岗',
+    concern: '顾虑暴露',
+    repair: '信任修复',
+    mutual: '双向确认',
+    review: '人工复核',
+  };
+  const anchorById: Record<string, string> = {
+    truth: 'job-truth-summary',
+    contract: 'truth-contract-summary',
+    branch: 'decision-path',
+    concern: 'concern-radar',
+    repair: 'trust-repair-tasks',
+    mutual: 'mutual-confirmation',
+    review: 'ai-risk-review',
+  };
+  const gapNode = nodes.find((node) => node.id === 'gap');
+
+  return order
+    .map((id) => nodes.find((node) => node.id === id))
+    .filter((node): node is TrustLoopNode => Boolean(node))
+    .map((node) => ({
+      ...node,
+      title: titleById[node.id] ?? node.title,
+      anchor: anchorById[node.id] ?? node.anchor,
+      summary: node.id === 'repair' && gapNode ? `${gapNode.summary}；${node.summary}` : node.summary,
+    }));
 }

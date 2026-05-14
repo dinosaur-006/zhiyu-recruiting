@@ -3,6 +3,7 @@ import { Badge } from '../../components/Badge';
 import { StatCard } from '../../components/StatCard';
 import { TrustRepairTaskPanel } from '../../components/TrustRepairTaskPanel';
 import { useDemoState } from '../../store/demoStore';
+import type { RealityReport, TrustRepairTask } from '../../types';
 
 export function Dashboard() {
   const { jobs, candidates, metrics, realityReports, trustRepairTasks } = useDemoState();
@@ -10,6 +11,7 @@ export function Dashboard() {
   const completionRate = metrics.chatStarts ? Math.round((metrics.chatCompletions / metrics.chatStarts) * 100) : 0;
   const showRate = metrics.interviewInvites ? Math.round((metrics.attendedInterviews / metrics.interviewInvites) * 100) : 0;
   const trustHealth = metrics.recruitingTrustHealth;
+  const priorityActions = buildPriorityActions(realityReports, trustRepairTasks).slice(0, 3);
 
   return (
     <main className="page">
@@ -37,6 +39,26 @@ export function Dashboard() {
       </section>
 
       <section className="dashboard-grid">
+        <article className="panel priority-actions-panel">
+          <div className="panel-head">
+            <h2>今日 HR 该做什么</h2>
+            <Badge tone="purple">Top {priorityActions.length}</Badge>
+          </div>
+          <div className="priority-action-list">
+            {priorityActions.map((item, index) => (
+              <Link key={`${item.candidateName}-${item.title}-${index}`} to={`/hr/candidates/${item.candidateId}`} className="priority-action-card">
+                <b>{index + 1}</b>
+                <div>
+                  <strong>{item.title}</strong>
+                  <span>{item.candidateName} · {item.status}</span>
+                  <p>{item.trigger}</p>
+                  <em>{item.action}</em>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </article>
+
         <article className="panel">
           <div className="panel-head">
             <h2>待处理候选人</h2>
@@ -111,4 +133,71 @@ export function Dashboard() {
       ) : null}
     </main>
   );
+}
+
+function buildPriorityActions(reports: RealityReport[], tasks: TrustRepairTask[]) {
+  const items: Array<{
+    candidateId: string;
+    candidateName: string;
+    title: string;
+    trigger: string;
+    action: string;
+    status: string;
+    priority: number;
+  }> = [];
+
+  reports.forEach((report) => {
+    if (report.silenceRisk.level === '高' || report.silenceRisk.possibleReasons.length >= 3) {
+      items.push({
+        candidateId: report.candidateId,
+        candidateName: report.candidateName,
+        title: `先唤醒 ${report.candidateName} 的沉默风险`,
+        trigger: report.silenceRisk.possibleReasons[0] || '候选人存在继续沟通信号不足。',
+        action: report.silenceRisk.suggestedActions[0] || report.silenceRisk.wakeUpScript,
+        status: '高沉默风险',
+        priority: 1,
+      });
+    }
+
+    if (report.commitmentConsistencyCheck.riskLevel !== '低' && report.commitmentConsistencyCheck.findings.length > 0) {
+      items.push({
+        candidateId: report.candidateId,
+        candidateName: report.candidateName,
+        title: `补齐 ${report.candidateName} 看到的岗位承诺缺口`,
+        trigger: report.commitmentConsistencyCheck.findings[0],
+        action: report.commitmentConsistencyCheck.suggestions[0] || '补充岗位承诺一致性说明。',
+        status: '需HR补充',
+        priority: 3,
+      });
+    }
+
+    const weakAdvice = report.adviceEvidenceTags.find((tag) => tag.status === '需人工确认');
+    if (weakAdvice) {
+      items.push({
+        candidateId: report.candidateId,
+        candidateName: report.candidateName,
+        title: `人工确认 ${report.candidateName} 的证据不足建议`,
+        trigger: weakAdvice.reason,
+        action: weakAdvice.advice,
+        status: '需人工确认',
+        priority: 4,
+      });
+    }
+  });
+
+  tasks
+    .filter((task) => !task.handledAt)
+    .forEach((task) => {
+      items.push({
+        candidateId: task.candidateId,
+        candidateName: task.candidateName,
+        title: task.title,
+        trigger: task.trigger,
+        action: task.suggestedAction,
+        status: '待处理',
+        priority: 2,
+      });
+    });
+
+  return items.sort((a, b) => a.priority - b.priority);
 }
