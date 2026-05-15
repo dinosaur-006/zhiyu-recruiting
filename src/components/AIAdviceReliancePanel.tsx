@@ -1,4 +1,5 @@
 import type { AIAdviceEvidenceTag, AIAdviceRelianceNotice } from '../types';
+import { Badge } from './Badge';
 
 export function AIAdviceReliancePanel({ notice, evidenceTags = [] }: { notice: AIAdviceRelianceNotice; evidenceTags?: AIAdviceEvidenceTag[] }) {
   return (
@@ -6,13 +7,13 @@ export function AIAdviceReliancePanel({ notice, evidenceTags = [] }: { notice: A
       <div className="pro-card-head">
         <div>
           <span className="eyebrow">Human Oversight</span>
-          <h3>AI建议依赖度提醒</h3>
-          <p>主动提示HR优先参考有证据来源的建议，对证据不足项进行人工确认。</p>
+          <h3>AI建议证据标签</h3>
+          <p>优先参考有行为证据的建议；证据不足的内容只进入面试前人工确认。</p>
         </div>
       </div>
       <div className="report-summary-grid compact">
         <div className="summary-cell">
-          <span>证据充分建议</span>
+          <span>有行为证据</span>
           <strong>{notice.evidenceSupportedCount}类</strong>
         </div>
         <div className="summary-cell">
@@ -37,7 +38,7 @@ export function AIAdviceReliancePanel({ notice, evidenceTags = [] }: { notice: A
                 <strong>{tag.advice}</strong>
                 <span>{tag.reason}</span>
               </div>
-              <b>{tag.status}</b>
+              <Badge tone={tag.status === '有行为证据' ? 'green' : 'amber'}>{tag.status}</Badge>
               {tag.evidence.length > 0 ? (
                 <ul>
                   {tag.evidence.map((item) => (
@@ -61,7 +62,8 @@ function formatEvidenceSource(evidence: string) {
   if (evidence.includes('分岔') || evidence.includes('沙盘')) return '来自分岔选择';
   if (evidence.includes('真相')) return '来自真相点关注';
   if (evidence.includes('顾虑雷达')) return '来自顾虑雷达';
-  if (evidence.includes('合约')) return '来自双向确认';
+  if (evidence.includes('合约') || evidence.includes('双向确认')) return '来自双向确认';
   if (evidence.includes('云试岗') || evidence.includes('路径')) return '来自路径回放';
+  if (evidence.includes('资料') || evidence.includes('项目')) return '来自资料补充';
   return '来自行为证据';
 }

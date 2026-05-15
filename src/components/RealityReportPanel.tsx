@@ -8,13 +8,13 @@ import { ConcernRadarPanel } from './ConcernRadarPanel';
 import { InterviewBattleCardPanel } from './InterviewBattleCardPanel';
 import { MutualConfirmationPanel } from './MutualConfirmationPanel';
 import { NoShowPreventionCardPanel } from './NoShowPreventionCardPanel';
+import { SilenceRiskPanel } from './SilenceRiskPanel';
 import { TrialReplayPanel } from './TrialReplayPanel';
 import { TrustAuditLogPanel } from './TrustAuditLogPanel';
 import { TrustGapDiagnosisPanel } from './TrustGapDiagnosisPanel';
 import { TrustLoopGraphPanel } from './TrustLoopGraphPanel';
 import { TrustNegotiationCardPanel } from './TrustNegotiationCardPanel';
 import { TrustRepairTaskPanel } from './TrustRepairTaskPanel';
-import { SilenceRiskPanel } from './SilenceRiskPanel';
 import type { RealityReport, RealityScene } from '../types';
 
 interface RealityReportPanelProps {
@@ -34,7 +34,7 @@ const attentionLabels: Record<keyof RealityReport['attentionMap'], string> = {
 export function RealityReportPanel({ report, scenes = [], mode = 'hr' }: RealityReportPanelProps) {
   if (mode === 'candidate') {
     return (
-      <section className="story-panel reality-report">
+      <section className="story-panel reality-report candidate-report-preview">
         <div className="story-hero">
           <div>
             <span className="eyebrow">云试岗报告预览</span>
@@ -49,127 +49,91 @@ export function RealityReportPanel({ report, scenes = [], mode = 'hr' }: Reality
         <MutualConfirmationPanel confirmation={report.mutualConfirmation} mode="candidate" />
         <StoryTags title="我的技能标签" items={report.skillEvidence} tone="blue" />
         <StoryTags title="我的场景选择" items={report.sceneChoiceSummary} tone="purple" />
-        <StoryBlock title="下一步建议" content="你的云试岗记录已同步到HR工作台。后续沟通中，可以重点补充项目证据和你对真实任务场景的处理思路。" />
+        <StoryBlock title="下一步提示" content="你的云试岗记录已同步到HR工作台。后续沟通中，可以重点补充项目证据和你对真实任务场景的处理思路。" />
       </section>
     );
   }
 
   return (
-    <section className="story-panel reality-report">
-      <div className="story-hero">
+    <section className="story-panel reality-report decision-brief">
+      <div className="decision-brief-title">
         <div>
-          <span className="eyebrow">AI云试岗报告</span>
-          <h2>岗位实境舱证据链</h2>
+          <span className="eyebrow">Decision Brief</span>
+          <h2>AI云试岗报告 · 招聘信任决策简报</h2>
+          <p>先看是否值得继续推进，再看证据来源、HR动作和AI治理边界。</p>
         </div>
         <Badge tone={report.hrActionSuggestion === '优先邀约' ? 'green' : report.hrActionSuggestion === '建议入库观察' ? 'amber' : 'blue'}>
           HR行动建议：{report.hrActionSuggestion}
         </Badge>
       </div>
 
-      <div className="report-summary-grid">
-        <SummaryCell label="云试岗完成度" value={`${report.trialCompletion}%`} />
-        <SummaryCell label="信任指数" value={`${report.candidateTrustIndex.total}/100`} />
-        <SummaryCell label="真实意愿" value={report.realIntention} />
-        <SummaryCell label="岗位理解" value={report.jobUnderstanding} />
-        <SummaryCell label="爽约风险" value={report.noShowRisk} />
-      </div>
-
       <ReportExecutiveSummary report={report} />
       <TrustLoopGraphPanel nodes={report.trustLoopGraph} />
-      <CandidateTrustIndexPanel trustIndex={report.candidateTrustIndex} />
-      <TrustGapDiagnosisPanel items={report.trustGapDiagnosis} />
-      <CommitmentConsistencyPanel check={report.commitmentConsistencyCheck} />
-      <SilenceRiskPanel risk={report.silenceRisk} />
-      <TrustRepairTaskPanel tasks={report.trustRepairTasks} />
 
-      <div className="story-block" id="trial-scenes">
-        <h3>云试岗轨迹</h3>
-        <div className="timeline-list">
-          {scenes.map((scene) => (
-            <div key={scene.id} className={report.evidenceSources.fromTrialScenes.includes(scene.id) ? 'timeline-item done' : 'timeline-item'}>
-              <span>{report.evidenceSources.fromTrialScenes.includes(scene.id) ? '已完成' : '待确认'}</span>
-              <strong>{scene.title}</strong>
-              <p>{scene.keySignals.join('、')}</p>
-            </div>
-          ))}
+      <section className="brief-section candidate-state-section">
+        <BriefSectionHeader eyebrow="Candidate State" title="候选人状态" copy="用信任指数、沉默风险和顾虑雷达先判断是否需要先修复信任缺口。" />
+        <div className="brief-two-column">
+          <CandidateTrustIndexPanel trustIndex={report.candidateTrustIndex} />
+          <SilenceRiskPanel risk={report.silenceRisk} />
         </div>
-      </div>
-
-      <TrialReplayPanel events={report.trialReplay} />
-      <TrustAuditLogPanel events={report.trustAuditLog} completenessRate={report.auditCompletenessRate} />
-
-      <div className="story-block" id="job-truth-summary">
-        <h3>岗位真相查看摘要</h3>
-        <div className="report-summary-grid compact">
-          <SummaryCell label="已查看标签" value={report.jobTruthViewSummary.viewed ? '是' : '待确认'} />
-          <SummaryCell label="查看真相点" value={`${report.jobTruthViewSummary.viewedPoints.length}项`} />
-          <SummaryCell label="重点关注" value={report.jobTruthViewSummary.focusedPoints.slice(0, 2).join('、') || '待确认'} />
+        <div className="brief-two-column">
+          <ConcernRadarPanel radar={report.concernRadar} />
+          <TrustGapDiagnosisPanel items={report.trustGapDiagnosis} />
         </div>
-      </div>
+      </section>
 
-      <div className="story-block" id="truth-contract-summary">
-        <h3>岗位真相合约确认情况</h3>
-        <div className="report-summary-grid compact">
-          <SummaryCell label="确认状态" value={report.truthContractSummary.acknowledged ? '已确认' : '待确认'} />
-          <SummaryCell label="确认项目" value={`${report.truthContractSummary.acknowledgedItems.length}项`} />
-          <SummaryCell label="未解决疑问" value={report.truthContractSummary.unresolvedConcerns.join('、') || '暂无'} />
+      <section className="brief-section evidence-section">
+        <BriefSectionHeader eyebrow="Evidence Sources" title="证据来源" copy="把AI建议靠近行为证据，降低黑箱感，也方便HR面试前人工确认。" />
+        <div className="brief-two-column">
+          <TrialReplayPanel events={report.trialReplay} />
+          <AIAdviceReliancePanel notice={report.aiAdviceRelianceNotice} evidenceTags={report.adviceEvidenceTags} />
         </div>
-      </div>
-
-      {report.candidateExitReason ? (
-        <StoryBlock title="候选人退出/中断原因" content={report.candidateExitReason} />
-      ) : null}
-
-      <div className="story-block">
-        <h3>关注点地图</h3>
-        <div className="attention-map">
-          {Object.entries(report.attentionMap).map(([key, value]) => (
-            <div key={key} className="attention-row">
-              <span>{attentionLabels[key as keyof RealityReport['attentionMap']]}</span>
-              <div><i style={{ width: `${value}%` }} /></div>
-              <strong>{value}%</strong>
-            </div>
-          ))}
+        <div className="brief-two-column">
+          <TrialScenesCard report={report} scenes={scenes} />
+          <DecisionPathCard report={report} />
         </div>
-      </div>
-
-      <div className="story-block" id="decision-path">
-        <h3>分岔决策路径</h3>
-        <p>{report.decisionPathAnalysis.summary}</p>
-        <div className="report-summary-grid compact">
-          <SummaryCell label="协作倾向" value={report.decisionPathAnalysis.collaboration} />
-          <SummaryCell label="风险意识" value={report.decisionPathAnalysis.riskAwareness} />
-          <SummaryCell label="沟通意识" value={report.decisionPathAnalysis.communication} />
+        <div className="brief-two-column">
+          <JobTruthSummaryCard report={report} />
+          <TruthContractSummaryCard report={report} />
         </div>
-        <p className="story-list">推进方式：{report.decisionPathAnalysis.executionStyle}</p>
-      </div>
+        <div className="brief-two-column">
+          <StoryTags title="技能证据链" items={report.skillEvidence} tone="blue" />
+          <StoryTags title="候选人真实提问" items={report.reverseQuestions.map((item) => `${item.type}：${item.answer}`)} tone="blue" />
+        </div>
+      </section>
 
-      <div id="concern-radar">
-        <ConcernRadarPanel radar={report.concernRadar} />
-      </div>
-      <StoryTags title="场景选择记录" items={report.sceneChoiceSummary} tone="purple" />
-      <StoryTags title="技能证据链" items={report.skillEvidence} tone="blue" />
-      <StoryTags title="潜在失配风险" items={report.potentialMismatchRisks} tone="amber" />
-      <StoryTags title="候选人真实提问" items={report.reverseQuestions.map((item) => `${item.type}：${item.answer}`)} tone="blue" />
-      <StoryTags title="信任缺口" items={report.trustGapSummary.majorGaps} tone="amber" />
-      <StoryList title="邀约前信任修复建议" items={report.trustGapSummary.repairSuggestions} />
-      <div id="trust-repair">
-        <CopyableScript title="信任修复话术" content={report.trustRepairScript} />
-      </div>
-      <CopyableScript title="正式邀约话术" content={report.invitationScript} />
-      <TrustNegotiationCardPanel card={report.trustNegotiationCard} />
-      <div id="mutual-confirmation">
-        <MutualConfirmationPanel confirmation={report.mutualConfirmation} />
-      </div>
-      <StoryList title="建议面试追问" items={report.interviewQuestions} />
-      <NoShowPreventionCardPanel card={report.noShowPreventionCard} />
-      <InterviewBattleCardPanel card={report.interviewBattleCard} />
-      <CandidateFairnessIndexPanel fairness={report.candidateFairnessIndex} />
-      <AIAdviceReliancePanel notice={report.aiAdviceRelianceNotice} evidenceTags={report.adviceEvidenceTags} />
-      <div id="ai-risk-review">
-        <AIRiskReviewPanel review={report.aiRiskReview} />
-      </div>
-      <div className="story-compliance">{report.complianceNote}</div>
+      <section className="brief-section hr-action-zone" id="trust-repair">
+        <BriefSectionHeader eyebrow="HR Actions" title="HR动作" copy="先处理信任修复任务，再决定是否推进正式邀约。所有建议仅供面试前参考。" />
+        <TrustRepairTaskPanel tasks={report.trustRepairTasks} />
+        <div className="brief-two-column">
+          <CopyableScript title="信任修复话术" content={report.trustRepairScript} />
+          <CopyableScript title="正式邀约话术" content={report.invitationScript} />
+        </div>
+        <TrustNegotiationCardPanel card={report.trustNegotiationCard} />
+        <div id="mutual-confirmation">
+          <MutualConfirmationPanel confirmation={report.mutualConfirmation} />
+        </div>
+        <div className="brief-two-column">
+          <NoShowPreventionCardPanel card={report.noShowPreventionCard} />
+          <InterviewBattleCardPanel card={report.interviewBattleCard} />
+        </div>
+      </section>
+
+      <section className="brief-section governance-section">
+        <BriefSectionHeader eyebrow="AI Governance" title="AI治理" copy="报告保留风险复核、审计日志、证据标签和人工复核边界。" />
+        <div className="brief-two-column">
+          <AIRiskReviewPanel review={report.aiRiskReview} />
+          <CommitmentConsistencyPanel check={report.commitmentConsistencyCheck} />
+        </div>
+        <div className="brief-two-column">
+          <TrustAuditLogPanel events={report.trustAuditLog} completenessRate={report.auditCompletenessRate} />
+          <CandidateFairnessIndexPanel fairness={report.candidateFairnessIndex} />
+        </div>
+        {report.candidateExitReason ? <StoryBlock title="候选人退出或中断原因" content={report.candidateExitReason} /> : null}
+        <div id="ai-risk-review" className="story-compliance">
+          {report.complianceNote}
+        </div>
+      </section>
     </section>
   );
 }
@@ -225,10 +189,10 @@ function ReportExecutiveSummary({ report }: { report: RealityReport }) {
   ] as const;
 
   return (
-    <section className="executive-summary" id="report-executive-summary">
+    <section className="executive-summary report-hero-summary" id="report-executive-summary">
       <div className="executive-head">
         <div>
-          <span className="eyebrow">Executive Signal</span>
+          <span className="eyebrow">Report Hero</span>
           <h3>一屏结论</h3>
         </div>
         <Badge tone={report.hrActionSuggestion === '优先邀约' ? 'green' : 'blue'}>{report.hrActionSuggestion}</Badge>
@@ -245,7 +209,79 @@ function ReportExecutiveSummary({ report }: { report: RealityReport }) {
           </article>
         ))}
       </div>
+      <div className="primary-recommendation">
+        <span>主要建议</span>
+        <strong>{action}</strong>
+      </div>
     </section>
+  );
+}
+
+function BriefSectionHeader({ eyebrow, title, copy }: { eyebrow: string; title: string; copy: string }) {
+  return (
+    <div className="brief-section-head">
+      <span className="eyebrow">{eyebrow}</span>
+      <h3>{title}</h3>
+      <p>{copy}</p>
+    </div>
+  );
+}
+
+function TrialScenesCard({ report, scenes }: { report: RealityReport; scenes: RealityScene[] }) {
+  return (
+    <div className="story-block" id="trial-scenes">
+      <h3>云试岗轨迹</h3>
+      <div className="timeline-list">
+        {scenes.map((scene) => (
+          <div key={scene.id} className={report.evidenceSources.fromTrialScenes.includes(scene.id) ? 'timeline-item done' : 'timeline-item'}>
+            <span>{report.evidenceSources.fromTrialScenes.includes(scene.id) ? '已完成' : '待确认'}</span>
+            <strong>{scene.title}</strong>
+            <p>{scene.keySignals.join('、')}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function JobTruthSummaryCard({ report }: { report: RealityReport }) {
+  return (
+    <div className="story-block" id="job-truth-summary">
+      <h3>岗位真相查看摘要</h3>
+      <div className="report-summary-grid compact">
+        <SummaryCell label="已查看标签" value={report.jobTruthViewSummary.viewed ? '是' : '待确认'} />
+        <SummaryCell label="查看真相点" value={`${report.jobTruthViewSummary.viewedPoints.length}项`} />
+        <SummaryCell label="重点关注" value={report.jobTruthViewSummary.focusedPoints.slice(0, 2).join('、') || '待确认'} />
+      </div>
+    </div>
+  );
+}
+
+function TruthContractSummaryCard({ report }: { report: RealityReport }) {
+  return (
+    <div className="story-block" id="truth-contract-summary">
+      <h3>岗位真相合约确认</h3>
+      <div className="report-summary-grid compact">
+        <SummaryCell label="确认状态" value={report.truthContractSummary.acknowledged ? '已确认' : '待确认'} />
+        <SummaryCell label="确认项目" value={`${report.truthContractSummary.acknowledgedItems.length}项`} />
+        <SummaryCell label="未解决疑问" value={report.truthContractSummary.unresolvedConcerns.join('、') || '暂无'} />
+      </div>
+    </div>
+  );
+}
+
+function DecisionPathCard({ report }: { report: RealityReport }) {
+  return (
+    <div className="story-block" id="decision-path">
+      <h3>分岔决策路径</h3>
+      <p>{report.decisionPathAnalysis.summary}</p>
+      <div className="report-summary-grid compact">
+        <SummaryCell label="协作倾向" value={report.decisionPathAnalysis.collaboration} />
+        <SummaryCell label="风险意识" value={report.decisionPathAnalysis.riskAwareness} />
+        <SummaryCell label="沟通意识" value={report.decisionPathAnalysis.communication} />
+      </div>
+      <p className="story-list">推进方式：{report.decisionPathAnalysis.executionStyle}</p>
+    </div>
   );
 }
 
@@ -298,19 +334,6 @@ function StoryTags({ title, items, tone }: { title: string; items: string[]; ton
           </Badge>
         ))}
       </div>
-    </div>
-  );
-}
-
-function StoryList({ title, items }: { title: string; items: string[] }) {
-  return (
-    <div className="story-block">
-      <h3>{title}</h3>
-      <ol className="story-list ordered">
-        {items.map((item) => (
-          <li key={item}>{item}</li>
-        ))}
-      </ol>
     </div>
   );
 }
