@@ -1,6 +1,6 @@
 import { FormEvent, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { submitCandidateApplication, useDemoState } from '../../store/demoStore';
+import { submitCandidateApplicationWithAi, useDemoState } from '../../store/demoStore';
 import type { CandidateProfileInput } from '../../types';
 
 const initialProfile: CandidateProfileInput = {
@@ -27,6 +27,8 @@ export function Profile() {
   const sessionId = searchParams.get('sessionId') ?? undefined;
   const isDirect = searchParams.get('direct') === '1';
   const [form, setForm] = useState<CandidateProfileInput>(initialProfile);
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+  const [aiNotice, setAiNotice] = useState('');
 
   if (!job) {
     return (
@@ -40,10 +42,21 @@ export function Profile() {
     setForm((current) => ({ ...current, [field]: value }));
   };
 
-  const submit = (event: FormEvent) => {
+  const submit = async (event: FormEvent) => {
     event.preventDefault();
-    const candidate = submitCandidateApplication(job.id, form, draftId, sessionId);
-    navigate(`/candidate/story/${candidate.id}`);
+    if (isGeneratingReport) return;
+    setIsGeneratingReport(true);
+    setAiNotice('');
+    try {
+      const result = await submitCandidateApplicationWithAi(job.id, form, draftId, sessionId);
+      if (result.ai.fallback) {
+        setAiNotice('真实 AI 暂时不可用，已切换为演示模式。');
+      }
+      navigate(`/candidate/story/${result.candidate.id}`);
+    } catch {
+      setAiNotice('真实 AI 暂时不可用，已切换为演示模式。');
+      setIsGeneratingReport(false);
+    }
   };
 
   return (
@@ -61,27 +74,25 @@ export function Profile() {
         <Field label="手机号" value={form.phone} onChange={(value) => update('phone', value)} />
         <Field label="邮箱" value={form.email} onChange={(value) => update('email', value)} />
         <Field label="来源渠道" value={form.sourceChannel} onChange={(value) => update('sourceChannel', value)} />
-        <TextArea label="技能标签" value={form.skills} onChange={(value) => update('skills', value)} />
-        <TextArea label="项目经历" value={form.projectExperience} onChange={(value) => update('projectExperience', value)} />
-        <TextArea label="求职动机" value={form.motivation} onChange={(value) => update('motivation', value)} />
-        <TextArea label="关注点" value={form.concerns} onChange={(value) => update('concerns', value)} />
+        <TextArea label="你最关注这个岗位的什么？" value={form.concerns} onChange={(value) => update('concerns', value)} />
         <TextArea
-          label="你是否愿意接受该岗位的工作节奏？"
+          label="你对工作节奏的接受程度？"
           value={form.rhythmAcceptance ?? ''}
           onChange={(value) => update('rhythmAcceptance', value)}
         />
         <TextArea
-          label="你最想进一步确认的问题是什么？"
+          label="你希望 HR 在面试前补充说明什么？"
           value={form.followUpQuestion ?? ''}
           onChange={(value) => update('followUpQuestion', value)}
         />
         <TextArea
-          label="对刚才真实任务场景的补充说明"
+          label="你是否愿意进入下一步沟通？"
           value={form.scenarioReflection ?? ''}
           onChange={(value) => update('scenarioReflection', value)}
         />
-        <button className="primary-button full" type="submit">
-          提交并生成云试岗报告
+        {aiNotice ? <div className="suggestion-card">{aiNotice}</div> : null}
+        <button className="primary-button full" type="submit" disabled={isGeneratingReport}>
+          {isGeneratingReport ? '正在生成 HR Pro 报告...' : '提交并生成云试岗报告'}
         </button>
       </form>
 

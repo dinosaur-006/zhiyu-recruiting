@@ -4595,6 +4595,28 @@ body {
   padding: 16px;
 }
 
+.alpha-report-core,
+.brief-details {
+  margin-top: 16px;
+}
+
+.brief-details {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  padding: 14px;
+}
+
+.brief-details > summary {
+  cursor: pointer;
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.brief-details[open] > summary {
+  margin-bottom: 16px;
+}
+
 .executive-grid {
   gap: 10px;
 }

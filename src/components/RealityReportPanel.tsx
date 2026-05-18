@@ -68,8 +68,11 @@ export function RealityReportPanel({ report, scenes = [], mode = 'hr' }: Reality
       </div>
 
       <ReportExecutiveSummary report={report} />
+      <AlphaReportCore report={report} />
       <TrustLoopGraphPanel nodes={report.trustLoopGraph} />
 
+      <details className="brief-details">
+        <summary>查看完整路径回放、风险复核与审计日志</summary>
       <section className="brief-section candidate-state-section">
         <BriefSectionHeader eyebrow="Candidate State" title="候选人状态" copy="用信任指数、沉默风险和顾虑雷达先判断是否需要先修复信任缺口。" />
         <div className="brief-two-column">
@@ -134,6 +137,31 @@ export function RealityReportPanel({ report, scenes = [], mode = 'hr' }: Reality
           {report.complianceNote}
         </div>
       </section>
+      </details>
+    </section>
+  );
+}
+
+function AlphaReportCore({ report }: { report: RealityReport }) {
+  const concernItems = topAttention(report).slice(0, 3);
+  const evidenceItems = report.adviceEvidenceTags.slice(0, 3);
+  const taskItems = report.trustRepairTasks.slice(0, 3);
+
+  return (
+    <section className="brief-section alpha-report-core">
+      <BriefSectionHeader eyebrow="Alpha Report" title="结论 + 证据 + 动作" copy="首屏只保留HR推进候选人前最需要看的信息。" />
+      <div className="brief-two-column">
+        <StoryTags title="主要顾虑" items={concernItems.length ? concernItems : ['工作节奏', '薪资沟通节点']} tone="amber" />
+        <StoryTags
+          title="关键证据"
+          items={evidenceItems.length ? evidenceItems.map((item) => `${item.status}：${item.evidence[0] || item.reason}`) : ['需人工确认：当前证据不足']}
+          tone="blue"
+        />
+      </div>
+      <div className="brief-two-column">
+        <StoryTags title="下一步修复任务" items={taskItems.map((task) => `${task.title}：${task.suggestedAction}`)} tone="green" />
+        <CopyableScript title="邀约话术" content={report.invitationScript} />
+      </div>
     </section>
   );
 }
@@ -323,7 +351,7 @@ function StoryBlock({ title, content }: { title: string; content: string }) {
   );
 }
 
-function StoryTags({ title, items, tone }: { title: string; items: string[]; tone: 'blue' | 'purple' | 'amber' }) {
+function StoryTags({ title, items, tone }: { title: string; items: string[]; tone: 'blue' | 'purple' | 'amber' | 'green' }) {
   return (
     <div className="story-block">
       <h3>{title}</h3>

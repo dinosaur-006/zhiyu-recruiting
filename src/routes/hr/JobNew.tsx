@@ -4,7 +4,7 @@ import { Badge } from '../../components/Badge';
 import { CommitmentConsistencyPanel } from '../../components/CommitmentConsistencyPanel';
 import { JobTruthLabelPanel } from '../../components/JobTruthLabelPanel';
 import { detectJobRealityRisk, generateCommitmentConsistencyCheck, generateJobTruthContract, generateJobTruthLabel, generateRealityScripts } from '../../mock/ai';
-import { addJob } from '../../store/demoStore';
+import { addJobWithAi } from '../../store/demoStore';
 import type { Job, JobInput } from '../../types';
 
 const initialForm: JobInput = {
@@ -28,15 +28,27 @@ export function JobNew() {
   const navigate = useNavigate();
   const [form, setForm] = useState<JobInput>(initialForm);
   const [createdJob, setCreatedJob] = useState<Job | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [aiNotice, setAiNotice] = useState('');
 
   const update = (field: keyof JobInput, value: string | number) => {
     setForm((current) => ({ ...current, [field]: value }));
   };
 
-  const submit = (event: FormEvent) => {
+  const submit = async (event: FormEvent) => {
     event.preventDefault();
-    const job = addJob(form);
-    setCreatedJob(job);
+    if (isGenerating) return;
+    setIsGenerating(true);
+    setAiNotice('');
+    try {
+      const result = await addJobWithAi(form);
+      setCreatedJob(result.job);
+      setAiNotice(result.ai.fallback ? '真实 AI 暂时不可用，已切换为演示模式。' : 'DeepSeek 已完成岗位真相解析。');
+    } catch {
+      setAiNotice('真实 AI 暂时不可用，已切换为演示模式。');
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   return (
@@ -80,8 +92,9 @@ export function JobNew() {
           <TextArea label="面试流程" value={form.interviewProcess} onChange={(value) => update('interviewProcess', value)} />
           <TextArea label="工作节奏" value={form.workload} onChange={(value) => update('workload', value)} />
           <TextArea label="岗位挑战" value={form.challenges} onChange={(value) => update('challenges', value)} />
-          <button className="primary-button full" type="submit">
-            保存并生成 AI岗位真相舱
+          {aiNotice ? <div className="suggestion-card">{aiNotice}</div> : null}
+          <button className="primary-button full" type="submit" disabled={isGenerating}>
+            {isGenerating ? '正在生成岗位真相...' : '保存并生成 AI岗位真相舱'}
           </button>
         </form>
 

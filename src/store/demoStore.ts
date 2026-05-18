@@ -33,6 +33,13 @@ import {
   parseJobDescription,
 } from '../mock/ai';
 import { createInitialState } from '../mock/data';
+import { aiProvider, type AiResult } from '../services/ai';
+import {
+  adaptAiJobAnalysis,
+  adaptAiReportToRealityReport,
+  type AiHrReportResponse,
+  type AiJobAnalysisResponse,
+} from '../services/ai/reportAdapter';
 import type {
   AvatarConfig,
   Candidate,
@@ -50,6 +57,7 @@ import type {
   TrialSession,
   InterviewMutualConfirmation,
   TruthContractAcknowledgement,
+  JobAnalysis,
 } from '../types';
 
 const STORAGE_KEY = 'zhiyu-demo-state-v1';
@@ -484,14 +492,14 @@ export function useDemoState() {
   return state;
 }
 
-export function addJob(input: JobInput) {
+function addJobFromAnalysis(input: JobInput, analysis: JobAnalysis) {
   const job: Job = {
     ...input,
     id: createId('job'),
     companyId: getDemoState().company.id,
     status: 'published',
     createdAt: nowIso(),
-    analysis: parseJobDescription(input),
+    analysis,
   };
   const avatar = buildDefaultAvatarConfig(job);
   const realityRoles = createDefaultRealityRoles(job.id);
@@ -514,6 +522,25 @@ export function addJob(input: JobInput) {
   }));
 
   return job;
+}
+
+export function addJob(input: JobInput) {
+  return addJobFromAnalysis(input, parseJobDescription(input));
+}
+
+export async function addJobWithAi(input: JobInput): Promise<{ job: Job; ai: AiResult<AiJobAnalysisResponse> }> {
+  const ai = await aiProvider.analyzeJob<AiJobAnalysisResponse>({
+    title: input.title,
+    jdText: [input.responsibilities, input.requirements, input.challenges].filter(Boolean).join('\n'),
+    salaryRange: `${input.salaryMin}k-${input.salaryMax}k`,
+    location: input.location,
+    workMode: input.workload,
+    teamInfo: input.teamInfo,
+    interviewProcess: input.interviewProcess,
+  });
+  const job = addJobFromAnalysis(input, adaptAiJobAnalysis(ai.data));
+
+  return { job, ai };
 }
 
 export function createRealityCabin(jobId: string) {
@@ -1017,6 +1044,55 @@ export function submitCandidateApplication(
   }));
 
   return candidate;
+}
+
+export async function submitCandidateApplicationWithAi(
+  jobId: string,
+  profile: CandidateProfileInput,
+  draftId?: string,
+  trialSessionId?: string,
+): Promise<{ candidate: Candidate; ai: AiResult<AiHrReportResponse> }> {
+  const candidate = submitCandidateApplication(jobId, profile, draftId, trialSessionId);
+  const state = getDemoState();
+  const job = state.jobs.find((item) => item.id === jobId);
+  const baseReport = state.realityReports.find((report) => report.candidateId === candidate.id);
+  const session = state.trialSessions.find((item) => item.candidateId === candidate.id);
+
+  if (!job || !baseReport || !session) {
+    const ai = await aiProvider.generateHrReport<AiHrReportResponse>({});
+    return { candidate, ai };
+  }
+
+  const truthLabel = state.jobTruthLabels.find((item) => item.jobId === jobId);
+  const branchChoices = state.branchScenarios
+    .filter((scenario) => scenario.jobId === jobId)
+    .flatMap((scenario) => scenario.choices)
+    .filter((choice) => session.branchChoiceIds.includes(choice.id));
+  const ai = await aiProvider.generateHrReport<AiHrReportResponse>({
+    jobTruthProfile: truthLabel ?? job.analysis,
+    candidateQuestions: session.reverseQuestions.length
+      ? session.reverseQuestions
+      : session.askedTopics.map((topic) => ({ type: topic, question: topic })),
+    sandboxEvents: branchChoices.length ? branchChoices : session.trialEvents,
+    supplementProfile: profile,
+  });
+
+  if (!ai.fallback) {
+    const adaptedReport = adaptAiReportToRealityReport(baseReport, ai.data);
+    updateDemoState((current) => ({
+      ...current,
+      realityReports: [
+        adaptedReport,
+        ...current.realityReports.filter((report) => report.candidateId !== candidate.id),
+      ],
+      trustRepairTasks: [
+        ...adaptedReport.trustRepairTasks,
+        ...current.trustRepairTasks.filter((task) => task.candidateId !== candidate.id),
+      ],
+    }));
+  }
+
+  return { candidate, ai };
 }
 
 export function completeTrialSession(sessionId: string, candidateId: string) {
