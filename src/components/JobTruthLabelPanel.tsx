@@ -1,3 +1,4 @@
+import { Tag as TagIcon } from 'lucide-react';
 import { Badge } from './Badge';
 import type { JobTruthLabel } from '../types';
 
@@ -28,19 +29,26 @@ export function JobTruthLabelPanel({ label, compact = false, onFocusPoint }: Job
           <span className="eyebrow">Job Truth Label</span>
           <h2>岗位真相标签</h2>
         </div>
-        <Badge tone="amber">投递前先看岗位真相</Badge>
+        <Badge tone="amber"><TagIcon size={14} />投递前先看岗位真相</Badge>
       </div>
 
       <div className="truth-nutrition">
-        {scaleRows.map((row) => (
-          <button key={row.key} type="button" onClick={() => focus(row.label)}>
-            <span>{row.label}</span>
-            <strong>{label[row.key]}</strong>
-          </button>
-        ))}
+        {scaleRows.map((row) => {
+          const val = label[row.key];
+          const pct =
+            val === '高' ? 85 : val === '中高' ? 68 : val === '中' ? 50 : val === '低' ? 22 : 40;
+          return (
+            <button key={row.key} type="button" onClick={() => focus(row.label)}>
+              <span>{row.label}</span>
+              <strong>{val}</strong>
+              <span className="spectrum-bar" style={{ width: `${pct}%` }} />
+            </button>
+          );
+        })}
         <button type="button" className="wide" onClick={() => focus('加班波动')}>
           <span>加班波动</span>
           <strong>{label.overtimeVolatility}</strong>
+          <span className="spectrum-bar" style={{ width: `${label.overtimeVolatility === '高' ? 85 : label.overtimeVolatility === '中' ? 50 : 18}%` }} />
         </button>
       </div>
 
@@ -51,7 +59,7 @@ export function JobTruthLabelPanel({ label, compact = false, onFocusPoint }: Job
       <div className="truth-evidence-grid">
         <h3>可信来源</h3>
         {label.evidence.map((item) => (
-          <article key={`${item.label}-${item.source}`} className="truth-evidence-item">
+          <article key={`${item.label}-${item.source}`} className="truth-evidence-item card-lift">
             <div>
               <strong>{item.label}</strong>
               <span>{item.value}</span>

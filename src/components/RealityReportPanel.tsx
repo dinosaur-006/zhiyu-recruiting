@@ -21,6 +21,7 @@ interface RealityReportPanelProps {
   report: RealityReport;
   scenes?: RealityScene[];
   mode?: 'hr' | 'candidate';
+  onReviewReport?: (reportId: string) => void;
 }
 
 const attentionLabels: Record<keyof RealityReport['attentionMap'], string> = {
@@ -31,10 +32,10 @@ const attentionLabels: Record<keyof RealityReport['attentionMap'], string> = {
   technology: '技术挑战',
 };
 
-export function RealityReportPanel({ report, scenes = [], mode = 'hr' }: RealityReportPanelProps) {
+export function RealityReportPanel({ report, scenes = [], mode = 'hr', onReviewReport }: RealityReportPanelProps) {
   if (mode === 'candidate') {
     return (
-      <section className="story-panel reality-report candidate-report-preview">
+      <section className="story-panel reality-report candidate-report-preview panel-accent panel-gradient">
         <div className="story-hero">
           <div>
             <span className="eyebrow">云试岗报告预览</span>
@@ -43,23 +44,27 @@ export function RealityReportPanel({ report, scenes = [], mode = 'hr' }: Reality
           <Badge tone="blue">完成度 {report.trialCompletion}%</Badge>
         </div>
         <StoryBlock title="我关注的岗位信息" content={topAttention(report).join('、') || '岗位职责、团队协作、成长路径'} />
-        <StoryTags title="我看过的岗位真相点" items={report.jobTruthViewSummary.viewedPoints} tone="blue" />
-        <StoryTags title="我确认过的岗位真相合约" items={report.truthContractSummary.acknowledgedItems.slice(0, 5)} tone="blue" />
+        <StoryTags title="我看过的岗位真相点" items={report.jobTruthViewSummary.viewedPoints} tone="green" />
+        <StoryTags title="我确认过的岗位真相合约" items={report.truthContractSummary.acknowledgedItems.slice(0, 5)} tone="green" />
+        <div className="section-accent-bar" />
         <StoryBlock title="我的分岔选择路径摘要" content={report.decisionPathAnalysis.summary} />
+        <div className="section-accent-bar" />
         <MutualConfirmationPanel confirmation={report.mutualConfirmation} mode="candidate" />
-        <StoryTags title="我的技能标签" items={report.skillEvidence} tone="blue" />
-        <StoryTags title="我的场景选择" items={report.sceneChoiceSummary} tone="purple" />
+        <div className="section-accent-bar" />
+        <StoryTags title="我的技能标签" items={report.skillEvidence} tone="green" />
+        <StoryTags title="我的场景选择" items={report.sceneChoiceSummary} tone="amber" />
+        <div className="section-accent-bar" />
         <StoryBlock title="下一步提示" content="你的云试岗记录已同步到HR工作台。后续沟通中，可以重点补充项目证据和你对真实任务场景的处理思路。" />
       </section>
     );
   }
 
   return (
-    <section className="story-panel reality-report decision-brief">
+    <section className="story-panel reality-report decision-brief panel-accent accent-navy">
       <div className="decision-brief-title">
         <div>
           <span className="eyebrow">Decision Brief</span>
-          <h2>AI云试岗报告 · 招聘信任决策简报</h2>
+          <h2>AI云试岗报告  招聘信任决策简报</h2>
           <p>先看是否值得继续推进，再看证据来源、HR动作和AI治理边界。</p>
         </div>
         <Badge tone={report.hrActionSuggestion === '优先邀约' ? 'green' : report.hrActionSuggestion === '建议入库观察' ? 'amber' : 'blue'}>
@@ -69,6 +74,7 @@ export function RealityReportPanel({ report, scenes = [], mode = 'hr' }: Reality
 
       <ReportExecutiveSummary report={report} />
       <AlphaReportCore report={report} />
+      <AiGenerationMetaPanel report={report} onReviewReport={onReviewReport} />
       <TrustLoopGraphPanel nodes={report.trustLoopGraph} />
 
       <details className="brief-details">
@@ -138,6 +144,56 @@ export function RealityReportPanel({ report, scenes = [], mode = 'hr' }: Reality
         </div>
       </section>
       </details>
+    </section>
+  );
+}
+
+function AiGenerationMetaPanel({
+  report,
+  onReviewReport,
+}: {
+  report: RealityReport;
+  onReviewReport?: (reportId: string) => void;
+}) {
+  const meta = report.aiMeta;
+  const sourceLabel = meta?.source === 'deepseek' ? 'DeepSeek' : 'Mock 演示模式';
+  const createdAt = meta?.createdAt ? new Date(meta.createdAt).toLocaleString('zh-CN') : '待确认';
+  const safetyHits = meta?.safetyHits ?? [];
+  const reviewed = report.humanReviewStatus === 'reviewed';
+
+  return (
+    <section className="ai-meta-card" id="ai-generation-meta">
+      <div className="ai-meta-main">
+        <div>
+          <span className="eyebrow">AI Trace</span>
+          <h3>AI生成来源与人工复核</h3>
+          <p>本区记录报告来源、模型、耗时和人工复核状态，便于试点复盘。</p>
+        </div>
+        <button
+          className={reviewed ? 'ghost-button' : 'primary-button'}
+          type="button"
+          disabled={reviewed || !onReviewReport}
+          onClick={() => onReviewReport?.(report.id)}
+        >
+          {reviewed ? '已人工复核' : '确认已人工复核'}
+        </button>
+      </div>
+      <div className="ai-meta-strip">
+        <span>AI来源：{sourceLabel}</span>
+        {meta?.model ? <span>模型：{meta.model}</span> : null}
+        {typeof meta?.latencyMs === 'number' ? <span>耗时：{meta.latencyMs}ms</span> : null}
+        {meta?.requestId ? <span>Request ID：{meta.requestId}</span> : null}
+        <span>生成时间：{createdAt}</span>
+        <span>复核状态：{reviewed ? `已复核 ${report.reviewedAt ? new Date(report.reviewedAt).toLocaleString('zh-CN') : ''}` : '待人工复核'}</span>
+      </div>
+      {meta?.fallback ? (
+        <div className="ai-risk-warning">真实AI暂时不可用，本报告已切换为演示模式生成，请HR人工确认后再使用。</div>
+      ) : null}
+      {meta?.needsHumanReview ? (
+        <div className="ai-risk-warning">
+          本报告触发了AI安全过滤，命中项：{safetyHits.join('、') || '需人工复核'}。部分内容已替换为“需人工复核”，请HR确认后再使用。
+        </div>
+      ) : null}
     </section>
   );
 }
@@ -227,7 +283,7 @@ function ReportExecutiveSummary({ report }: { report: RealityReport }) {
       </div>
       <div className="executive-grid">
         {cells.map((cell) => (
-          <article key={cell.label} className="executive-cell">
+          <article key={cell.label} className={`executive-cell panel-accent accent-${cell.tone}`}>
             <span>{cell.label}</span>
             <div>
               <strong>{cell.value}</strong>
@@ -357,7 +413,7 @@ function StoryTags({ title, items, tone }: { title: string; items: string[]; ton
       <h3>{title}</h3>
       <div className="tag-row">
         {items.map((item) => (
-          <Badge key={item} tone={tone}>
+          <Badge key={item} tone={tone} dot>
             {item}
           </Badge>
         ))}

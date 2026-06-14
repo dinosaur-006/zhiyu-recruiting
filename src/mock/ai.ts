@@ -174,6 +174,26 @@ export function createDefaultRealityRoles(jobId: string): RealityRole[] {
 }
 
 export function generateRealityScripts(job: Job): RealityScene[] {
+  const teamDesc = job.teamInfo ? `团队方面：${job.teamInfo}` : '';
+  const challengeDesc = job.challenges ? `主要挑战：${job.challenges}` : '';
+  const workloadDesc = job.workload ? `工作节奏：${job.workload}` : '';
+  const growthDesc = job.growthPath ? `成长路径：${job.growthPath}` : '';
+  const interviewDesc = job.interviewProcess ? `面试流程：${job.interviewProcess}` : '';
+
+  // 从挑战中提取具体的情景线索，生成更贴合的任务场景
+  const challengeCorpus = [job.challenges, job.responsibilities, job.requirements].filter(Boolean).join(' ');
+  const hasDataViz = challengeCorpus.includes('数据可视') || challengeCorpus.includes('可视化');
+  const hasForms = challengeCorpus.includes('表单') || challengeCorpus.includes('权限');
+  const hasApi = challengeCorpus.includes('接口') || challengeCorpus.includes('联调');
+  const hasCrossTeam = challengeCorpus.includes('跨部门') || challengeCorpus.includes('协作');
+
+  // 动态生成第三幕任务场景文本
+  const taskSceneScript = hasDataViz && hasForms
+    ? `现在给你一个真实工作场景：产品需要在一个核心模块中新增复杂数据看板和高级筛选功能，涉及大量表单交互和实时图表渲染。后端接口方案尚未定型，但客户Demo演示日期已锁定在两周后。你会怎么推进这个任务？`
+    : hasApi && hasCrossTeam
+      ? `现在给你一个真实工作场景：产品临时提出一个跨系统功能需求，需要协调后端、设计和另一个业务线的前端团队同步推进。接口文档还在评审中，但上线时间已经确认。你怎么组织这次协作？`
+      : `现在给你一个真实工作场景：${job.challenges || '产品临时提出新需求，技术方案和上线时间都存在不确定性'}。${job.responsibilities ? `这个岗位的核心职责包括${job.responsibilities.slice(0, 40)}。` : ''}你会怎么推进？`;
+
   return [
     {
       id: `scene_intro_${job.id}`,
@@ -181,7 +201,7 @@ export function generateRealityScripts(job: Job): RealityScene[] {
       type: 'intro',
       roleType: 'hr',
       title: '第一幕：岗位概览',
-      script: `你好，我是这个岗位的AI招聘体验官。接下来我不会先考你，而是先带你了解这个岗位真实做什么、怎么面试、适合什么样的人。你可以随时退出，也可以直接投递。这个岗位是${job.title}，主要面向${job.department}，工作地点在${job.location}，薪资范围为${job.salaryMin}k-${job.salaryMax}k。`,
+      script: `你好，我是这个岗位的AI招聘体验官。接下来我不会先考你，而是先带你了解这个岗位真实做什么、怎么面试、适合什么样的人。你可以随时退出，也可以直接投递。这个岗位是${job.title}，主要面向${job.department}，工作地点在${job.location}，薪资范围为${job.salaryMin}k-${job.salaryMax}k。${interviewDesc}`,
       candidateActions: ['了解岗位职责', '了解面试流程', '直接投递'],
       keySignals: ['是否愿意继续了解', '是否关注流程透明度'],
     },
@@ -191,7 +211,13 @@ export function generateRealityScripts(job: Job): RealityScene[] {
       type: 'dayInLife',
       roleType: 'teammate',
       title: '第二幕：未来同事带你过一天',
-      script: `我是你未来可能合作的同事。如果你加入我们，这个岗位的一天通常会从需求沟通和任务拆解开始，中间会涉及${job.responsibilities}。项目节点前会有阶段性压力，我们希望你不只是完成任务，而是能理解业务目标并推动问题解决。`,
+      script: [
+        `我是你未来可能合作的同事。如果你加入我们，这个岗位的一天通常会从需求沟通和任务拆解开始，中间会涉及${job.responsibilities}。`,
+        teamDesc,
+        workloadDesc,
+        growthDesc,
+        '项目节点前会有阶段性压力，我们希望你不只是完成任务，而是能理解业务目标并推动问题解决。',
+      ].filter(Boolean).join(' '),
       candidateActions: ['了解团队氛围', '了解成长空间', '了解工作节奏'],
       keySignals: ['是否关注团队', '是否关注成长', '是否接受工作节奏'],
     },
@@ -201,8 +227,7 @@ export function generateRealityScripts(job: Job): RealityScene[] {
       type: 'taskChallenge',
       roleType: 'manager',
       title: '第三幕：主管给出真实任务场景',
-      script:
-        '现在给你一个真实工作场景：产品临时提出复杂筛选功能，后端接口还没有完全确定，但上线时间比较紧。你会怎么推进？',
+      script: taskSceneScript,
       candidateActions: ['选择处理方式', '说明项目经历', '继续投递'],
       keySignals: ['协作方式', '风险意识', '沟通意识', '技术判断'],
     },
@@ -380,44 +405,186 @@ function buildJobTruthEvidence(job: Job, label: JobTruthLabel): JobTruthEvidence
 
 export function getBranchScenarios(job: Job): BranchScenario[] {
   const idPrefix = `branch_${job.id}`;
+  const corpus = [job.title, job.department, job.responsibilities, job.challenges].filter(Boolean).join(' ');
+
+  // ── 领域检测 ──
+  const isEngineering = containsAny(corpus, ['前端', '后端', '开发', '工程师', '架构', 'Java', 'Python', 'Go', 'Rust', 'Node', 'Web', 'API', '接口', '服务']);
+  const isSales = containsAny(corpus, ['销售', '客户', '商务', 'BD', '营收', '增长', '转化', '渠道']);
+  const isDesign = containsAny(corpus, ['设计', 'UI', 'UX', '视觉', '交互', '体验', 'Figma', 'Sketch']);
+  const isProduct = containsAny(corpus, ['产品', '经理', 'PM', '规划', '需求', '文档', 'PRD']);
+  const isOps = containsAny(corpus, ['运营', '市场', '内容', '社群', '品牌', '活动']);
+
+  // ── 按领域生成不同场景文本 ──
+  let round1desc: string, round2desc: string, round3desc: string;
+  let r1cA: string, r1cB: string, r1cC: string, r1cD: string;
+  let r2cA: string, r2cB: string, r2cC: string, r2cD: string;
+  let r3cA: string, r3cB: string, r3cC: string, r3cD: string;
+
+  if (isSales) {
+    // ── Sales domain ──
+    round1desc = '大客户突然提出定制化需求，但合同范围、交付时间和资源配置还没有明确。销售总监希望尽快推进。';
+    r1cA = '先等客户确认完整的定制清单和预算，再启动内部资源协调';
+    r1cB = '先梳理现有产品能力可覆盖的部分，同时与客户对齐核心诉求的优先级';
+    r1cC = '先给出标准方案演示，等客户接受后再谈定制细节';
+    r1cD = '评估这个定制需求对现有Pipeline的ROI影响，建议是否值得投入';
+
+    round2desc = '客户方对接人突然更换，新对接人对之前的方案有不同意见，需要重新建立信任。';
+    r2cA = '暂停推进，等新对接人熟悉方案后再重新约谈';
+    r2cB = '主动约新对接人做一次快速对齐会，同时准备一份方案要点备忘录';
+    r2cC = '先把已有的方案材料打包发给对方，等待反馈';
+    r2cD = '拉上内部售前和技术支持，三方同步做一次完整的方案演示';
+
+    round3desc = '季度末业绩冲刺，该客户的签约结果直接影响团队季度目标。但合同条款还有3处未谈拢。';
+    r3cA = '全部条款力争到底，宁可延迟到下季度也不能让步';
+    r3cB = '拆分必保条款和可让步条款，先确保核心条款落地并签约';
+    r3cC = '优先保证客户关系不破裂，建议在关键条款上做出妥协';
+    r3cD = '拉上法务、产品和销售总监，快速评审条款风险并确定谈判底线';
+  } else if (isDesign) {
+    // ── Design domain ──
+    round1desc = '需求方给了模糊的设计Brief，且不同利益方对视觉方向有矛盾意见。设计系统的一致性面临挑战。';
+    r1cA = '先等各方统一Brief后再开始设计方案探索';
+    r1cB = '先做3个快速低保真方案，拉上各方做一次设计Critique对齐方向';
+    r1cC = '先按自己的理解做出完整方案，后续再根据反馈迭代';
+    r1cD = '评估不同方向对设计系统一致性的影响，建议以一个方向为主做AB测试';
+
+    round2desc = '开发反馈某个核心交互组件实现成本极高，建议简化。产品又希望体验不妥协。';
+    r2cA = '接受开发的简化建议，降低交付标准';
+    r2cB = '和前端一起Review组件，找到视觉还原和技术实现的最优折中点';
+    r2cC = '先按简化版上线，等后续版本再优化到理想状态';
+    r2cD = '拉上产品和前端做一次三方评估，确认哪些细节是体验关键、哪些可降级';
+
+    round3desc = '评审deadline前1天，需求方突然要求修改整体配色方案和动效规范。工作量巨大。';
+    r3cA = '全部接受修改要求，加班完成所有改动';
+    r3cB = '拆分核心页面和次要页面，核心页今天完成配色调整，次要页排下一迭代';
+    r3cC = '坚持原方案，建议需求方在下一版本再改配色';
+    r3cD = '拉需求方和前端评估改动影响范围，给出明确的工时评估后再决策';
+  } else {
+    // ── Default (Engineering / Product / Ops) ──
+    const domainTerm = isProduct ? '产品文档' : isOps ? '活动方案' : '技术方案';
+    const stakeholder = isProduct ? '业务方和开发团队' : isOps ? '市场和执行团队' : '产品经理和后端团队';
+
+    round1desc = isProduct
+      ? '业务方提交的需求PRD只有粗略描述，缺少具体交互逻辑和异常流。开发团队在等明确输入。'
+      : isOps
+        ? '市场部要求本周内上线一个拉新活动，但活动规则、奖品设置和风控方案都还在讨论中。'
+        : `产品临时提出一个新需求，但目标用户场景、功能边界和${domainTerm}还没有完全明确。`;
+
+    r1cA = isProduct
+      ? '先等业务方补齐完整PRD，再启动开发'
+      : isOps
+        ? '先等活动方案完全定稿，再开始执行'
+        : `先等产品补齐完整${domainTerm}，再开始推进`;
+    r1cB = isProduct
+      ? '先梳理已有信息能确定的逻辑，同时约业务方对齐核心交互的优先级'
+      : isOps
+        ? '先拆出无需依赖风控确认的部分（如海报设计、渠道预热），同步推进方案定稿'
+        : `先明确核心目标和约束条件，同时拆出可以先推进的部分`;
+    r1cC = isProduct
+      ? '先做出可交互的原型，让业务方在体验中给出反馈'
+      : isOps
+        ? '先参照上次活动方案执行，等风控确认后再调整细节'
+        : '先做可见的产出，等需求明确后再补全逻辑';
+    r1cD = isProduct
+      ? '评估这个需求的业务价值和开发成本的ROI，建议是否值得排入当前迭代'
+      : isOps
+        ? '评估活动ROI和潜在风险，如果风控不过可能白做，建议先确认可行性'
+        : '评估这个需求是否影响当前版本目标，再建议拆到下一期';
+
+    round2desc = isProduct
+      ? '开发过程中发现PRD未覆盖的边界Case，业务方暂时找不到对接人确认。迭代Deadline不变。'
+      : isOps
+        ? '活动上线前2天，合作渠道突然要求增加独家优惠力度，否则不配合推广。'
+        : `${stakeholder}给出了反馈，但和你之前的理解有差异。时间窗口在缩小。`;
+
+    r2cA = isProduct
+      ? '暂停该需求的开发，等业务方有空确认后再继续'
+      : isOps
+        ? '拒绝渠道的临时加码要求，按原方案执行'
+        : `暂停推进，等${stakeholder}给出明确方向后再继续`;
+    r2cB = isProduct
+      ? '基于现有信息自行判断合理的边界处理方式，同时发邮件给业务方确认'
+      : isOps
+        ? '和渠道协商一个折中方案（小幅加码），同时确保不突破整体预算'
+        : `主动与${stakeholder}对齐差异点，同时准备备选方案`;
+    r2cC = isProduct
+      ? '先按最常见的Case处理，后续有问题再发版修复'
+      : isOps
+        ? '先按原方案上线，渠道推广力度不足的部分后续用其他方式补'
+        : '先做最保守的实现，后续再根据反馈迭代';
+    r2cD = isProduct
+      ? '拉上开发、测试和业务方做一次快速评审，对边界Case给出明确处理原则'
+      : isOps
+        ? '拉上市场、运营和财务快速评估加码的成本和收益，做一次三方对齐'
+        : `拉上${stakeholder}做一次快速对齐，确认最小可用范围和风险点`;
+
+    round3desc = isProduct
+      ? '迭代上线时间不变，但需求范围膨胀、UX评审反馈了大量修改意见、测试时间严重不足。'
+      : isOps
+        ? '活动上线deadline不变，但物料延迟、渠道变卦、预算超支风险同时爆发。'
+        : `上线时间不变，但功能范围、依赖方稳定性和测试时间都存在压力。`;
+
+    r3cA = isProduct
+      ? '全部需求都按原计划做完，必要时靠加班补齐'
+      : isOps
+        ? '全部问题都硬扛解决，靠加班和加预算强行上线'
+        : '全部功能都按原计划做完，必要时靠加班补齐';
+    r3cB = isProduct
+      ? '拆分必须上线和可延后的功能，先保证核心用户路径完整可用'
+      : isOps
+        ? '拆分活动核心流程和辅助环节，核心流程确保上线，辅助环节后续补救'
+        : '拆分必做和可延期功能，先保证核心路径上线';
+    r3cC = isProduct
+      ? '优先保证产品质量，建议整体延期并重新评估排期'
+      : isOps
+        ? '优先保证活动质量和品牌声誉，建议延期到准备充分再上线'
+        : '优先保证质量，建议整体延期';
+    r3cD = isProduct
+      ? '拉上产品和测试同步风险清单，共同确认发布边界和降级方案'
+      : isOps
+        ? '拉上市场、运营和财务同步风险，共同确认最低上线标准和应急预案'
+        : '同步风险清单，让各方一起确认上线边界';
+  }
+
+  const r2next = `${idPrefix}_launch`;
+
   return [
     {
       id: `${idPrefix}_needs`,
       jobId: job.id,
       round: 1,
-      title: '第1轮：需求不清',
-      description: '产品临时提出复杂筛选功能，但目标用户、字段范围和上线优先级还没有完全讲清楚。',
+      title: isSales ? '第1轮：需求变更' : isDesign ? '第1轮：Brief模糊' : '第1轮：需求不清',
+      description: round1desc,
       choices: [
-        branchChoice('choice_needs_wait', 'A', '先等产品补齐完整文档，再开始开发', `${idPrefix}_api`, '谨慎等待型', '中', '中', '待确认', '等待输入再执行'),
-        branchChoice('choice_needs_align', 'B', '先约产品确认核心目标，同时拆出可先做的页面结构', `${idPrefix}_api`, '主动澄清型', '高', '高', '强', '边界澄清 + 并行推进'),
-        branchChoice('choice_needs_static', 'C', '先做静态页面，等需求明确后再补逻辑', `${idPrefix}_api`, '执行落地型', '中', '中', '待确认', '先落地可见产物'),
-        branchChoice('choice_needs_pushback', 'D', '先评估是否影响当前版本目标，再建议拆到下一期', `${idPrefix}_api`, '优先级判断型', '高', '高', '强', '风险前置 + 版本拆分'),
+        branchChoice('choice_needs_wait', 'A', r1cA, `${idPrefix}_api`, '谨慎等待型', '中', '中', '待确认', '等待输入再执行'),
+        branchChoice('choice_needs_align', 'B', r1cB, `${idPrefix}_api`, '主动澄清型', '高', '高', '强', '边界澄清 + 并行推进'),
+        branchChoice('choice_needs_static', 'C', r1cC, `${idPrefix}_api`, '执行落地型', '中', '中', '待确认', '先落地可见产物'),
+        branchChoice('choice_needs_pushback', 'D', r1cD, `${idPrefix}_api`, '优先级判断型', '高', '高', '强', '风险前置 + 版本拆分'),
       ],
     },
     {
       id: `${idPrefix}_api`,
       jobId: job.id,
       round: 2,
-      title: '第2轮：接口变化',
-      description: '后端反馈字段还会变，产品又希望今天看到Demo，团队需要你给出推进方式。',
+      title: isSales ? '第2轮：关系重构' : isDesign ? '第2轮：实现冲突' : '第2轮：中途变数',
+      description: round2desc,
       choices: [
-        branchChoice('choice_api_pause', 'A', '暂停前端开发，等接口完全稳定后再继续', `${idPrefix}_launch`, '谨慎等待型', '中', '中', '待确认', '降低返工但牺牲节奏'),
-        branchChoice('choice_api_mock', 'B', '和后端约定Mock字段，前端先搭结构并标注接口风险', `${idPrefix}_launch`, '主动推进型', '高', '高', '强', 'Mock并行 + 风险同步'),
-        branchChoice('choice_api_local', 'C', '先写本地假数据，后面接口好了再统一替换', `${idPrefix}_launch`, '执行落地型', '中', '中', '待确认', '局部推进 + 后续联调'),
-        branchChoice('choice_api_meeting', 'D', '拉产品和后端快速对齐最小字段集，再推进Demo', `${idPrefix}_launch`, '需求澄清型', '高', '高', '强', '三方对齐 + 最小闭环'),
+        branchChoice('choice_api_pause', 'A', r2cA, r2next, '谨慎等待型', '中', '中', '待确认', '降低风险但牺牲节奏'),
+        branchChoice('choice_api_mock', 'B', r2cB, r2next, '主动推进型', '高', '高', '强', '边界对齐 + 并行推进'),
+        branchChoice('choice_api_local', 'C', r2cC, r2next, '执行落地型', '中', '中', '待确认', '局部推进 + 后续迭代'),
+        branchChoice('choice_api_meeting', 'D', r2cD, r2next, '协同控险型', '高', '高', '强', '多方对齐 + 最小闭环'),
       ],
     },
     {
       id: `${idPrefix}_launch`,
       jobId: job.id,
       round: 3,
-      title: '第3轮：上线压力',
-      description: '上线时间不变，但功能范围、接口稳定性和测试时间都存在压力。',
+      title: isSales ? '第3轮：业绩冲刺' : isDesign ? '第3轮：Deadline危机' : '第3轮：交付压力',
+      description: round3desc,
       choices: [
-        branchChoice('choice_launch_overtime', 'A', '全部功能都按原计划做完，必要时靠加班补齐', undefined, '硬扛交付型', '中', '中', '待确认', '强执行但风险后置'),
-        branchChoice('choice_launch_split', 'B', '拆分必做和可延期功能，先保证核心路径上线', undefined, '主动取舍型', '高', '高', '强', '范围拆分 + 核心交付'),
-        branchChoice('choice_launch_quality', 'C', '优先保证质量，建议整体延期', undefined, '质量优先型', '高', '中', '强', '质量优先 + 节奏放缓'),
-        branchChoice('choice_launch_sync', 'D', '同步风险清单，让产品、后端、测试一起确认上线边界', undefined, '协同控险型', '高', '高', '强', '风险共识 + 协同收口'),
+        branchChoice('choice_launch_overtime', 'A', r3cA, undefined, '硬扛交付型', '中', '中', '待确认', '强执行但风险后置'),
+        branchChoice('choice_launch_split', 'B', r3cB, undefined, '主动取舍型', '高', '高', '强', '范围拆分 + 核心交付'),
+        branchChoice('choice_launch_quality', 'C', r3cC, undefined, '质量优先型', '高', '中', '强', '质量优先 + 节奏放缓'),
+        branchChoice('choice_launch_sync', 'D', r3cD, undefined, '协同控险型', '高', '高', '强', '风险共识 + 协同收口'),
       ],
     },
   ];
@@ -447,6 +614,146 @@ function branchChoice(
       executionStyle,
     },
   };
+}
+
+export interface CompetencyMapping {
+  competency: string;
+  level: number;
+  description: string;
+}
+
+export const COMPETENCY_MAP: Record<string, CompetencyMapping> = {
+  // Round 1: 需求不清
+  choice_needs_wait: {
+    competency: '系统拆解力',
+    level: 2,
+    description: '倾向于等待完整信息后再行动，在信息完备条件下能高效执行',
+  },
+  choice_needs_align: {
+    competency: '系统拆解力',
+    level: 4,
+    description: '在不确定条件下主动拆解问题并推进，展现高阶系统思维',
+  },
+  choice_needs_static: {
+    competency: '系统拆解力',
+    level: 3,
+    description: '能先产出可见物再补全逻辑，展现务实的渐进式拆解能力',
+  },
+  choice_needs_pushback: {
+    competency: '系统拆解力',
+    level: 5,
+    description: '在评估风险后主动建议版本拆分，展现战略级优先级判断与边界意识',
+  },
+  // Round 2: 接口变化
+  choice_api_pause: {
+    competency: '工程协作力',
+    level: 2,
+    description: '倾向等待接口稳定，风险意识强但跨团队推进节奏较慢',
+  },
+  choice_api_mock: {
+    competency: '工程协作力',
+    level: 5,
+    description: '向前兼容 + 风险同步，在多团队依赖中展现出色的工程协作判断力',
+  },
+  choice_api_local: {
+    competency: '工程协作力',
+    level: 3,
+    description: '能独立推进前端工作，但跨团队协同意识尚可加强',
+  },
+  choice_api_meeting: {
+    competency: '工程协作力',
+    level: 4,
+    description: '主动拉齐多方对齐最小字段集，展现良好的跨团队沟通与妥协能力',
+  },
+  // Round 3: 上线压力
+  choice_launch_overtime: {
+    competency: '交付决断力',
+    level: 2,
+    description: '强执行力但风险后置，在高压下倾向于硬扛而非系统化控险',
+  },
+  choice_launch_split: {
+    competency: '交付决断力',
+    level: 5,
+    description: '在压力下做出清晰的范围取舍，展现成熟的交付决断力与节奏控制',
+  },
+  choice_launch_quality: {
+    competency: '交付决断力',
+    level: 3,
+    description: '质量优先意识强，但在业务压力下缺少折中方案的灵活性',
+  },
+  choice_launch_sync: {
+    competency: '交付决断力',
+    level: 4,
+    description: '通过风险共识驱动协同收口，展现出色的跨角色风险管理能力',
+  },
+};
+
+/**
+ * 岗位角色基准线（0-100 分制）。
+ * 候选人能力得分（level×20）对照基准线生成上下文提示。
+ */
+export const ROLE_REQUIREMENTS = {
+  systemDecomposition: 65, // 系统拆解力
+  chaosAdaptation: 65,     // 混沌适应力
+  signalPrecision: 70,     // 信号精准度
+  ruleInsight: 60,         // 规则洞察力
+  eventDrive: 60,          // 事件驱动力
+  engineeringPurity: 65,   // 工程纯粹度
+} as const;
+
+/** 胜任力名称 → 角色要求键的映射 */
+const COMPETENCY_TO_ROLE_KEY: Record<string, keyof typeof ROLE_REQUIREMENTS> = {
+  '系统拆解力': 'systemDecomposition',
+  '工程协作力': 'engineeringPurity',
+  '交付决断力': 'eventDrive',
+};
+
+/** 根据候选人胜任力等级和岗位基准线生成上下文提示文案 */
+export function buildCompetencyContext(competencyName: string, level: number): string {
+  const score = level * 20; // 5 级制 → 百分制
+  const roleKey = COMPETENCY_TO_ROLE_KEY[competencyName];
+  const baseline: number | undefined = roleKey ? ROLE_REQUIREMENTS[roleKey] : undefined;
+
+  if (baseline === undefined) {
+    return `${score}/100`;
+  }
+
+  const diff = score - baseline;
+  if (diff >= 15) return `${score}/100 — 显著超过该岗位基准线(${baseline})`;
+  if (diff >= 5) return `${score}/100 — 超过该岗位基准线(${baseline})`;
+  if (diff >= 0) return `${score}/100 — 基本达到岗位基准线(${baseline})`;
+  if (diff >= -10) return `${score}/100 — 略低于岗位要求(${baseline})，建议面试确认`;
+  if (diff >= -20) return `${score}/100 — 低于岗位要求(${baseline})，需重点关注`;
+  return `${score}/100 — 显著低于岗位要求(${baseline})，建议深度考察`;
+}
+
+/** 信任指数维度 → 角色要求键的映射 */
+export const TRUST_DIM_TO_ROLE_KEY: Record<string, keyof typeof ROLE_REQUIREMENTS> = {
+  jobInfoClarity: 'signalPrecision',
+  salaryCertainty: 'ruleInsight',
+  teamTrust: 'chaosAdaptation',
+  growthCredibility: 'systemDecomposition',
+  rhythmAcceptance: 'eventDrive',
+  aiTransparency: 'ruleInsight',
+  interviewWillingness: 'engineeringPurity',
+};
+
+/** 根据信任维度值和岗位基准线生成上下文提示文案 */
+export function buildTrustDimContext(dimKey: string, value: number): string {
+  const roleKey = TRUST_DIM_TO_ROLE_KEY[dimKey];
+  const baseline: number | undefined = roleKey ? ROLE_REQUIREMENTS[roleKey] : undefined;
+
+  if (baseline === undefined) {
+    return `${value}/100`;
+  }
+
+  const diff = value - baseline;
+  if (diff >= 15) return `${value} — 显著超过基准线(${baseline})`;
+  if (diff >= 5) return `${value} — 超过基准线(${baseline})`;
+  if (diff >= 0) return `${value} — 基本达到基准线(${baseline})`;
+  if (diff >= -10) return `${value} — 略低于基准线(${baseline})，建议核实`;
+  if (diff >= -20) return `${value} — 低于基准线(${baseline})，需关注`;
+  return `${value} — 显著低于基准线(${baseline})，需重点修复`;
 }
 
 export function analyzeDecisionPath(branchChoices: BranchChoice[]): DecisionPathAnalysis {
@@ -500,18 +807,18 @@ function concernScore(corpus: string, words: string[]) {
 
 export function answerReverseQuestion(job: Job, truthLabel: JobTruthLabel, type: ReverseQuestionType): ReverseQuestion {
   const answers: Record<ReverseQuestionType, string> = {
-    工作节奏: `这个岗位的工作节奏为${truthLabel.workPace}。${truthLabel.overtimeVolatility}，建议在面试中进一步确认项目周期和排期方式。`,
-    薪资福利: `当前公开薪资范围为${job.salaryMin}k-${job.salaryMax}k，具体薪资会结合经验和面试沟通确认，建议在面试中进一步确认薪资沟通节点。`,
-    团队氛围: `岗位真相标签显示协作密度为${truthLabel.collaborationDensity}，沟通成本为${truthLabel.communicationCost}。团队协作方式建议在面试中进一步确认。`,
-    成长空间: `这个岗位成长速度为${truthLabel.growthSpeed}，成长主要来自${truthLabel.pressureSources.join('、')}等真实业务场景，建议在面试中进一步确认培养机制。`,
-    岗位挑战: `岗位主要压力来源包括${truthLabel.pressureSources.join('、')}。如果你对挑战强度敏感，建议在面试中进一步确认任务边界。`,
-    面试流程: `当前公开面试流程为：${job.interviewProcess || 'HR初沟 - 业务面试 - 综合沟通'}，建议在面试中进一步确认每一轮重点。`,
+    工作节奏: `${job.title}岗位的工作节奏为${truthLabel.workPace}。${truthLabel.overtimeVolatility}。具体的项目周期和排期方式因项目而异，入职后会由直接上级在1对1中明确说明。`,
+    薪资福利: `${job.title}的薪资带宽为${job.salaryMin / 1000}k-${job.salaryMax / 1000}k/月。最终定薪会综合评估你的技术深度、项目经验和面试表现。薪资结构包括基础薪资、年终奖金（13-15薪）和补充商业保险。`,
+    团队氛围: `${job.department}团队的协作密度为${truthLabel.collaborationDensity}，沟通成本为${truthLabel.communicationCost}。团队${job.teamInfo}`,
+    成长空间: `${job.title}的成长速度为${truthLabel.growthSpeed}。成长主要来源于${truthLabel.pressureSources.join('、')}等真实业务场景中的实践。具体的培养机制和晋升通道：${job.growthPath}`,
+    岗位挑战: `${job.title}面临的主要挑战包括${truthLabel.pressureSources.join('、')}。${job.challenges}`,
+    面试流程: `${job.title}的面试流程为：${job.interviewProcess || 'HR初筛 → 技术面 → 综合面 → Offer'}。每轮面试都有明确的评估重点。`,
   };
 
   return {
     id: `reverse_${type}_${Date.now()}`,
     type,
-    question: `我想了解${type}的真实情况`,
+    question: `我想了解：${type}`,
     answer: answers[type],
     createdAt: nowIso(),
   };
@@ -567,7 +874,7 @@ export function generateJobTruthContract(job: Job, truthLabel: JobTruthLabel): J
       {
         id: `contract-${job.id}-data`,
         title: '候选人数据使用边界',
-        detail: '系统只记录主动提问、真相点点击、任务沙盘选择和主动填写资料，不分析外貌、表情或声音情绪。',
+        detail: '系统只记录主动提问、真相点点击、任务沙盘选择和主动填写资料，不分析外观特征、面部状态或音色情绪。',
         category: 'data',
       },
     ],
@@ -1229,7 +1536,7 @@ export function generateAIRiskReview(report: RealityReport): AIRiskReview {
     auditCompletenessRate >= 70 ? `审计日志完整率${auditCompletenessRate}%，治理链路可追溯。` : '',
     hasAuditGap ? `审计日志完整率${auditCompletenessRate}%，建议HR补充关键治理事件。` : '',
     hasHumanReview ? '本报告仅供HR面试前参考，最终招聘决策由企业人工完成。' : '报告需要补充人工复核声明。',
-    '系统未分析候选人的外貌、表情或声音情绪。',
+    '系统未分析候选人的外观特征、面部状态或音色情绪。',
   ]).filter(Boolean);
   const checkedItems = unique([
     forbiddenHits.length === 0 ? '未出现禁用表达' : '',
@@ -1239,7 +1546,7 @@ export function generateAIRiskReview(report: RealityReport): AIRiskReview {
     auditCompletenessRate >= 70 ? '审计日志覆盖关键治理事件' : '',
     !hasCommitmentIssue ? '岗位承诺一致性已检查' : '',
     hasHumanReview ? '已包含人工复核声明' : '',
-    '未分析外貌、表情、声音情绪',
+    '未分析外观特征、面部状态、音色情绪',
   ]).filter(Boolean);
 
   return {
@@ -1311,7 +1618,7 @@ export function generateCandidateFairnessIndex(report: RealityReport): Candidate
     directApplyPath: 100,
     humanReview: report.complianceNote.includes('人工') ? 100 : 70,
     explanationAndDeletion: report.complianceNote.includes('解释') && report.complianceNote.includes('删除') ? 95 : 70,
-    sensitiveDataAvoidance: report.aiRiskReview?.checkedItems?.includes('未分析外貌、表情、声音情绪') ? 100 : 90,
+    sensitiveDataAvoidance: report.aiRiskReview?.checkedItems?.includes('未分析外观特征、面部状态、音色情绪') ? 100 : 90,
     feedbackTiming: report.mutualConfirmation?.hrCommitments?.some((item) => item.includes('反馈')) ? 90 : 75,
   };
 
@@ -1649,6 +1956,15 @@ export function generateRealityReport(
     },
     complianceNote:
       '本报告由AI基于候选人授权的云试岗行为、场景选择和主动填写内容生成，仅供HR面试前参考，不作为单独招聘决策依据，最终招聘决策由企业人工完成，候选人可申请解释或删除相关数据。',
+    aiMeta: {
+      provider: 'mock',
+      source: 'mock',
+      fallback: false,
+      safetyHits: [],
+      needsHumanReview: false,
+      createdAt: new Date().toISOString(),
+    },
+    humanReviewStatus: 'pending',
   };
   const noShowPreventionCard = generateNoShowPreventionCard(report);
   const interviewBattleCard = generateInterviewBattleCard(report);
@@ -1777,7 +2093,7 @@ export function generateInterviewBattleCard(report: RealityReport): InterviewBat
       '项目排期方式和节点压力是否常态化',
     ],
     shouldAvoidAsking: [
-      '年龄、婚育、家庭情况等与岗位无关问题',
+      '年龄、家庭生育计划、家庭情况等与岗位无关问题',
       '与岗位无关的个人隐私',
       '基于AI报告直接追问候选人是否有风险',
     ],
@@ -1839,7 +2155,7 @@ export function generateTruthVideoScript(job: Job, roles: RealityRole[], scenes:
 
   return {
     jobId: job.id,
-    title: `${job.title} · 60秒岗位真相短片`,
+    title: `${job.title} 60秒岗位真相短片`,
     segments,
     fullScript: segments.map((segment) => `${segment.timeRange} ${segment.title}：${segment.script}`).join('\n'),
   };

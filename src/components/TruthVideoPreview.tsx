@@ -1,3 +1,4 @@
+import { Video } from 'lucide-react';
 import { Badge } from './Badge';
 import type { TruthVideoScript } from '../types';
 
@@ -11,7 +12,7 @@ export function TruthVideoPreview({ script }: TruthVideoPreviewProps) {
   };
 
   return (
-    <section className="panel truth-video">
+    <section className="panel truth-video panel-gradient">
       <div className="panel-head">
         <div>
           <span className="eyebrow">Truth Video Preview</span>
@@ -23,7 +24,7 @@ export function TruthVideoPreview({ script }: TruthVideoPreviewProps) {
       </div>
       <div className="truth-video-stage">
         <div className="digital-human" aria-hidden="true">
-          <div className="digital-human-core">真</div>
+          <Video size={24} strokeWidth={1.5} />
         </div>
         <div>
           <Badge tone="blue">60秒岗位真相短片</Badge>
@@ -33,7 +34,7 @@ export function TruthVideoPreview({ script }: TruthVideoPreviewProps) {
       </div>
       <div className="video-segments">
         {script.segments.map((segment) => (
-          <article key={segment.timeRange}>
+          <article key={segment.timeRange} className="card-lift">
             <strong>{segment.timeRange}</strong>
             <span>{segment.title}</span>
             <p>{segment.script}</p>

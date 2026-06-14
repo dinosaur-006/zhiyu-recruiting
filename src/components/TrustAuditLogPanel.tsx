@@ -1,54 +1,27 @@
+import { ShieldCheck } from 'lucide-react';
 import { Badge } from './Badge';
+import { Panel } from './Panel';
 import type { TrustAuditEvent } from '../types';
 
-export function TrustAuditLogPanel({
-  events,
-  completenessRate,
-}: {
-  events: TrustAuditEvent[];
-  completenessRate: number;
-}) {
+export function TrustAuditLogPanel({ events, completenessRate }: { events: TrustAuditEvent[]; completenessRate: number }) {
   return (
-    <section className="story-block governance-panel" id="trust-audit-log">
-      <div className="pro-card-head">
-        <div>
-          <span className="eyebrow">Trust Governance</span>
-          <h3>招聘信任审计日志</h3>
-          <p>把岗位真相、候选人行为、AI建议和HR操作串成可追溯的治理链路。</p>
-        </div>
-        <Badge tone={completenessRate >= 80 ? 'green' : 'amber'}>完整率 {completenessRate}%</Badge>
-      </div>
+    <Panel eyebrow="Trust Governance" title="招聘信任审计日志"
+      subtitle="岗位真相、候选人行为、AI建议和HR操作的可追溯治理链路"
+      badge={<Badge tone={completenessRate >= 80 ? 'green' : 'amber'}><ShieldCheck size={13} />完整率 {completenessRate}%</Badge>}>
       <div className="audit-timeline">
-        {events.map((event) => (
-          <article key={event.id} className="audit-item">
-            <time>{formatTime(event.occurredAt)}</time>
-            <div>
-              <div className="audit-title">
-                <strong>{event.title}</strong>
-                <Badge tone={event.evidenceLevel === '充分' ? 'green' : 'amber'}>{event.evidenceLevel}</Badge>
-              </div>
-              <p>{event.description}</p>
-              <span>{actorLabel(event.actor)}</span>
+        {events.map((e) => (
+          <article key={e.id} className="audit-item">
+            <div className="audit-item-time">{fmt(e.occurredAt)}</div>
+            <div className="audit-item-body">
+              <strong>{e.title}<span style={{ marginLeft: 'var(--space-2)' }}><Badge tone={e.evidenceLevel === '充分' ? 'green' : 'amber'} dot>{e.evidenceLevel}</Badge></span></strong>
+              <p>{e.description}</p>
+              <span style={{ fontSize: 'var(--text-2xs)', color: 'var(--color-muted)' }}>{actorLabel(e.actor)}</span>
             </div>
           </article>
         ))}
       </div>
-    </section>
+    </Panel>
   );
 }
-
-function actorLabel(actor: TrustAuditEvent['actor']) {
-  const labels: Record<TrustAuditEvent['actor'], string> = {
-    system: '系统记录',
-    candidate: '候选人行为',
-    ai: 'AI辅助生成',
-    hr: 'HR操作',
-  };
-  return labels[actor];
-}
-
-function formatTime(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
-}
+function actorLabel(a: TrustAuditEvent['actor']) { return { system: '系统记录', candidate: '候选人行为', ai: 'AI辅助生成', hr: 'HR操作' }[a]; }
+function fmt(v: string) { const d = new Date(v); return Number.isNaN(d.getTime()) ? v : d.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }); }

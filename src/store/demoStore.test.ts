@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createInitialState } from '../mock/data';
-import { markTrustRepairTaskHandled, normalizeDemoState } from './demoStore';
+import { markReportReviewed, markTrustRepairTaskHandled, normalizeDemoState, resetDemoState } from './demoStore';
 
 describe('normalizeDemoState', () => {
   it('adds Reality fields to older stored state shapes', () => {
@@ -164,5 +164,35 @@ describe('normalizeDemoState', () => {
     expect(normalized.metrics.recruitingTrustHealth?.total).toBeGreaterThanOrEqual(0);
     expect(normalized.realityReports[0].adviceEvidenceTags.length).toBeGreaterThan(0);
     expect(normalized.realityReports[0].trustRepairTasks[0].estimatedImpact.length).toBeGreaterThan(0);
+  });
+
+  it('adds DeepSeek alpha report metadata fields to older state shapes', () => {
+    const legacy = createInitialState();
+    const normalized = normalizeDemoState({
+      ...legacy,
+      realityReports: [
+        {
+          ...legacy.realityReports[0],
+          aiMeta: undefined,
+          humanReviewStatus: undefined,
+          reviewedAt: undefined,
+        } as never,
+      ],
+    });
+
+    expect(normalized.realityReports[0].aiMeta?.source).toBe('mock');
+    expect(normalized.realityReports[0].aiMeta?.fallback).toBe(false);
+    expect(normalized.realityReports[0].humanReviewStatus).toBe('pending');
+  });
+
+  it('marks a report as manually reviewed', () => {
+    const initial = resetDemoState();
+    const reportId = initial.realityReports[0].id;
+
+    const next = markReportReviewed(reportId);
+    const report = next.realityReports.find((item) => item.id === reportId);
+
+    expect(report?.humanReviewStatus).toBe('reviewed');
+    expect(report?.reviewedAt).toBeTypeOf('string');
   });
 });

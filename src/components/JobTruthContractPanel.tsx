@@ -1,3 +1,4 @@
+import { Shield, CheckCircle2 } from 'lucide-react';
 import { Badge } from './Badge';
 import type { JobTruthContract } from '../types';
 
@@ -26,14 +27,20 @@ export function JobTruthContractPanel({
           <h2>岗位真相合约</h2>
           <p>企业先公开岗位边界，候选人知情后再决定是否继续投入云试岗。</p>
         </div>
-        <Badge tone={acknowledged ? 'green' : 'blue'}>{acknowledged ? '已确认' : '待确认'}</Badge>
+        <Badge tone={acknowledged ? 'green' : 'blue'}>
+          {acknowledged ? <CheckCircle2 size={14} /> : <Shield size={14} />}
+          {acknowledged ? '已确认' : '待确认'}
+        </Badge>
       </div>
 
       <div className="contract-grid">
         {contract.commitments.map((item) => (
-          <div key={item.id} className={`contract-item ${item.category}`}>
-            <strong>{item.title}</strong>
-            <p>{item.detail}</p>
+          <div key={item.id} className={`contract-item ${item.category} card-lift`}>
+            <Shield size={20} />
+            <div>
+              <strong>{item.title}</strong>
+              <p>{item.detail}</p>
+            </div>
           </div>
         ))}
       </div>

@@ -1,3 +1,4 @@
+import { CheckCircle2, AlertTriangle } from 'lucide-react';
 import type { AIAdviceEvidenceTag, AIAdviceRelianceNotice } from '../types';
 import { Badge } from './Badge';
 
@@ -33,12 +34,15 @@ export function AIAdviceReliancePanel({ notice, evidenceTags = [] }: { notice: A
       {evidenceTags.length > 0 ? (
         <div className="advice-evidence-list">
           {evidenceTags.map((tag) => (
-            <article key={tag.id} className={tag.status === '有行为证据' ? 'advice-evidence-card supported' : 'advice-evidence-card needs-review'}>
+            <article key={tag.id} className={tag.status === '有行为证据' ? 'advice-evidence-card supported card-lift badge-dot badge-dot-green' : 'advice-evidence-card needs-review card-lift badge-dot badge-dot-amber'}>
               <div>
-                <strong>{tag.advice}</strong>
+                <strong>
+                  {tag.status === '有行为证据' ? <CheckCircle2 size={14} /> : <AlertTriangle size={14} />}
+                  {tag.advice}
+                </strong>
                 <span>{tag.reason}</span>
               </div>
-              <Badge tone={tag.status === '有行为证据' ? 'green' : 'amber'}>{tag.status}</Badge>
+              <Badge dot tone={tag.status === '有行为证据' ? 'green' : 'amber'}>{tag.status}</Badge>
               {tag.evidence.length > 0 ? (
                 <ul>
                   {tag.evidence.map((item) => (

@@ -1,0 +1,645 @@
+{
+  "meta": {
+    "title": "智遇 Inbox Simulation — Complete UI/UX Specification",
+    "version": "1.0.0",
+    "date": "2026-06-13",
+    "designSystem": "Warm Stone & Sage palette, DM Sans + Sofia Pro fonts, Framer Motion animations",
+    "targetAudience": "Tech workers aged 25-35, Chinese workplace communication app users",
+    "techStack": {
+      "react": "19.2.0",
+      "framerMotion": "12.40.0",
+      "recharts": "3.8.1",
+      "lucideReact": "1.17.0",
+      "zustand": "5.0.14",
+      "vite": "7.1.7"
+    },
+    "existingFiles": [
+      "d:/AI招聘/src/styles/global.css",
+      "d:/AI招聘/src/styles/candidate-redesign.css",
+      "d:/AI招聘/package.json"
+    ]
+  },
+  "layoutSpecs": {
+    "desktop": {
+      "viewport": ">= 1024px",
+      "structure": "Split panel — left message feed (60%) + right detail/compose (40%)",
+      "hudTopBar": {
+        "height": "56px",
+        "position": "sticky top, z-index 50",
+        "background": "var(--color-surface)",
+        "border": "1px solid var(--color-border) bottom",
+        "layout": "flex, space-between, align-items center",
+        "leftSection": {
+          "companyLogo": "32x32px rounded square, emerald bg with white '智' character",
+          "companyName": "16px/600 var(--font-display), color var(--color-ink)",
+          "liveDot": "6px emerald dot, before company name"
+        },
+        "centerSection": {
+          "timer": "18px/600 var(--font-mono), format MM:SS count-up",
+          "label": "11px var(--color-muted), '模拟进行中'"
+        },
+        "rightSection": {
+          "unreadBadge": "emerald pill, monospace number, countPop animation on change",
+          "pauseButton": "ghost button, 36px height, icon Pause + text '暂停模拟'"
+        }
+      },
+      "progressBar": {
+        "height": "3px",
+        "background": "var(--color-subtle)",
+        "fill": "emerald gradient, 0.6s ease-in-out width transition",
+        "formula": "(messages_viewed + actions_taken) / (total_messages * 2)"
+      },
+      "messageFeedPanel": {
+        "width": "60%, min 400px, max 720px",
+        "overflowY": "scroll",
+        "searchFilterBar": {
+          "height": "48px",
+          "searchInput": "36px height, placeholder '搜索消息...', icon Search",
+          "filterTabs": "全部 | 重要 | 紧急, pill-style toggle chips"
+        },
+        "messageCard": {
+          "padding": "16px 20px",
+          "gap": "4px between cards",
+          "avatarSize": "44px diameter",
+          "avatarToBubbleGap": "12px",
+          "leftAccentWidth": "4px",
+          "unreadDotSize": "8px",
+          "contentArea": {
+            "senderName": "14px/600 var(--font-sans), var(--color-ink)",
+            "senderRole": "12px/400 var(--color-muted)",
+            "timestamp": "12px var(--color-muted), right-aligned",
+            "messagePreview": "13px/400 var(--color-ink-soft), single line ellipsis"
+          }
+        },
+        "deferredSection": "divider with label '稍后处理', contains deferred messages",
+        "ignoredSection": "divider with label '已忽略', dimmed cards at 0.45 opacity"
+      },
+      "detailPanel": {
+        "width": "40%, min 320px, max 480px",
+        "borderLeft": "1px solid var(--color-border)",
+        "states": ["empty", "view", "reply", "delegate"],
+        "emptyState": "illustration + text '选择一条消息查看详情'",
+        "viewState": "full message body, metadata, action history, urgency badge",
+        "replyState": "compose area 120px min-height, textarea + quick reply chips",
+        "delegateState": "team member dropdown overlay"
+      },
+      "actionBar": {
+        "height": "64px",
+        "position": "sticky bottom",
+        "background": "var(--color-surface) with backdrop-filter blur(12px)",
+        "borderTop": "1px solid var(--color-border)",
+        "buttons": [
+          {"id": "reply", "icon": "MessageSquare", "label": "回复", "color": "accent"},
+          {"id": "defer", "icon": "Clock", "label": "稍后", "color": "amber"},
+          {"id": "delegate", "icon": "Forward", "label": "转发", "color": "info"},
+          {"id": "ignore", "icon": "EyeOff", "label": "忽略", "color": "negative"}
+        ],
+        "buttonHeight": "48px",
+        "gap": "12px icon-to-text",
+        "disabledOpacity": "0.4"
+      }
+    },
+    "mobile": {
+      "viewport": "< 1024px",
+      "structure": "Single column full-width feed, bottom action sheet, FAB",
+      "hudTopBar": {
+        "height": "56px (fixed)",
+        "companyNameShort": "智遇 (if viewport < 375px)",
+        "timer": "14px/600 var(--font-mono)",
+        "pauseButton": "icon-only if viewport < 375px, aria-label '暂停模拟'",
+        "unreadBadge": "number only, no text label"
+      },
+      "messageCard": {
+        "padding": "12px 16px",
+        "avatarSize": "40px",
+        "horizontalMargin": "8px",
+        "swipeThreshold": "80px",
+        "swipeRight": "reply (green background + MessageSquare icon)",
+        "swipeLeft": "ignore (gray background + EyeOff icon)",
+        "longPress": "600ms hold for multi-select (card elevates, checkbox appears)"
+      },
+      "fab": {
+        "size": "56x56px",
+        "position": "bottom 24px, right 16px",
+        "background": "var(--color-accent)",
+        "icon": "MessageSquare, white",
+        "action": "opens bottom sheet"
+      },
+      "bottomSheet": {
+        "snapPoints": {
+          "peek": "120px (icons only)",
+          "half": "50vh (icons + labels)",
+          "full": "85vh (full action panel + compose)"
+        },
+        "handle": "36px wide, 4px tall, gray rounded pill, centered top",
+        "backdrop": "semi-transparent overlay, tap to dismiss",
+        "animation": "Framer Motion spring, stiffness 300, damping 30"
+      },
+      "detailView": "full screen push navigation, back button '< 返回', swipe-back gesture",
+      "actionBar": {
+        "buttonMinWidth": "64px",
+        "buttonMinHeight": "56px",
+        "iconSize": "24px",
+        "labelSize": "12px below icon",
+        "layout": "space-evenly"
+      },
+      "composeArea": {
+        "textarea": "100% width, min-height 80px",
+        "quickReplies": "horizontal scroll, overflow-x auto, chip min-width 80px",
+        "sendButton": "full width, 48px height"
+      },
+      "summaryOverlay": {
+        "competencyGrid": "single column",
+        "chart": "100% width, 200px height",
+        "ctaButton": "full width, sticky bottom",
+        "closeButton": "44px tap target, top-left"
+      },
+      "safeArea": {
+        "paddingTop": "env(safe-area-inset-top, 0px)",
+        "paddingBottom": "calc(12px + env(safe-area-inset-bottom, 0px))"
+      },
+      "thumbZones": {
+        "primaryActions": "bottom 64px of screen (action bar)",
+        "fab": "bottom-right, 24px from bottom edge",
+        "backButton": "top-left (accessible to left-handed users too)",
+        "quickReplies": "horizontally scrollable (in thumb zone)"
+      }
+    },
+    "summaryOverlay": {
+      "fullScreen": true,
+      "backdrop": "rgba(28, 25, 23, 0.4) with backdrop-filter blur(8px)",
+      "card": "var(--color-surface), var(--radius-xl), max-width 800px",
+      "header": "completion icon + completion time + message count",
+      "competencyGrid": "3 columns desktop, 1 column mobile",
+      "responseTimeChart": "Recharts LineChart, X=arrival time, Y=response latency",
+      "keyInsights": "plain Chinese bullet points, 3-4 items",
+      "cta": "primary emerald button '查看完整报告', 48px height",
+      "animation": "scaleIn 0.5s ease, children stagger 0.12s"
+    }
+  },
+  "componentStates": {
+    "messageCard": {
+      "loading": {
+        "height": "72px",
+        "animation": "skeleton shimmer 1.5s infinite",
+        "elements": ["44px circle skeleton avatar", "2 text lines 60% and 40% width"],
+        "minDuration": "400ms"
+      },
+      "normal": {
+        "background": "var(--color-surface)",
+        "border": "1px solid var(--color-border)",
+        "leftAccent": "none",
+        "hover": "background shifts to var(--color-subtle)",
+        "senderNameWeight": 600,
+        "messagePreviewColor": "var(--color-ink-soft)"
+      },
+      "unread": {
+        "background": "color-mix(in srgb, var(--color-accent) 3%, var(--color-surface))",
+        "indicator": "8px dot top-right OR 4px left border accent color",
+        "senderNameWeight": 700,
+        "messagePreviewColor": "var(--color-ink)"
+      },
+      "urgent": {
+        "leftBorder": "4px solid var(--color-negative) #DC2626",
+        "background": "var(--color-negative-bg) #FEF2F2 at 40% opacity",
+        "badge": "red pill '紧急'",
+        "animation": "subtle pulse on left accent bar (opacity 0.6-1.0, 2s infinite)",
+        "sortPriority": "always top of feed"
+      },
+      "important": {
+        "leftBorder": "4px solid var(--color-warning) #D97706",
+        "background": "var(--color-warning-bg) #FFFBEB at 30% opacity",
+        "badge": "amber pill '重要'",
+        "animation": "none"
+      },
+      "selected": {
+        "background": "var(--color-accent-subtle) #ECFDF5 at 60% opacity",
+        "leftBorder": "4px solid var(--color-accent) #059669",
+        "boxShadow": "0 2px 8px rgba(5,150,105,0.08)"
+      },
+      "ignored": {
+        "opacity": 0.45,
+        "position": "bottom of feed below '已忽略' divider",
+        "hoverAction": "small '恢复' restore link appears"
+      },
+      "deferred": {
+        "position": "'稍后处理' section below main feed",
+        "indicator": "gray clock icon on right side",
+        "chipTag": "gray '已延迟' chip"
+      }
+    },
+    "actionBar": {
+      "default": {
+        "allButtonsNormal": true,
+        "noMessageSelected": "all buttons 40% opacity, cursor not-allowed"
+      },
+      "replyActive": {
+        "replyButton": "filled emerald bg, white text",
+        "otherButtons": "normal",
+        "composeArea": "expands above action bar, 300ms spring"
+      },
+      "delegateOpen": {
+        "delegateButton": "filled info-blue bg, white text",
+        "dropdown": "z-index 60 overlay, 3-4 team member radio options"
+      },
+      "processing": {
+        "activeButton": "spinner replaces icon, 20px",
+        "otherButtons": "disabled 40% opacity",
+        "duration": "600-1200ms simulated network delay"
+      }
+    },
+    "composeArea": {
+      "collapsed": "not visible, height 0",
+      "expanded": {
+        "minHeight": "120px",
+        "textarea": "full width, min-height 64px, border-radius 16px, placeholder '输入回复...'",
+        "quickReplies": "4 chips, context-dependent",
+        "sendButton": "right-aligned, primary emerald, 36px height"
+      },
+      "submitting": {
+        "sendButton": "spinner replaces text",
+        "textarea": "disabled",
+        "chips": "disabled 40% opacity",
+        "duration": "800ms"
+      },
+      "submitted": {
+        "animation": "green checkmark flash, textarea collapses",
+        "messageCardUpdate": "'已回复' green status badge",
+        "autoCollapse": "after 1s"
+      },
+      "quickReplyTemplates": {
+        "taskRequest": ["我来处理", "需要更多信息", "建议找XX同事", "收到，会跟进"],
+        "infoSharing": ["收到，谢谢", "已阅，会参考", "后续跟进", "转发给团队"],
+        "urgentMatter": ["马上处理", "请发详细需求", "已升级处理", "10分钟内回复"],
+        "meetingEvent": ["确认参加", "需要调整时间", "请发议程", "无法参加"]
+      }
+    },
+    "hudTopBar": {
+      "default": {
+        "liveDot": "emerald, static",
+        "timerLabel": "'模拟进行中' var(--color-muted)",
+        "pauseButton": "ghost style, Pause icon + '暂停模拟'"
+      },
+      "paused": {
+        "liveDot": "gray",
+        "timer": "stopped",
+        "label": "'已暂停' amber color",
+        "pauseButton": "Play icon + '继续模拟'",
+        "feedOverlay": "60% opacity dim + semi-transparent overlay text '模拟已暂停 — 点击继续'"
+      },
+      "completed": {
+        "liveDot": "emerald pulse (pulseGlow animation)",
+        "timer": "stopped at final value",
+        "label": "'模拟完成' emerald color",
+        "pauseButton": "hidden, replaced by primary '查看总结' button"
+      }
+    },
+    "summaryOverlay": {
+      "entering": {
+        "backdrop": "opacity 0 -> 1, 0.35s",
+        "card": "scaleIn 0.94 -> 1.0, 0.5s ease",
+        "children": "staggered 0.12s delays per item"
+      },
+      "visible": {
+        "scrollable": "if content exceeds viewport",
+        "closeButton": "X in top-right corner",
+        "cta": "primary emerald button at bottom"
+      },
+      "exiting": {
+        "card": "reverse scale 1.0 -> 0.94, 0.25s ease",
+        "backdrop": "fade out"
+      },
+      "competencyCards": {
+        "scoreRanges": {
+          "excellent": ">= 85, var(--color-positive) emerald",
+          "good": "70-84, var(--color-warning) amber",
+          "needsWork": "< 70, var(--color-negative) red"
+        },
+        "elements": ["competency name 13px/600", "score 40px/700 var(--font-display)", "sparkline or mini-bar 80px height", "insight text 12px, 2-line max"]
+      }
+    },
+    "delegateDropdown": {
+      "closed": "not in DOM",
+      "open": {
+        "animation": "200ms ease-out, y 8px slide up",
+        "position": "absolute above action bar, 280px width desktop, full width mobile",
+        "background": "var(--color-surface), var(--radius-lg), var(--shadow-lg)",
+        "header": "'转发给:' 13px/600",
+        "teamMembers": [
+          {"name": "张明", "role": "技术负责人", "avatarGradient": "navy blue"},
+          {"name": "李华", "role": "HRBP", "avatarGradient": "purple"},
+          {"name": "王芳", "role": "部门主管", "avatarGradient": "amber"},
+          {"name": "刘洋", "role": "项目经理", "avatarGradient": "teal"}
+        ],
+        "itemHeight": "48px, avatar 32px + name + role"
+      },
+      "selecting": {
+        "selectedItem": "background var(--color-accent-subtle), radio dot filled emerald"
+      },
+      "confirmed": {
+        "animation": "brief checkmark",
+        "autoClose": "400ms delay",
+        "feedUpdate": "'已转发给 [name]' blue info status badge",
+        "toast": "top center '已转发给[name]', 2s duration"
+      }
+    },
+    "errorEdgeCases": {
+      "emptyFeed": {
+        "icon": "Inbox from Lucide, 48px, var(--color-muted) 0.4 opacity",
+        "title": "暂无消息",
+        "description": "当前收件箱为空，请等待模拟开始"
+      },
+      "networkError": {
+        "cardBorder": "red-dashed",
+        "text": "'加载失败' red 12px",
+        "retryButton": "text link '重试'"
+      },
+      "allProcessed": {
+        "illustration": "success icon",
+        "title": "所有消息已处理",
+        "subtitle": "等待模拟结束...",
+        "timerContinues": true
+      },
+      "scrollPositionMemory": "useRef on scroll container, preserved across navigation"
+    }
+  },
+  "animationSpecs": {
+    "messageArrival": {
+      "library": "Framer Motion",
+      "props": {
+        "initial": "opacity: 0, x: -24, height: 0",
+        "animate": "opacity: 1, x: 0, height: auto",
+        "transition": "spring, stiffness: 400, damping: 28, mass: 0.8, max duration: 300ms"
+      },
+      "stagger": "80ms between simultaneous messages",
+      "glowEffect": "emerald glow at card top for 600ms then fades"
+    },
+    "urgencyPulse": {
+      "type": "CSS keyframe",
+      "name": "inboxUrgentPulse",
+      "keyframes": "0%/100% box-shadow: inset 4px 0 var(--color-negative); 50% adds 0 0 12px rgba(220,38,38,0.15)",
+      "duration": "2s",
+      "timing": "ease-in-out infinite",
+      "appliesTo": "red-accent urgent cards only",
+      "stopsOn": "message selected/read",
+      "reducedMotion": "replaced with static red border"
+    },
+    "countPop": {
+      "reuses": "existing countPop keyframe in global.css",
+      "transform": "scale(1) -> scale(1.15) -> scale(1)",
+      "duration": "300ms",
+      "trigger": "unread count change"
+    },
+    "buttonTap": {
+      "library": "Framer Motion",
+      "props": {
+        "whileTap": "scale: 0.94",
+        "transition": "spring, stiffness: 500, damping: 20"
+      }
+    },
+    "composeExpand": {
+      "library": "Framer Motion",
+      "props": {
+        "initial": "height: 0, opacity: 0, marginTop: 0",
+        "animate": "height: auto, opacity: 1, marginTop: 12px",
+        "exit": "height: 0, opacity: 0, marginTop: 0",
+        "transition": "spring, stiffness: 300, damping: 30, duration: 0.35s"
+      }
+    },
+    "delegateDropdown": {
+      "library": "Framer Motion",
+      "props": {
+        "initial": "opacity: 0, y: 8, scaleY: 0.92",
+        "animate": "opacity: 1, y: 0, scaleY: 1",
+        "exit": "opacity: 0, y: 8, scaleY: 0.92",
+        "transition": "duration: 0.2s, ease: cubic-bezier(0.32, 0.72, 0, 1)"
+      }
+    },
+    "ignoreDim": {
+      "library": "Framer Motion",
+      "props": {
+        "animate": "opacity: 0.45, y: 16",
+        "transition": "duration: 0.4s, ease: easeInOut"
+      },
+      "layoutAnimation": "surrounding cards slide to fill gap via Framer Motion layout prop"
+    },
+    "summaryOverlay": {
+      "backdrop": {
+        "initial": "opacity: 0",
+        "animate": "opacity: 1",
+        "exit": "opacity: 0",
+        "transition": "duration: 0.35s"
+      },
+      "card": {
+        "initial": "opacity: 0, scale: 0.92, y: 20",
+        "animate": "opacity: 1, scale: 1, y: 0",
+        "exit": "opacity: 0, scale: 0.92, y: 20",
+        "transition": "spring, stiffness: 200, damping: 24, delay: 0.1s"
+      },
+      "childrenStagger": "0.12s delays using existing stagger-0/1/2/3 pattern"
+    },
+    "mobileSwipe": {
+      "library": "Framer Motion drag",
+      "constraints": "drag: x, dragConstraints: left: 0, right: 0, dragElastic: 0.2",
+      "threshold": "80px",
+      "onSwipeRight": "triggerReply() — green background reveals with MessageSquare icon",
+      "onSwipeLeft": "triggerIgnore() — gray background reveals with EyeOff icon",
+      "onReleaseUnderThreshold": "spring back to 0"
+    },
+    "progressBar": {
+      "library": "Framer Motion",
+      "props": {
+        "animate": "width: progressPercent%",
+        "transition": "duration: 0.6s, ease: easeInOut"
+      },
+      "fillColor": "emerald gradient: linear-gradient(90deg, var(--color-accent), #34D399)"
+    },
+    "simulationTimer": {
+      "fontVariant": "tabular-nums (prevents layout shift)",
+      "updateInterval": "1000ms via setInterval",
+      "animation": "none on digits (clean precise feel)"
+    },
+    "reducedMotion": {
+      "detection": "window.matchMedia('(prefers-reduced-motion: reduce)').matches",
+      "adaptations": {
+        "springs": "become instant opacity transitions",
+        "pulses": "disabled",
+        "slideIns": "become simple fade-in 200ms",
+        "swipes": "become button-only, no drag"
+      },
+      "framerMotionTransition": "{ duration: 0.01 }"
+    }
+  },
+  "mobileAdaptations": {
+    "breakpoints": {
+      "phonePortrait": "< 640px, single column, full-width cards",
+      "tabletPortrait": "640px-1023px, single column, wider cards",
+      "desktop": ">= 1024px, two-column split"
+    },
+    "navigation": {
+      "primaryView": "full-screen message feed",
+      "detailView": "push navigation, back button '< 返回', swipe-back gesture",
+      "noRightPanel": "detail replaces feed (not side panel)"
+    },
+    "bottomSheet": {
+      "snapPoints_peek": "120px, action icons only",
+      "snapPoints_half": "50vh, icons + labels + context",
+      "snapPoints_full": "85vh, full action panel + compose",
+      "implementation": "Framer Motion drag + useDragControls",
+      "dragHandle": "36px wide, 4px tall, gray rounded pill, centered",
+      "backdrop": "semi-transparent overlay, tap dismiss"
+    },
+    "swipeGestures": {
+      "swipeRight": "> 80px from left edge, opens reply, green bg + MessageSquare icon",
+      "swipeLeft": "> 80px from right edge, ignores message, gray bg + EyeOff icon",
+      "longPress": "600ms hold, selects for multi-action, card elevates + checkbox",
+      "firstVisitHint": "subtle bounce animation on first card, runs once (localStorage flag)"
+    },
+    "thumbZoneOptimization": {
+      "fab": "bottom-right: 24px from bottom, 16px from right, 56x56px",
+      "actionBar": "lowest 64px of screen, full width",
+      "quickReplies": "horizontal scroll inline, not stacked",
+      "backButton": "top-left (works for both hands)"
+    },
+    "componentAdjustments": {
+      "messageCard": {
+        "noHover": "use :active press state instead",
+        "activeFeedback": "background shifts to var(--color-subtle)",
+        "corners": "var(--radius-md) 12px with 8px horizontal margins"
+      },
+      "actionBar": {
+        "buttonMinWidth": "64px",
+        "buttonMinHeight": "56px (exceeds WCAG 48px minimum)",
+        "iconSize": "24px desktop icons -> 24px mobile",
+        "labelBelow": "12px font below icon",
+        "layout": "space-evenly"
+      },
+      "composeArea": {
+        "textareaMinHeight": "80px",
+        "quickRepliesScroll": "horizontal, overflow-x auto, -webkit-overflow-scrolling touch",
+        "chipMinWidth": "80px",
+        "sendButton": "full width, 48px height"
+      },
+      "hud": {
+        "companyName": "shortened to '智遇' if viewport < 375px",
+        "timerFont": "14px (vs 18px desktop)",
+        "pauseButton": "icon-only if viewport < 375px, aria-label '暂停模拟'",
+        "unreadBadge": "number only, no text label"
+      },
+      "summaryOverlay": {
+        "competencyGrid": "single column",
+        "chartHeight": "200px (vs 280px desktop)",
+        "ctaFullWidth": "sticky bottom, full width",
+        "closeButton": "44px tap target, top-left"
+      }
+    },
+    "safeArea": {
+      "feedPaddingTop": "env(safe-area-inset-top, 0px)",
+      "actionBarPaddingBottom": "calc(12px + env(safe-area-inset-bottom, 0px))"
+    },
+    "orientation": {
+      "portrait": "default mobile layout",
+      "landscapePhone": "wider cards max 600px centered, single column maintained",
+      "landscapeTablet": "transitions to two-column at 1024px"
+    }
+  },
+  "visualDesignTokens": {
+    "extendsExisting": "d:/AI招聘/src/styles/global.css :root tokens",
+    "inboxSpecific": {
+      "avatarSize": "44px desktop, 40px mobile",
+      "cardGap": "4px",
+      "accentWidth": "4px",
+      "unreadDotSize": "8px",
+      "actionBarHeight": "64px",
+      "hudHeight": "56px",
+      "composeMinHeight": "120px",
+      "fabSize": "56px",
+      "fabBottom": "24px",
+      "fabRight": "16px",
+      "swipeThreshold": "80px",
+      "sheetSnapPeek": "120px"
+    },
+    "colorMap": {
+      "normalBg": "--color-surface #FFFFFF",
+      "normalBorder": "--color-border #E8E5E1",
+      "unreadBg": "color-mix(in srgb, --color-accent 3%, --color-surface) ~#F7FBF9",
+      "urgentAccent": "--color-negative #DC2626",
+      "urgentBg": "--color-negative-bg #FEF2F2",
+      "importantAccent": "--color-warning #D97706",
+      "importantBg": "--color-warning-bg #FFFBEB",
+      "selectedBg": "--color-accent-subtle #ECFDF5",
+      "hudBg": "--color-surface #FFFFFF",
+      "actionBarBg": "--color-surface + blur(12px)",
+      "replyActive": "--color-accent #059669",
+      "deferHover": "--color-warning #D97706",
+      "delegateHover": "--color-info #2563EB",
+      "ignoreHover": "--color-negative #DC2626",
+      "timerText": "--color-ink-soft #64748B",
+      "progressFill": "--color-accent gradient #059669 -> #34D399"
+    },
+    "typographyMap": {
+      "companyName": "var(--font-display) Sofia Pro, 16px, 600, lh 1.2",
+      "timer": "var(--font-mono) JetBrains Mono, 18px desktop/14px mobile, 600, lh 1",
+      "senderName": "var(--font-sans) DM Sans, 14px, 600 unread/700 read, lh 1.4",
+      "senderRole": "var(--font-sans), 12px, 400, lh 1.4",
+      "messagePreview": "var(--font-sans), 13px, 400, lh 1.5",
+      "timestamp": "var(--font-sans), 12px, 400, lh 1",
+      "actionLabel": "var(--font-sans), 13px desktop/12px mobile, 500, lh 1",
+      "quickReply": "var(--font-sans), 13px, 500, lh 1",
+      "composeTextarea": "var(--font-sans), 15px, 400, lh 1.6",
+      "competencyName": "var(--font-sans), 13px, 600, lh 1.2",
+      "competencyScore": "var(--font-display), 40px, 700, lh 1",
+      "insightText": "var(--font-sans), 12px, 400, lh 1.5"
+    },
+    "shadowMap": {
+      "cardDefault": "--shadow-sm, 0 1px 3px rgba(51,65,85,0.04)",
+      "cardSelected": "0 2px 8px rgba(5,150,105,0.08)",
+      "actionBar": "0 -4px 16px rgba(51,65,85,0.06) inverted",
+      "dropdown": "--shadow-lg, 0 12px 32px rgba(51,65,85,0.08)",
+      "bottomSheet": "0 -8px 32px rgba(51,65,85,0.10)",
+      "summaryCard": "0 20px 48px rgba(51,65,85,0.12)"
+    },
+    "componentArchitecture": {
+      "pages": ["src/pages/InboxSimulation.tsx"],
+      "components": [
+        "src/components/inbox/HUDTopBar.tsx",
+        "src/components/inbox/MessageCard.tsx",
+        "src/components/inbox/MessageFeed.tsx",
+        "src/components/inbox/ActionBar.tsx",
+        "src/components/inbox/ComposeArea.tsx",
+        "src/components/inbox/DelegateDropdown.tsx",
+        "src/components/inbox/DetailPanel.tsx",
+        "src/components/inbox/SummaryOverlay.tsx",
+        "src/components/inbox/MobileBottomSheet.tsx",
+        "src/components/inbox/UrgencyBadge.tsx",
+        "src/components/inbox/SimulationTimer.tsx"
+      ],
+      "store": "src/stores/inboxStore.ts (Zustand)",
+      "styles": "src/styles/inbox.css"
+    },
+    "zustandStoreDesign": {
+      "messages": "Message[]",
+      "selectedMessageId": "string | null",
+      "isRunning": "boolean",
+      "isPaused": "boolean",
+      "elapsedTime": "number (seconds)",
+      "composeOpen": "boolean",
+      "delegateOpen": "boolean",
+      "activeFilter": "'all' | 'important' | 'urgent'",
+      "mobileSheetState": "'peek' | 'half' | 'full' | 'closed'",
+      "actions": [
+        "selectMessage(id)",
+        "replyToMessage(id, text)",
+        "deferMessage(id)",
+        "delegateMessage(id, teammateId)",
+        "ignoreMessage(id)",
+        "restoreMessage(id)",
+        "startSimulation()",
+        "pauseSimulation()",
+        "resumeSimulation()",
+        "completeSimulation()"
+      ],
+      "derived": ["unreadCount", "progressPercent", "deferredMessages", "ignoredMessages", "responseMetrics"]
+    }
+  }
+}

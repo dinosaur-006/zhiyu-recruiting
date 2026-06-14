@@ -1,0 +1,1588 @@
+/* ============================================================
+   Candidate Experience Redesign — "Crafted Transparency"
+   Design-forward, professional, trust-building candidate journey
+   ============================================================ */
+
+/* ----------------------------------------------------------
+   1. CANDIDATE DESIGN TOKENS
+   Warm, human-centered palette with professional polish
+   ---------------------------------------------------------- */
+:root {
+  /* ── Refined Palette ── */
+  --cr-base:          #FAF9F7;
+  --cr-surface:       #FFFFFF;
+  --cr-surface-float: rgba(255, 255, 255, 0.92);
+  --cr-subtle:        #F5F3F0;
+  --cr-subtle-warm:   #F9F7F4;
+  --cr-muted:         #94A3B8;
+  --cr-ink:           #1E293B;
+  --cr-ink-soft:      #475569;
+  --cr-ink-dim:       #64748B;
+
+  --cr-accent:        #059669;
+  --cr-accent-hover:  #047857;
+  --cr-accent-subtle: #ECFDF5;
+  --cr-accent-glow:   rgba(5, 150, 105, 0.12);
+
+  --cr-secondary:     #6366F1;
+  --cr-secondary-subtle: #EEF2FF;
+
+  --cr-positive:      #059669;
+  --cr-positive-bg:   #ECFDF5;
+  --cr-warning:       #D97706;
+  --cr-warning-bg:    #FFFBEB;
+  --cr-negative:      #DC2626;
+  --cr-negative-bg:   #FEF2F2;
+  --cr-info:          #2563EB;
+  --cr-info-bg:       #EFF6FF;
+  --cr-gold:          #B45309;
+  --cr-gold-bg:       #FFFBEB;
+
+  --cr-border:        #E8E5E1;
+  --cr-border-light:  #F0EDE9;
+  --cr-border-strong: #D6D3CE;
+
+  /* ── Typography Scale (Editorial Precision) ── */
+  --cr-font-sans:    "DM Sans", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --cr-font-display: "Sofia Pro", "SF Pro Rounded", "Inter", system-ui, sans-serif;
+  --cr-font-mono:    "JetBrains Mono", "SF Mono", "Cascadia Code", monospace;
+
+  /* Strict size scale — only these sizes should be used */
+  --cr-text-xs: 12px;   /* captions, micro-labels */
+  --cr-text-sm: 13px;   /* body-small, hints */
+  --cr-text-base: 14px; /* body text */
+  --cr-text-md: 16px;   /* emphasized body, card titles */
+  --cr-text-lg: 18px;   /* section headings */
+  --cr-text-xl: 20px;   /* subsection headings */
+  --cr-text-2xl: 24px;  /* page headings */
+  --cr-text-3xl: 28px;  /* hero headings */
+  --cr-text-4xl: 36px;  /* hero primary */
+
+  /* Consistent line-heights */
+  --cr-leading-tight: 1.2;
+  --cr-leading-normal: 1.6;
+  --cr-leading-relaxed: 1.8;
+
+  /* ── Enhanced Spacing Scale ── */
+  --cr-space-xs: 4px;
+  --cr-space-sm: 8px;
+  --cr-space-md: 12px;
+  --cr-space-lg: 16px;
+  --cr-space-xl: 24px;
+  --cr-space-2xl: 32px;
+  --cr-space-3xl: 48px;
+  --cr-space-4xl: 64px;
+  --cr-space-5xl: 96px;
+
+  /* ── Radii ── */
+  --cr-radius-sm: 8px;
+  --cr-radius-md: 12px;
+  --cr-radius-lg: 16px;
+  --cr-radius-xl: 20px;
+  --cr-radius-2xl: 24px;
+  --cr-radius-full: 9999px;
+
+  /* ── Shadows ── */
+  --cr-shadow-xs: 0 1px 2px rgba(30, 41, 59, 0.04);
+  --cr-shadow-sm: 0 1px 3px rgba(30, 41, 59, 0.06);
+  --cr-shadow-md: 0 4px 16px rgba(30, 41, 59, 0.08);
+  --cr-shadow-lg: 0 12px 32px rgba(30, 41, 59, 0.12);
+  --cr-shadow-xl: 0 20px 48px rgba(30, 41, 59, 0.16);
+  --cr-shadow-glow: 0 0 24px var(--cr-accent-glow);
+
+  /* ── Layout ── */
+  --cr-content-sm: 780px;
+  --cr-content-md: 900px;
+  --cr-content-lg: 1100px;
+  --cr-content-xl: 1300px;
+  --cr-content-xxl: 1400px;
+  --cr-topbar-h: 56px;
+  --cr-sidebar-w: 340px;
+  --cr-page-padding: 32px;
+}
+
+/* ===========================================================
+   1B. SIMULATION INTERIOR TOKENS
+   Cool neutral grays with blue accent — Feishu/Slack inspired
+   These create a perceptual boundary between the recruitment
+   platform (warm --cr-*) and the simulated workplace tool.
+   =========================================================== */
+:root {
+  /* Interior surfaces */
+  --sim-bg:              #F0F2F5;
+  --sim-surface:         #FFFFFF;
+  --sim-surface-hover:   #F5F6F8;
+  --sim-surface-active:  #E8F0FE;
+  --sim-sidebar-bg:      #1C2433;
+  --sim-sidebar-hover:   #2A3444;
+  --sim-sidebar-active:  #3A4A5E;
+
+  /* Interior text */
+  --sim-ink:             #1F2937;
+  --sim-ink-soft:        #4B5563;
+  --sim-ink-dim:         #9CA3AF;
+  --sim-ink-inverse:     #E5E7EB;
+
+  /* Interior accent (blue, not green) */
+  --sim-accent:          #2563EB;
+  --sim-accent-hover:    #1D4ED8;
+  --sim-accent-subtle:   #EFF6FF;
+
+  /* Interior status */
+  --sim-online:          #22C55E;
+  --sim-away:            #F59E0B;
+  --sim-offline:         #9CA3AF;
+
+  /* Interior borders */
+  --sim-border:          #E5E7EB;
+  --sim-border-light:    #F3F4F6;
+  --sim-divider:         #D1D5DB;
+
+  /* Interior typography (DM Sans only — no display font) */
+  --sim-font:            "DM Sans", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --sim-font-mono:       "JetBrains Mono", "SF Mono", "Cascadia Code", monospace;
+  --sim-text-xs: 11px;
+  --sim-text-sm: 12px;
+  --sim-text-base: 13px;
+  --sim-text-md: 14px;
+  --sim-text-lg: 15px;
+
+  /* Interior radii (sharper than recruitment) */
+  --sim-radius-sm: 4px;
+  --sim-radius-md: 6px;
+  --sim-radius-lg: 8px;
+
+  /* Interior layout */
+  --sim-sidebar-w: 220px;
+  --sim-detail-w: 400px;
+  --sim-header-h: 48px;
+}
+
+/* ----------------------------------------------------------
+   2. AMBIENT BACKGROUND
+   Subtle depth and atmosphere for candidate pages
+   ---------------------------------------------------------- */
+.cr-bg {
+  background: var(--cr-base);
+  background-image:
+    radial-gradient(ellipse at 50% 0%, rgba(5, 150, 105, 0.04) 0%, transparent 60%),
+    radial-gradient(circle at 20% 80%, rgba(99, 102, 241, 0.02) 0%, transparent 40%),
+    radial-gradient(var(--cr-border-light) 0.5px, transparent 0.5px);
+  background-size: 100% 100%, 100% 100%, 24px 24px;
+}
+
+/* ----------------------------------------------------------
+   3. CANDIDATE TOP BAR
+   Clean, minimal navigation with subtle glass effect
+   ---------------------------------------------------------- */
+.cr-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  height: var(--cr-topbar-h);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--cr-space-xl);
+  background: var(--cr-surface-float);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--cr-border-light);
+}
+
+.cr-topbar-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--cr-space-sm);
+  font-family: var(--cr-font-display);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--cr-ink);
+  text-decoration: none;
+}
+
+.cr-topbar-brand:hover { color: var(--cr-accent); }
+
+.cr-topbar-logo {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--cr-radius-sm);
+  background: linear-gradient(135deg, var(--cr-accent), #34D399);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.cr-topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--cr-space-md);
+}
+
+.cr-topbar-link {
+  font-size: 13px;
+  color: var(--cr-ink-dim);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.15s;
+}
+
+.cr-topbar-link:hover { color: var(--cr-accent); }
+
+/* ----------------------------------------------------------
+   4. PROGRESS INDICATOR
+   Elegant step indicator replacing military tracker
+   ---------------------------------------------------------- */
+.cr-progress {
+  display: flex;
+  align-items: center;
+  gap: var(--cr-space-sm);
+  font-size: 13px;
+  color: var(--cr-ink-dim);
+}
+
+.cr-progress-step {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--cr-border);
+  transition: all 0.4s ease;
+}
+
+.cr-progress-step.completed {
+  background: var(--cr-accent);
+  box-shadow: 0 0 0 4px var(--cr-accent-subtle);
+}
+
+.cr-progress-step.active {
+  background: var(--cr-accent);
+  box-shadow: 0 0 0 6px var(--cr-accent-glow);
+  animation: crPulse 2s ease-in-out infinite;
+}
+
+.cr-progress-connector {
+  width: 24px;
+  height: 1px;
+  background: var(--cr-border);
+  transition: background 0.4s ease;
+}
+
+.cr-progress-connector.completed {
+  background: var(--cr-accent);
+}
+
+@keyframes crPulse {
+  0%, 100% { box-shadow: 0 0 0 4px var(--cr-accent-glow); }
+  50% { box-shadow: 0 0 0 10px transparent; }
+}
+
+/* ----------------------------------------------------------
+   5. PAGE CONTAINERS
+   Clean, centered layouts with editorial spacing
+   ---------------------------------------------------------- */
+.cr-page {
+  max-width: var(--cr-content-lg);
+  margin: 0 auto;
+  padding: var(--cr-space-3xl) var(--cr-space-xl) var(--cr-space-5xl);
+  animation: crFadeIn 0.5s ease both;
+}
+
+.cr-page-sm {
+  max-width: var(--cr-content-sm);
+  margin: 0 auto;
+  padding: var(--cr-space-3xl) var(--cr-space-xl) var(--cr-space-5xl);
+  animation: crFadeIn 0.5s ease both;
+}
+
+.cr-page-md {
+  max-width: var(--cr-content-md);
+  margin: 0 auto;
+  padding: var(--cr-space-2xl) var(--cr-space-xl) var(--cr-space-5xl);
+  animation: crFadeIn 0.5s ease both;
+}
+
+/* ----------------------------------------------------------
+   6. CARDS & PANELS
+   Refined surface components with subtle depth
+   ---------------------------------------------------------- */
+.cr-card {
+  background: var(--cr-surface);
+  border: 1px solid var(--cr-border);
+  border-radius: var(--cr-radius-lg);
+  padding: var(--cr-space-2xl);
+  box-shadow: var(--cr-shadow-xs);
+  transition: box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+.cr-card:hover {
+  box-shadow: var(--cr-shadow-md);
+  border-color: var(--cr-border-strong);
+}
+
+.cr-card-elevated {
+  background: var(--cr-surface);
+  border: 1px solid var(--cr-border);
+  border-radius: var(--cr-radius-xl);
+  padding: var(--cr-space-3xl);
+  box-shadow: var(--cr-shadow-md);
+}
+
+.cr-card-glass {
+  background: var(--cr-surface-float);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--cr-border-light);
+  border-radius: var(--cr-radius-lg);
+  padding: var(--cr-space-2xl);
+  box-shadow: var(--cr-shadow-sm);
+}
+
+/* Accent line variant */
+.cr-card-accent {
+  position: relative;
+  overflow: hidden;
+}
+
+.cr-card-accent::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--cr-accent), #34D399);
+}
+
+/* ----------------------------------------------------------
+   7. TYPOGRAPHY PRIMITIVES — Editorial Precision
+   All pages must use these classes for consistent hierarchy
+   ---------------------------------------------------------- */
+
+/* Headings — Display font, consistent weights */
+.cr-h1 { font-family: var(--cr-font-display); font-size: var(--cr-text-4xl); font-weight: 700; line-height: var(--cr-leading-tight); letter-spacing: -0.025em; color: var(--cr-ink); }
+.cr-h2 { font-family: var(--cr-font-display); font-size: var(--cr-text-3xl); font-weight: 700; line-height: var(--cr-leading-tight); letter-spacing: -0.02em; color: var(--cr-ink); }
+.cr-h3 { font-family: var(--cr-font-display); font-size: var(--cr-text-2xl); font-weight: 600; line-height: var(--cr-leading-tight); letter-spacing: -0.015em; color: var(--cr-ink); }
+.cr-h4 { font-family: var(--cr-font-display); font-size: var(--cr-text-xl); font-weight: 600; line-height: var(--cr-leading-normal); color: var(--cr-ink); }
+
+/* Body text — Sans font */
+.cr-text-body { font-size: var(--cr-text-base); line-height: var(--cr-leading-relaxed); color: var(--cr-ink-soft); }
+.cr-text-sm { font-size: var(--cr-text-sm); line-height: var(--cr-leading-normal); color: var(--cr-ink-dim); }
+.cr-text-xs { font-size: var(--cr-text-xs); line-height: var(--cr-leading-normal); color: var(--cr-muted); }
+
+/* Section spacing — consistent rhythm */
+.cr-section-gap { margin-bottom: var(--cr-space-3xl); }
+.cr-section-gap-lg { margin-bottom: var(--cr-space-4xl); }
+.cr-eyebrow {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--cr-muted);
+  margin-bottom: var(--cr-space-sm);
+}
+
+.cr-heading-xl {
+  font-family: var(--cr-font-display);
+  font-size: clamp(28px, 5vw, 40px);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  color: var(--cr-ink);
+  margin: 0;
+}
+
+.cr-heading-lg {
+  font-family: var(--cr-font-display);
+  font-size: clamp(22px, 3.5vw, 28px);
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  color: var(--cr-ink);
+  margin: 0;
+}
+
+.cr-heading-md {
+  font-family: var(--cr-font-display);
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--cr-ink);
+  margin: 0;
+}
+
+.cr-body {
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--cr-ink-soft);
+}
+
+.cr-body-sm {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--cr-ink-dim);
+}
+
+.cr-caption {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--cr-muted);
+}
+
+/* ----------------------------------------------------------
+   8. BUTTONS
+   Refined button system with clear hierarchy
+   ---------------------------------------------------------- */
+.cr-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--cr-space-sm);
+  padding: 12px 28px;
+  border: none;
+  border-radius: var(--cr-radius-full);
+  background: var(--cr-accent);
+  color: #fff;
+  font-family: var(--cr-font-sans);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.cr-btn-primary:hover {
+  background: var(--cr-accent-hover);
+  box-shadow: 0 4px 16px rgba(5, 150, 105, 0.25);
+  transform: translateY(-1px);
+  color: #fff;
+}
+
+.cr-btn-primary:active { transform: translateY(0); }
+
+.cr-btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.cr-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--cr-space-sm);
+  padding: 12px 28px;
+  border: 1.5px solid var(--cr-border);
+  border-radius: var(--cr-radius-full);
+  background: var(--cr-surface);
+  color: var(--cr-ink-soft);
+  font-family: var(--cr-font-sans);
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.cr-btn-secondary:hover {
+  border-color: var(--cr-accent);
+  color: var(--cr-accent);
+  background: var(--cr-accent-subtle);
+}
+
+.cr-btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--cr-space-xs);
+  padding: 6px 12px;
+  border: none;
+  border-radius: var(--cr-radius-sm);
+  background: transparent;
+  color: var(--cr-ink-dim);
+  font-family: var(--cr-font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+.cr-btn-ghost:hover { color: var(--cr-accent); }
+
+.cr-btn-lg {
+  padding: 16px 36px;
+  font-size: 17px;
+}
+
+/* ----------------------------------------------------------
+   9. BADGES & CHIPS
+   Clean, minimal status indicators
+   ---------------------------------------------------------- */
+.cr-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: var(--cr-radius-full);
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.cr-badge-green {
+  background: var(--cr-positive-bg);
+  color: var(--cr-positive);
+}
+
+.cr-badge-amber {
+  background: var(--cr-warning-bg);
+  color: var(--cr-warning);
+}
+
+.cr-badge-blue {
+  background: var(--cr-accent-subtle);
+  color: var(--cr-accent);
+}
+
+.cr-badge-purple {
+  background: var(--cr-secondary-subtle);
+  color: var(--cr-secondary);
+}
+
+.cr-badge-neutral {
+  background: var(--cr-subtle);
+  color: var(--cr-ink-dim);
+}
+
+/* ----------------------------------------------------------
+   10. TRUST SIGNALS
+   Components that build candidate confidence
+   ---------------------------------------------------------- */
+.cr-trust-strip {
+  display: flex;
+  align-items: center;
+  gap: var(--cr-space-xl);
+  padding: var(--cr-space-lg) 0;
+}
+
+.cr-trust-item {
+  display: flex;
+  align-items: center;
+  gap: var(--cr-space-sm);
+  font-size: 13px;
+  color: var(--cr-ink-dim);
+}
+
+.cr-trust-item svg {
+  color: var(--cr-accent);
+  opacity: 0.7;
+}
+
+.cr-compliance-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--cr-space-md);
+  padding: var(--cr-space-lg);
+  background: var(--cr-info-bg);
+  border: 1px solid rgba(37, 99, 235, 0.15);
+  border-radius: var(--cr-radius-md);
+  font-size: 13px;
+  color: var(--cr-ink-soft);
+  line-height: 1.6;
+}
+
+.cr-compliance-banner svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: var(--cr-info);
+}
+
+/* ----------------------------------------------------------
+   11. DIGITAL HUMAN CARD
+   Refined avatar presentation
+   ---------------------------------------------------------- */
+.cr-avatar-card {
+  display: flex;
+  align-items: center;
+  gap: var(--cr-space-lg);
+  padding: var(--cr-space-lg) var(--cr-space-xl);
+  background: var(--cr-subtle-warm);
+  border-radius: var(--cr-radius-xl);
+  border: 1px solid var(--cr-border-light);
+}
+
+.cr-avatar-ring {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.cr-avatar-ring::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  background: linear-gradient(135deg, var(--cr-accent), #34D399) border-box;
+  -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: destination-out;
+  mask-composite: exclude;
+}
+
+.cr-avatar-ring.hr {
+  background: linear-gradient(135deg, #059669, #34D399);
+}
+
+.cr-avatar-ring.teammate {
+  background: linear-gradient(135deg, #6366F1, #A5B4FC);
+}
+
+.cr-avatar-ring.manager {
+  background: linear-gradient(135deg, #D97706, #FCD34D);
+}
+
+.cr-avatar-initials {
+  color: #fff;
+  font-family: var(--cr-font-display);
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.cr-avatar-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cr-avatar-name {
+  font-family: var(--cr-font-display);
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--cr-ink);
+}
+
+.cr-avatar-role {
+  font-size: 13px;
+  color: var(--cr-accent);
+  font-weight: 500;
+}
+
+.cr-avatar-desc {
+  font-size: 12px;
+  color: var(--cr-muted);
+}
+
+/* ----------------------------------------------------------
+   12. CHAT BUBBLES
+   Warm conversational interface
+   ---------------------------------------------------------- */
+.cr-chat-shell {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cr-space-lg);
+}
+
+.cr-msg-row {
+  display: flex;
+  gap: 12px;
+  animation: crFadeIn 0.4s ease both;
+}
+
+.cr-msg-row.them {
+  padding-right: 48px;
+}
+
+.cr-msg-row.me {
+  flex-direction: row-reverse;
+  padding-left: 48px;
+}
+
+.cr-msg-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.cr-msg-avatar.them {
+  background: linear-gradient(135deg, var(--cr-accent), #34D399);
+}
+
+.cr-msg-avatar.me {
+  background: linear-gradient(135deg, var(--cr-ink-soft), var(--cr-ink-dim));
+}
+
+.cr-msg-bubble {
+  max-width: 100%;
+  padding: 14px 18px;
+  border-radius: 18px;
+  font-size: 15px;
+  line-height: 1.65;
+}
+
+.cr-msg-row.them .cr-msg-bubble {
+  background: var(--cr-surface);
+  border: 1px solid var(--cr-border-light);
+  border-top-left-radius: 6px;
+  color: var(--cr-ink);
+  box-shadow: var(--cr-shadow-xs);
+}
+
+.cr-msg-row.me .cr-msg-bubble {
+  background: var(--cr-accent);
+  border-top-right-radius: 6px;
+  color: #fff;
+}
+
+/* ----------------------------------------------------------
+   13. FORM ELEMENTS
+   Clean, accessible form components
+   ---------------------------------------------------------- */
+.cr-input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1.5px solid var(--cr-border);
+  border-radius: var(--cr-radius-md);
+  background: var(--cr-surface);
+  color: var(--cr-ink);
+  font-family: var(--cr-font-sans);
+  font-size: 15px;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  box-sizing: border-box;
+}
+
+.cr-input:focus {
+  border-color: var(--cr-accent);
+  box-shadow: 0 0 0 3px var(--cr-accent-glow);
+}
+
+.cr-input::placeholder { color: var(--cr-muted); }
+
+.cr-textarea {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1.5px solid var(--cr-border);
+  border-radius: var(--cr-radius-md);
+  background: var(--cr-surface);
+  color: var(--cr-ink);
+  font-family: var(--cr-font-sans);
+  font-size: 15px;
+  line-height: 1.6;
+  outline: none;
+  resize: vertical;
+  min-height: 100px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  box-sizing: border-box;
+}
+
+.cr-textarea:focus {
+  border-color: var(--cr-accent);
+  box-shadow: 0 0 0 3px var(--cr-accent-glow);
+}
+
+/* ----------------------------------------------------------
+   14. MODAL
+   Centered overlay with backdrop blur
+   ---------------------------------------------------------- */
+.cr-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(30, 41, 59, 0.4);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: var(--cr-space-lg);
+  animation: crFadeIn 0.2s ease;
+}
+
+.cr-modal {
+  background: var(--cr-surface);
+  border-radius: var(--cr-radius-xl);
+  padding: var(--cr-space-3xl);
+  max-width: 520px;
+  width: 100%;
+  box-shadow: var(--cr-shadow-xl);
+  animation: crScaleIn 0.3s ease;
+}
+
+.cr-modal-wide {
+  max-width: 680px;
+}
+
+/* ----------------------------------------------------------
+   15. LOADING & EMPTY STATES
+   Purposeful, reassuring feedback
+   ---------------------------------------------------------- */
+.cr-loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--cr-space-5xl) var(--cr-space-xl);
+  text-align: center;
+  gap: var(--cr-space-lg);
+}
+
+.cr-loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--cr-border);
+  border-top-color: var(--cr-accent);
+  border-radius: 50%;
+  animation: crSpin 0.8s linear infinite;
+}
+
+.cr-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--cr-space-5xl) var(--cr-space-xl);
+  text-align: center;
+  gap: var(--cr-space-md);
+}
+
+/* ─── Unified Section Block ─── */
+.cr-section-block {
+  padding: var(--cr-space-4xl) 0;
+  max-width: var(--cr-content-xl);
+  margin: 0 auto;
+  width: 100%;
+  padding-left: var(--cr-page-padding);
+  padding-right: var(--cr-page-padding);
+}
+.cr-section-block .cr-section-title {
+  text-align: center;
+  margin-bottom: var(--cr-space-3xl);
+}
+.cr-section-block .cr-section-title h2 {
+  font-family: var(--cr-font-display);
+  font-size: var(--cr-text-3xl);
+  font-weight: 700;
+  color: var(--cr-ink);
+  margin: 8px 0 12px;
+  letter-spacing: -0.02em;
+}
+.cr-section-block .cr-section-title p {
+  font-size: var(--cr-text-sm);
+  color: var(--cr-ink-dim);
+  max-width: 440px;
+  margin: 0 auto;
+}
+
+/* ─── Collapsible Sections ─── */
+.cr-collapsible-trigger {
+  width: 100%; display: flex; align-items: center; justify-content: space-between;
+  padding: var(--cr-space-lg) var(--cr-space-sm); border: none; background: none;
+  cursor: pointer; font-family: var(--cr-font-display); font-size: var(--cr-text-xl);
+  font-weight: 600; color: var(--cr-ink); text-align: left;
+  border-bottom: 1px solid var(--cr-border-light); transition: all 0.2s ease;
+  border-radius: var(--cr-radius-sm);
+}
+.cr-collapsible-trigger:hover { color: var(--cr-accent); background: var(--cr-accent-subtle); padding-left: var(--cr-space-md); }
+.cr-collapsible-content { overflow: hidden; }
+
+/* ─── Quick Stats Strip ─── */
+.cr-quick-stat { text-align: center; padding: var(--cr-space-sm) var(--cr-space-xl); position: relative; }
+.cr-quick-stat:not(:last-child)::after { content: ''; position: absolute; right: 0; top: 25%; height: 50%; width: 1px; background: var(--cr-border-light); }
+.cr-quick-stat-label { font-size: var(--cr-text-xs); color: var(--cr-muted); margin-bottom: 2px; text-transform: uppercase; letter-spacing: 0.05em; }
+.cr-quick-stat-value { font-size: var(--cr-text-md); font-weight: 700; font-family: var(--cr-font-display); }
+
+/* ----------------------------------------------------------
+   16. SECTION DIVIDERS
+   Clean visual separation
+   ---------------------------------------------------------- */
+.cr-divider {
+  height: 1px;
+  background: var(--cr-border-light);
+  margin: var(--cr-space-2xl) 0;
+}
+
+.cr-section {
+  margin-bottom: var(--cr-space-3xl);
+}
+
+.cr-section-header {
+  margin-bottom: var(--cr-space-xl);
+}
+
+.cr-section-header p {
+  color: var(--cr-ink-dim);
+  font-size: 14px;
+  margin-top: var(--cr-space-xs);
+}
+
+/* ----------------------------------------------------------
+   16B. TWO-PANEL LAYOUTS
+   Master-detail and side-panel patterns for wider screens
+   ---------------------------------------------------------- */
+.cr-two-panel {
+  display: grid;
+  grid-template-columns: 1fr var(--cr-sidebar-w);
+  gap: var(--cr-space-xl);
+  align-items: start;
+}
+
+.cr-two-panel--wide {
+  grid-template-columns: 1.2fr 0.8fr;
+}
+
+.cr-side-panel {
+  position: sticky;
+  top: calc(var(--cr-topbar-h) + var(--cr-space-xl));
+  display: flex;
+  flex-direction: column;
+  gap: var(--cr-space-lg);
+}
+
+/* Three-column card grid */
+.cr-card-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--cr-space-lg);
+}
+
+.cr-card-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--cr-space-lg);
+}
+
+/* Full-width section that spans viewport edge-to-edge */
+.cr-full-width {
+  width: 100vw;
+  margin-left: calc(-50vw + 50%);
+  margin-right: calc(-50vw + 50%);
+  padding-left: var(--cr-page-padding);
+  padding-right: var(--cr-page-padding);
+}
+
+/* Full-width with internal content constraint */
+.cr-full-width--contained {
+  width: 100vw;
+  margin-left: calc(-50vw + 50%);
+  margin-right: calc(-50vw + 50%);
+  padding-left: max(var(--cr-page-padding), calc((100vw - var(--cr-content-xxl)) / 2));
+  padding-right: max(var(--cr-page-padding), calc((100vw - var(--cr-content-xxl)) / 2));
+}
+
+/* Alternating section backgrounds */
+.cr-section-alt {
+  background: var(--cr-subtle-warm);
+  border-top: 1px solid var(--cr-border-light);
+  border-bottom: 1px solid var(--cr-border-light);
+}
+
+/* Page container that fills more horizontal space */
+.cr-page-wide {
+  max-width: var(--cr-content-xxl);
+  margin: 0 auto;
+  padding: var(--cr-space-3xl) var(--cr-page-padding) var(--cr-space-5xl);
+  animation: crFadeIn 0.5s ease both;
+}
+
+/* Wide feature grid with icons */
+.cr-feature-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--cr-space-xl);
+}
+
+@media (max-width: 960px) {
+  .cr-two-panel,
+  .cr-two-panel--wide {
+    grid-template-columns: 1fr;
+  }
+  .cr-side-panel {
+    position: static;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: var(--cr-space-md);
+  }
+  .cr-card-grid-3 {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .cr-card-grid-3,
+  .cr-card-grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ----------------------------------------------------------
+   17. ANIMATIONS
+   Sophisticated motion design
+   ---------------------------------------------------------- */
+@keyframes crFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes crFadeInUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes crFadeInDown {
+  from { opacity: 0; transform: translateY(-16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes crScaleIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes crSpin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes crShimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* Staggered children animation */
+.cr-stagger > * {
+  animation: crFadeInUp 0.5s ease both;
+}
+
+.cr-stagger > *:nth-child(1) { animation-delay: 0s; }
+.cr-stagger > *:nth-child(2) { animation-delay: 0.08s; }
+.cr-stagger > *:nth-child(3) { animation-delay: 0.16s; }
+.cr-stagger > *:nth-child(4) { animation-delay: 0.24s; }
+.cr-stagger > *:nth-child(5) { animation-delay: 0.32s; }
+.cr-stagger > *:nth-child(6) { animation-delay: 0.40s; }
+
+/* ----------------------------------------------------------
+   18. RESPONSIVE
+   ---------------------------------------------------------- */
+@media (max-width: 768px) {
+  .cr-page,
+  .cr-page-sm,
+  .cr-page-md {
+    padding: var(--cr-space-xl) var(--cr-space-lg) var(--cr-space-3xl);
+  }
+
+  .cr-card {
+    padding: var(--cr-space-xl);
+  }
+
+  .cr-card-elevated {
+    padding: var(--cr-space-xl);
+  }
+
+  .cr-msg-row.them {
+    padding-right: 24px;
+  }
+
+  .cr-msg-row.me {
+    padding-left: 24px;
+  }
+
+  .cr-avatar-card {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .cr-trust-strip {
+    flex-wrap: wrap;
+    gap: var(--cr-space-md);
+  }
+}
+
+@media (max-width: 480px) {
+  .cr-topbar { padding: 0 var(--cr-space-lg); }
+  .cr-msg-row.them { padding-right: 16px; }
+  .cr-msg-row.me { padding-left: 16px; }
+  .cr-two-panel { grid-template-columns: 1fr; }
+  .cr-side-panel { position: static; flex-direction: column; }
+  .cr-card-grid-2, .cr-card-grid-3 { grid-template-columns: 1fr; }
+
+  /* JobDetail mobile */
+  .cr-page-wide { padding: var(--cr-space-xl) var(--cr-space-md) var(--cr-space-3xl); }
+  .cr-two-panel--wide { grid-template-columns: 1fr; }
+
+  /* InboxSim mobile */
+  .cr-msg-card { padding: var(--cr-space-md); }
+  .cr-action-bar { flex-wrap: wrap; gap: 4px; }
+  .cr-action-bar button { flex: 1 1 45%; font-size: 12px; padding: 8px 10px; }
+
+  /* Success mobile */
+  .cr-success-grid { grid-template-columns: 1fr; }
+
+  /* Hero floating badges hide on mobile */
+  .hero-floating-badge { display: none; }
+}
+
+
+/* ─── P3-4: Remove unused type visual ─── */
+.cr-embedded-decision { display: none; }
+
+/* ----------------------------------------------------------
+   19. HERO ANIMATIONS & EFFECTS
+   Atmospheric, multi-layered hero with editorial typography
+   ---------------------------------------------------------- */
+
+/* Morphing gradient orbs */
+@keyframes crOrbFloat1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  25% { transform: translate(120px, -60px) scale(1.15); }
+  50% { transform: translate(60px, 40px) scale(0.9); }
+  75% { transform: translate(-80px, -20px) scale(1.1); }
+}
+@keyframes crOrbFloat2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(-100px, -40px) scale(1.2); }
+  66% { transform: translate(40px, 80px) scale(0.85); }
+}
+@keyframes crOrbFloat3 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(80px, -80px) scale(1.25); }
+}
+
+.cr-hero-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  pointer-events: none;
+  will-change: transform;
+}
+
+/* Pulse rings — concentric radiating circles */
+@keyframes crPulseRing1 {
+  0% { transform: scale(0.6); opacity: 0.5; }
+  100% { transform: scale(1.8); opacity: 0; }
+}
+@keyframes crPulseRing2 {
+  0% { transform: scale(0.6); opacity: 0.4; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+@keyframes crPulseRing3 {
+  0% { transform: scale(0.6); opacity: 0.3; }
+  100% { transform: scale(2.6); opacity: 0; }
+}
+
+.cr-hero-pulse-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1.5px solid var(--cr-accent);
+  animation-duration: 3s;
+  animation-timing-function: ease-out;
+  animation-iteration-count: infinite;
+}
+
+/* Floating particles */
+@keyframes crParticleDrift {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0; }
+  10% { opacity: 0.7; }
+  90% { opacity: 0.7; }
+}
+.cr-hero-particle {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+
+/* Gradient text shimmer */
+@keyframes crTextShimmer {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.cr-hero-headline-accent {
+  background: linear-gradient(135deg, var(--cr-accent), #34D399, var(--cr-accent));
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: crTextShimmer 4s ease infinite;
+}
+
+/* Scroll indicator */
+@keyframes crScrollIndicator {
+  0%, 100% { transform: translateY(0); opacity: 0.4; }
+  50% { transform: translateY(8px); opacity: 1; }
+}
+.cr-scroll-indicator {
+  animation: crScrollIndicator 2s ease-in-out infinite;
+}
+
+/* Hero metric numbers */
+.cr-hero-metric-value {
+  font-family: var(--cr-font-display);
+  font-size: var(--cr-text-2xl);
+  font-weight: 700;
+  line-height: 1;
+}
+.cr-hero-metric-label {
+  font-size: var(--cr-text-xs);
+  color: var(--cr-muted);
+  letter-spacing: 0.04em;
+}
+
+/* Responsive hero adjustments */
+@media (max-width: 768px) {
+  .cr-hero-orb { filter: blur(60px); }
+}
+@media (max-width: 480px) {
+  .cr-hero-orb { filter: blur(40px); }
+  .cr-hero-pulse-ring { display: none; }
+}
+
+/* ----------------------------------------------------------
+   20. SIMULATION INTERIOR LAYOUT
+   Scoped classes for the workplace simulation interior.
+   All use --sim-* tokens exclusively — no --cr-* leakage.
+   ---------------------------------------------------------- */
+
+/* Shell: full viewport, cool gray workspace bg */
+.sim-shell {
+  display: flex;
+  height: calc(100vh - var(--cr-topbar-h));
+  background: var(--sim-bg);
+  font-family: var(--sim-font);
+  overflow: hidden;
+}
+
+/* ── Sidebar ── */
+.sim-sidebar {
+  width: var(--sim-sidebar-w);
+  min-width: var(--sim-sidebar-w);
+  background: var(--sim-sidebar-bg);
+  display: flex;
+  flex-direction: column;
+  color: var(--sim-ink-inverse);
+  overflow-y: auto;
+  user-select: none;
+}
+.sim-sidebar-header {
+  padding: 14px 14px 10px;
+  font-weight: 700;
+  font-size: var(--sim-text-md);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #fff;
+}
+.sim-sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  margin: 0 8px;
+  border-radius: var(--sim-radius-md);
+  font-size: var(--sim-text-base);
+  color: var(--sim-ink-inverse);
+  opacity: 0.72;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.sim-sidebar-item:hover { background: var(--sim-sidebar-hover); opacity: 1; }
+.sim-sidebar-item--active { background: var(--sim-sidebar-active); opacity: 1; font-weight: 600; }
+.sim-sidebar-section {
+  margin-top: 18px;
+  padding: 0 14px 4px;
+  font-size: var(--sim-text-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--sim-ink-inverse);
+  opacity: 0.45;
+}
+.sim-sidebar-footer {
+  margin-top: auto;
+  padding: 10px 12px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  font-size: var(--sim-text-xs);
+}
+.sim-sidebar-footer-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 3px;
+  color: var(--sim-ink-inverse);
+  opacity: 0.6;
+}
+.sim-progress-bar {
+  height: 2px;
+  border-radius: 1px;
+  background: rgba(255,255,255,0.08);
+  overflow: hidden;
+  margin: 4px 0;
+}
+.sim-progress-fill {
+  height: 100%;
+  border-radius: 1px;
+  background: var(--sim-accent);
+  transition: width 0.3s ease;
+}
+.sim-sidebar-badge {
+  padding: 1px 6px;
+  border-radius: var(--cr-radius-full);
+  background: var(--sim-accent);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  margin-left: auto;
+}
+
+/* ── Main content area ── */
+.sim-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* ── Channel header ── */
+.sim-channel-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 var(--cr-space-lg) 0;
+  height: var(--sim-header-h);
+  border-bottom: 1px solid var(--sim-border);
+  background: var(--sim-surface);
+  flex-shrink: 0;
+}
+.sim-channel-name { font-weight: 600; font-size: var(--sim-text-md); color: var(--sim-ink); }
+.sim-channel-meta { font-size: var(--sim-text-xs); color: var(--sim-ink-dim); margin-left: 4px; }
+
+/* ── Feed scrollable area ── */
+.sim-feed {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--cr-space-lg);
+}
+
+/* ── Search bar (placeholder) ── */
+.sim-search-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  margin: 0 12px 10px;
+  border-radius: var(--sim-radius-md);
+  background: var(--sim-surface);
+  border: 1px solid var(--sim-border);
+  font-size: var(--sim-text-xs);
+  color: var(--sim-ink-dim);
+}
+
+/* ── Message cards — interior style ── */
+.sim-msg-card {
+  background: var(--sim-surface);
+  border: 1px solid var(--sim-border-light);
+  border-radius: var(--sim-radius-lg);
+  padding: 14px 16px;
+  margin-bottom: 6px;
+  cursor: pointer;
+  transition: all 0.12s;
+  font-size: var(--sim-text-base);
+  color: var(--sim-ink-soft);
+}
+.sim-msg-card:hover { background: var(--sim-surface-hover); }
+.sim-msg-card--unread {
+  background: var(--sim-accent-subtle);
+  border-left: 3px solid var(--sim-accent);
+}
+.sim-msg-card--selected {
+  border-color: var(--sim-accent);
+  box-shadow: 0 0 0 1px var(--sim-accent);
+}
+.sim-msg-card--mention {
+  background: #FFFBEB;
+  border-left: 3px solid #F59E0B;
+}
+.sim-msg-card--handled {
+  opacity: 0.65;
+  background: var(--sim-bg);
+}
+
+/* ── Detail panel ── */
+.sim-detail {
+  width: var(--sim-detail-w);
+  min-width: var(--sim-detail-w);
+  background: var(--sim-surface);
+  border-left: 1px solid var(--sim-border);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+.sim-detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--sim-border);
+  flex-shrink: 0;
+}
+.sim-detail-body {
+  flex: 1;
+  padding: 16px;
+  overflow-y: auto;
+}
+.sim-detail-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--sim-ink-dim);
+  font-size: var(--sim-text-base);
+  gap: 8px;
+  text-align: center;
+  padding: var(--cr-space-2xl);
+}
+
+/* ── Detail action bar ── */
+.sim-detail-actions {
+  display: flex;
+  gap: 6px;
+  padding: 10px 16px;
+  border-top: 1px solid var(--sim-border);
+  background: var(--sim-surface);
+  position: sticky;
+  bottom: 0;
+  flex-shrink: 0;
+}
+.sim-action-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 10px 10px;
+  border-radius: var(--sim-radius-md);
+  border: 1px solid var(--sim-border);
+  background: var(--sim-surface);
+  color: var(--sim-ink-soft);
+  font-family: var(--sim-font);
+  font-size: var(--sim-text-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.sim-action-btn:hover { background: var(--sim-surface-hover); }
+.sim-action-btn--reply:hover { border-color: #22C55E; color: #16A34A; background: #F0FDF4; }
+.sim-action-btn--defer:hover { border-color: #F59E0B; color: #D97706; background: #FFFBEB; }
+.sim-action-btn--delegate:hover { border-color: #8B5CF6; color: #7C3AED; background: #F5F3FF; }
+.sim-action-btn--ignore:hover { border-color: #EF4444; color: #DC2626; background: #FEF2F2; }
+
+/* ── Presence dot ── */
+.sim-presence {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  position: absolute;
+  bottom: -1px; right: -1px;
+  border: 2px solid var(--sim-sidebar-bg);
+}
+
+/* ── Typing indicator ── */
+.sim-typing {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  font-size: var(--sim-text-xs);
+  color: var(--sim-ink-dim);
+  font-style: italic;
+}
+.sim-typing-dot {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--sim-ink-dim);
+  animation: simBounce 1.4s ease-in-out infinite both;
+}
+.sim-typing-dot:nth-child(1) { animation-delay: 0s; }
+.sim-typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.sim-typing-dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes simBounce {
+  0%, 80%, 100% { transform: scale(0.5); opacity: 0.3; }
+  40% { transform: scale(1); opacity: 1; }
+}
+
+/* ── Message group divider ── */
+.sim-msg-group-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 14px 0 8px;
+  font-size: var(--sim-text-xs);
+  color: var(--sim-ink-dim);
+  font-weight: 500;
+}
+.sim-msg-group-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--sim-border);
+}
+
+/* ── Toast notification ── */
+.sim-toast {
+  position: fixed;
+  top: calc(var(--cr-topbar-h) + 12px);
+  right: 12px;
+  z-index: 60;
+  max-width: 320px;
+  background: var(--sim-surface);
+  border: 1px solid var(--sim-border);
+  border-radius: var(--sim-radius-lg);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+  padding: 12px 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+}
+
+/* ── Responsive ── */
+@media (max-width: 960px) {
+  .sim-detail {
+    position: fixed; inset: 0;
+    top: var(--cr-topbar-h);
+    z-index: 45;
+    width: 100%; min-width: 100%;
+  }
+  .sim-sidebar {
+    position: fixed;
+    left: 0; top: var(--cr-topbar-h); bottom: 0;
+    z-index: 46;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+  }
+  .sim-sidebar--open { transform: translateX(0); }
+}
+@media (max-width: 640px) {
+  .sim-sidebar { width: 100%; min-width: 100%; }
+  .sim-detail { width: 100%; min-width: 100%; }
+  .sim-detail-actions { flex-wrap: wrap; }
+  .sim-action-btn { flex: 1 1 45%; }
+}

@@ -1,0 +1,138 @@
+{
+  "bannedEvaluationDomains": {
+    "description": "The AI evaluation engine must NEVER evaluate or comment on these domains. Any mention in the AI output triggers a safety hit and needsHumanReview=true.",
+    "domains": [
+      {
+        "domain": "Personality inference",
+        "zh": "性格推断",
+        "examples": "You must NOT say: '候选人性格内向/外向', '性格急躁', '性格强势', '性格软弱'",
+        "allowedAlternative": "Describe observable behavior: '候选人在收到多条紧急消息时优先处理了客户投诉' (not '候选人性格冷静')"
+      },
+      {
+        "domain": "Intelligence assessment",
+        "zh": "智力评估",
+        "examples": "You must NOT say: '候选人很聪明', '逻辑思维能力强', '智力水平高', '反应快/慢' (as cognitive trait)",
+        "allowedAlternative": "Describe observable behavior: '候选人在不完整信息下提出了3个澄清问题后才做决定' (not '候选人逻辑清晰')"
+      },
+      {
+        "domain": "Cultural background",
+        "zh": "文化背景",
+        "examples": "You must NOT say: '可能因为文化背景...', '受教育程度导致...', '地域习惯...'",
+        "allowedAlternative": "No alternative — this domain is completely off-limits regardless of framing."
+      },
+      {
+        "domain": "Mental health speculation",
+        "zh": "心理健康推测",
+        "examples": "You must NOT say: '焦虑倾向', '压力承受力差', '心理素质', '情绪不稳定' (as trait)",
+        "allowedAlternative": "Describe situation-specific response: '在面对模拟的客户愤怒邮件时，候选人的回复未包含情绪确认语句' (not '候选人情绪管理能力弱')"
+      },
+      {
+        "domain": "Physical appearance or voice",
+        "zh": "外貌或声音",
+        "examples": "You must NOT say: '外表', '声音情绪', '表情', '肢体语言'",
+        "allowedAlternative": "N/A — inbox simulation is text-only, so this domain should be irrelevant. Included for completeness."
+      }
+    ]
+  },
+  "bannedOutputPhrases": {
+    "description": "These phrases are matched exactly and additionally checked via the existing server/safety.ts sanitizeAiOutput() function. New phrases specific to inbox simulation evaluation.",
+    "carriedOverFromExisting": [
+      "推荐录用",
+      "建议录用",
+      "自动录用",
+      "建议淘汰",
+      "自动淘汰",
+      "自动筛掉",
+      "候选人评分",
+      "能力分",
+      "录用概率",
+      "稳定性分",
+      "性格判断",
+      "情绪判断",
+      "外貌",
+      "表情",
+      "声音情绪",
+      "颜值",
+      "年龄偏好",
+      "性别偏好",
+      "婚育"
+    ],
+    "newForInboxSimulation": [
+      "沟通能力差",
+      "不适合该岗位",
+      "优先淘汰",
+      "工作能力不足",
+      "思维混乱",
+      "缺乏逻辑",
+      "没有同理心",
+      "情商低",
+      "抗压能力弱",
+      "不适合高压环境",
+      "建议降级录用",
+      "综合排名",
+      "在候选人中排名",
+      "比XX候选人差",
+      "天生",
+      "天赋",
+      "资质",
+      "潜力评估"
+    ]
+  },
+  "humanReviewFlagging": {
+    "description": "Conditions under which the evaluation is automatically flagged for mandatory human review.",
+    "triggers": [
+      {
+        "condition": "Any quality dimension scored 0 by AI",
+        "action": "needsHumanReview=true, riskFlags populated, flagged in CandidateDetail UI with amber alert"
+      },
+      {
+        "condition": "Candidate response contains profanity, threats, or discriminatory language",
+        "action": "needsHumanReview=true, riskFlags populated, flagged in CandidateDetail UI with red alert. HR must manually confirm before any downstream action."
+      },
+      {
+        "condition": "AI evaluator confidence = 'low'",
+        "action": "needsHumanReview=true, evaluationNotes populated with reason. Flagged with blue informational alert."
+      },
+      {
+        "condition": "Candidate ignored more than 40% of urgent (tier-1) messages",
+        "action": "needsHumanReview=true. This may indicate a simulation misunderstanding rather than a true behavioral signal."
+      },
+      {
+        "condition": "Any safetyHit triggered during sanitization",
+        "action": "needsHumanReview=true (existing behavior from server/safety.ts). All affected phrases replaced with '需人工复核'."
+      },
+      {
+        "condition": "Score variance across dimensions exceeds 40 points (e.g., prioritization=90 but emotionalRegulation=30)",
+        "action": "needsHumanReview=true, with a note that extreme variance may indicate an unusual behavioral pattern worthy of human interpretation."
+      }
+    ]
+  },
+  "safetyValidationInServer": {
+    "description": "The server-side validation flow for inbox simulation evaluation follows the same pattern as all other AI endpoints.",
+    "flow": [
+      "1. DeepSeek returns JSON response",
+      "2. parseJsonContent() parses the JSON",
+      "3. validateInboxEvaluation() validates structural integrity (new function in server/schemas.ts, following the pattern of validateHrReport)",
+      "4. sanitizeAiOutput() from server/safety.ts scans for banned phrases and replaces them with '需人工复核'",
+      "5. Any safety hits set needsHumanReview=true on the AiGenerationMeta",
+      "6. The validated and sanitized result is returned to the client"
+    ],
+    "newSchemaValidator": {
+      "functionName": "validateInboxEvaluation",
+      "location": "server/schemas.ts",
+      "pattern": "Mirrors validateHrReport: asRecord wrapper, asString/asNumber/asStringArray helpers, validates the JSON structure matches InboxEvaluationResponse schema, coerces missing/invalid fields to safe defaults."
+    }
+  },
+  "evaluatorGuardrails": {
+    "description": "Hard rules injected into the AI system prompt at evaluation time (augmenting the main evaluation prompt).",
+    "rules": [
+      "You are evaluating behavioral responses to simulated workplace messages, NOT the person.",
+      "Every score must be tied to a specific, quotable piece of the candidate's response text (evidenceAnchor). If you cannot find a specific quote to support a score, lower your confidence and mark needsHumanReview=true.",
+      "If a candidate's response is very short (under 10 characters), you may still evaluate it but confidence should be 'low' and needsHumanReview=true.",
+      "If a candidate did not reply to a message (action = defer/delegate/ignore), do NOT evaluate response quality. Set all quality sub-scores to null, not 0.",
+      "Do NOT compare this candidate to any other candidate, real or hypothetical.",
+      "Do NOT make recommendations about hiring, interviewing, or compensation.",
+      "Your output is ONE input into a human HR professional's decision process. It is not the decision itself."
+    ]
+  }
+}

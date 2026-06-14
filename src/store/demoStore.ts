@@ -57,13 +57,47 @@ import type {
   TrialSession,
   InterviewMutualConfirmation,
   TruthContractAcknowledgement,
+  AiGenerationMeta,
   JobAnalysis,
+  RealityReport,
 } from '../types';
 
-const STORAGE_KEY = 'zhiyu-demo-state-v1';
+const STORAGE_KEY = 'zhiyu-demo-state-v4';
 const STORE_EVENT = 'zhiyu-demo-store-updated';
 
 const nowIso = () => new Date().toISOString();
+
+function defaultReportAiMeta(report?: Partial<RealityReport>): AiGenerationMeta {
+  const existing = report?.aiMeta;
+  const source = existing?.source ?? existing?.provider ?? 'mock';
+  return {
+    provider: existing?.provider ?? source,
+    source,
+    model: existing?.model,
+    requestId: existing?.requestId,
+    latencyMs: existing?.latencyMs,
+    safetyHits: existing?.safetyHits ?? [],
+    needsHumanReview: existing?.needsHumanReview ?? false,
+    createdAt: existing?.createdAt ?? nowIso(),
+    fallback: existing?.fallback ?? false,
+    errorMessage: existing?.errorMessage,
+  };
+}
+
+function aiResultToReportMeta(ai: AiResult<unknown>): AiGenerationMeta {
+  return {
+    provider: ai.meta?.provider ?? ai.source,
+    source: ai.source,
+    model: ai.meta?.model,
+    requestId: ai.meta?.requestId,
+    latencyMs: ai.meta?.latencyMs,
+    safetyHits: ai.meta?.safetyHits ?? [],
+    needsHumanReview: ai.meta?.needsHumanReview ?? false,
+    createdAt: ai.meta?.createdAt ?? nowIso(),
+    fallback: ai.fallback,
+    errorMessage: ai.errorMessage ?? ai.meta?.errorMessage,
+  };
+}
 
 const emptyTruthContractAcknowledgement = (): TruthContractAcknowledgement => ({
   acknowledged: false,
@@ -204,6 +238,9 @@ export function normalizeDemoState(state: Partial<DemoState>): DemoState {
       };
     const baseReport = {
       ...report,
+      aiMeta: defaultReportAiMeta(report),
+      humanReviewStatus: report.humanReviewStatus ?? 'pending',
+      reviewedAt: report.reviewedAt,
       truthContractSummary,
       trialReplay,
       candidateTrustIndex:
@@ -434,6 +471,8 @@ export function normalizeDemoState(state: Partial<DemoState>): DemoState {
       auditCompletenessRate,
       recruitingTrustHealth,
     },
+    latestCandidateActivity: state.latestCandidateActivity ?? [],
+    scoreOverrides: state.scoreOverrides ?? [],
   };
 }
 
@@ -470,9 +509,32 @@ export function updateDemoState(updater: (state: DemoState) => DemoState) {
   return nextState;
 }
 
+export function saveInboxSimResult(jobId: string, result: unknown) {
+  const key = `zhiyu-inbox-result-${jobId}`;
+  localStorage.setItem(key, JSON.stringify(result));
+  // Also persist to shared demo store so HR can access simulation results
+  const state = getDemoState();
+  // Store in metrics for HR dashboard aggregation
+  const inboxResults = { ...(state.metrics as any).inboxSimResults ?? {} };
+  inboxResults[jobId] = { result, savedAt: new Date().toISOString() };
+  const updated = { ...state, metrics: { ...state.metrics, inboxSimResults } as any };
+  saveDemoState(updated);
+}
+
+export function getInboxSimResult(jobId: string): unknown | null {
+  // First check shared store
+  const state = getDemoState();
+  const storeResult = (state.metrics as any)?.inboxSimResults?.[jobId]?.result;
+  if (storeResult) return storeResult;
+  // Fallback to separate localStorage
+  try { return JSON.parse(localStorage.getItem(`zhiyu-inbox-result-${jobId}`) || 'null'); } catch { return null; }
+}
+
 export function resetDemoState() {
   const initial = createInitialState();
   saveDemoState(initial);
+  // Also clear IndexedDB-based chat history
+  try { import('idb-keyval').then(({ del }) => del('reality-pro-chat-storage')).catch(() => {}); } catch {}
   return initial;
 }
 
@@ -492,7 +554,7 @@ export function useDemoState() {
   return state;
 }
 
-function addJobFromAnalysis(input: JobInput, analysis: JobAnalysis) {
+function addJobFromAnalysis(input: JobInput, analysis: JobAnalysis, sitParams?: import('../types').SituationalParams) {
   const job: Job = {
     ...input,
     id: createId('job'),
@@ -500,6 +562,7 @@ function addJobFromAnalysis(input: JobInput, analysis: JobAnalysis) {
     status: 'published',
     createdAt: nowIso(),
     analysis,
+    situationalParams: sitParams,
   };
   const avatar = buildDefaultAvatarConfig(job);
   const realityRoles = createDefaultRealityRoles(job.id);
@@ -528,7 +591,7 @@ export function addJob(input: JobInput) {
   return addJobFromAnalysis(input, parseJobDescription(input));
 }
 
-export async function addJobWithAi(input: JobInput): Promise<{ job: Job; ai: AiResult<AiJobAnalysisResponse> }> {
+export async function addJobWithAi(input: JobInput, sitParams?: import('../types').SituationalParams): Promise<{ job: Job; ai: AiResult<AiJobAnalysisResponse> }> {
   const ai = await aiProvider.analyzeJob<AiJobAnalysisResponse>({
     title: input.title,
     jdText: [input.responsibilities, input.requirements, input.challenges].filter(Boolean).join('\n'),
@@ -538,7 +601,47 @@ export async function addJobWithAi(input: JobInput): Promise<{ job: Job; ai: AiR
     teamInfo: input.teamInfo,
     interviewProcess: input.interviewProcess,
   });
-  const job = addJobFromAnalysis(input, adaptAiJobAnalysis(ai.data));
+  const job = addJobFromAnalysis(input, adaptAiJobAnalysis(ai.data), sitParams);
+
+  // Phase 1: 尝试 AI 生成专属分岔场景，失败则保留静态场景
+  aiProvider.generateScenario<{ scenarios: unknown }>({
+    jobTitle: input.title,
+    jobContext: [input.responsibilities, input.requirements, input.challenges, input.teamInfo, input.workload].join('\n'),
+    coreCompetencies: job.analysis.hardSkills,
+  }).then((scenarioResult) => {
+    if (scenarioResult.data && scenarioResult.data.scenarios && !scenarioResult.fallback) {
+      // AI 成功生成了专属场景 → 替换静态场景
+      const validated = (scenarioResult.data as { scenarios: unknown[] }).scenarios;
+      if (Array.isArray(validated) && validated.length > 0) {
+        const adapted = validated.map((s: Record<string, unknown>, i: number) => ({
+          id: `ai_branch_${job.id}_${i}`,
+          jobId: job.id,
+          round: (i + 1) as 1 | 2 | 3,
+          title: (s.title as string) || `第${i + 1}轮`,
+          description: (s.description as string) || '',
+          choices: (Array.isArray(s.choices) ? s.choices.map((c: Record<string, unknown>, ci: number) => ({
+            id: `ai_choice_${job.id}_${i}_${ci}`,
+            label: (['A', 'B', 'C', 'D'][ci] ?? 'A') as 'A' | 'B' | 'C' | 'D',
+            text: (c.text as string) || '',
+            nextScenarioId: i < 2 ? `ai_branch_${job.id}_${i + 1}` : undefined,
+            analysis: {
+              collaboration: (c.analysis?.collaboration as string) || '待确认',
+              riskAwareness: ((c.analysis?.riskAwareness as string) || '中') as '高' | '中' | '低',
+              communication: ((c.analysis?.communication as string) || '中') as '高' | '中' | '低',
+              technicalJudgment: ((c.analysis?.technicalJudgment as string) || '待确认') as '强' | '待确认' | '偏弱',
+              executionStyle: (c.analysis?.executionStyle as string) || '',
+            },
+          })) : []),
+        }));
+        updateDemoState((current) => ({
+          ...current,
+          branchScenarios: [...adapted, ...current.branchScenarios.filter((sc) => sc.jobId !== job.id)],
+        }));
+      }
+    }
+  }).catch((err) => {
+    console.warn('[Phase 1] AI scenario generation failed, keeping static scenarios:', err);
+  });
 
   return { job, ai };
 }
@@ -803,6 +906,16 @@ export function recordCandidateExitReason(sessionId: string, reason: CandidateEx
       },
     };
   });
+}
+
+export function addCandidateActivity(candidateName: string, action: string) {
+  updateDemoState((state) => ({
+    ...state,
+    latestCandidateActivity: [
+      { candidateName, action, time: nowIso() },
+      ...(state.latestCandidateActivity ?? []),
+    ].slice(0, 5),
+  }));
 }
 
 export function saveConversationDraft(jobId: string, messages: ConversationMessage[]) {
@@ -1077,20 +1190,18 @@ export async function submitCandidateApplicationWithAi(
     supplementProfile: profile,
   });
 
-  if (!ai.fallback) {
-    const adaptedReport = adaptAiReportToRealityReport(baseReport, ai.data);
-    updateDemoState((current) => ({
-      ...current,
-      realityReports: [
-        adaptedReport,
-        ...current.realityReports.filter((report) => report.candidateId !== candidate.id),
-      ],
-      trustRepairTasks: [
-        ...adaptedReport.trustRepairTasks,
-        ...current.trustRepairTasks.filter((task) => task.candidateId !== candidate.id),
-      ],
-    }));
-  }
+  const adaptedReport = adaptAiReportToRealityReport(baseReport, ai.data, aiResultToReportMeta(ai));
+  updateDemoState((current) => ({
+    ...current,
+    realityReports: [
+      adaptedReport,
+      ...current.realityReports.filter((report) => report.candidateId !== candidate.id),
+    ],
+    trustRepairTasks: [
+      ...adaptedReport.trustRepairTasks,
+      ...current.trustRepairTasks.filter((task) => task.candidateId !== candidate.id),
+    ],
+  }));
 
   return { candidate, ai };
 }
@@ -1185,6 +1296,24 @@ export function markTrustRepairTaskHandled(taskId: string) {
   });
 }
 
+export function markReportReviewed(reportId: string) {
+  return updateDemoState((state) => {
+    const reviewedAt = nowIso();
+    return {
+      ...state,
+      realityReports: state.realityReports.map((report) =>
+        report.id === reportId
+          ? {
+              ...report,
+              humanReviewStatus: 'reviewed' as const,
+              reviewedAt,
+            }
+          : report,
+      ),
+    };
+  });
+}
+
 export function inviteCandidate(candidateId: string) {
   updateDemoState((state) => {
     const candidate = state.candidates.find((item) => item.id === candidateId);
@@ -1249,6 +1378,58 @@ export function addCandidateToTalentPool(candidateId: string) {
       talentPoolAdds: (state.metrics.talentPoolAdds ?? 0) + 1,
     },
   }));
+}
+
+export function overrideScore(dimension: string, hrScore: number, annotation: string) {
+  return updateDemoState((state) => {
+    const totalTrustTasks =
+      (state.metrics.pendingTrustRepairTasks ?? 0) + (state.metrics.handledTrustRepairTasks ?? 0);
+    const truthLabelViewRate =
+      state.metrics.visits > 0
+        ? Math.round(((state.metrics.truthLabelViews ?? 0) / state.metrics.visits) * 100)
+        : 0;
+    const truthContractAcknowledgementRate =
+      state.metrics.applications > 0
+        ? Math.round(((state.metrics.truthContractAcknowledgements ?? 0) / state.metrics.applications) * 100)
+        : 0;
+    const trialCompletionRate =
+      (state.metrics.trialStarts ?? 0) > 0
+        ? Math.round(
+            ((state.metrics.trialCompletions ?? 0) / Math.max(1, state.metrics.trialStarts ?? 0)) * 100,
+          )
+        : 0;
+    const trustRepairTaskHandledRate =
+      totalTrustTasks > 0
+        ? Math.round(((state.metrics.handledTrustRepairTasks ?? 0) / totalTrustTasks) * 100)
+        : 0;
+    const aiRiskReviewPassRate =
+      state.realityReports.length > 0
+        ? Math.round(((state.metrics.aiRiskReviewPasses ?? 0) / state.realityReports.length) * 100)
+        : 0;
+
+    const dimScores: Record<string, number> = {
+      truthLabelViewRate,
+      truthContractAcknowledgementRate,
+      trialCompletionRate,
+      trustRepairTaskHandledRate,
+      aiRiskReviewPassRate,
+      candidateFairnessIndex: state.metrics.candidateFairnessIndex ?? 0,
+      auditCompletenessRate: state.metrics.auditCompletenessRate ?? 0,
+    };
+
+    const aiScore = dimScores[dimension] ?? 0;
+    const existing = state.scoreOverrides ?? [];
+    const idx = existing.findIndex((o) => o.dimension === dimension);
+    const newOverride = { dimension, aiScore, hrScore, annotation };
+
+    return {
+      ...state,
+      scoreOverrides:
+        idx >= 0
+          ? [...existing.slice(0, idx), newOverride, ...existing.slice(idx + 1)]
+          : [...existing, newOverride],
+    };
+  });
 }
 
 export function seedRealityDemoCase() {

@@ -1,38 +1,52 @@
-const fragments = [
-  ['推', '荐', '录', '用'],
-  ['建', '议', '录', '用'],
-  ['自', '动', '录', '用'],
-  ['建', '议', '淘', '汰'],
-  ['自', '动', '淘', '汰'],
-  ['自', '动', '筛', '掉'],
-  ['候', '选', '人', '评', '分'],
-  ['能', '力', '分'],
-  ['录', '用', '概', '率'],
-  ['稳', '定', '性', '分'],
-  ['性', '格', '判', '断'],
-  ['情', '绪', '判', '断'],
-  ['外', '貌'],
-  ['表', '情'],
-  ['声', '音', '情', '绪'],
-  ['颜', '值'],
-  ['年', '龄', '偏', '好'],
-  ['性', '别', '偏', '好'],
-  ['婚', '育'],
+const bannedPhrases = [
+  '推荐录用',
+  '建议录用',
+  '自动录用',
+  '建议淘汰',
+  '自动淘汰',
+  '自动筛掉',
+  '候选人评分',
+  '能力分',
+  '录用概率',
+  '稳定性分',
+  '性格判断',
+  '情绪判断',
+  '外貌',
+  '表情',
+  '声音情绪',
+  '颜值',
+  '年龄偏好',
+  '性别偏好',
+  '婚育',
 ];
 
 const replacement = '需人工复核';
 
-export function sanitizeAiOutput<T>(data: T): T {
+export interface SafetyResult<T> {
+  data: T;
+  safetyHits: string[];
+  needsHumanReview: boolean;
+}
+
+export function sanitizeAiOutput<T>(data: T): SafetyResult<T> {
+  const safetyHits: string[] = [];
   let cleaned = JSON.stringify(data);
 
-  for (const fragment of fragments) {
-    cleaned = cleaned.split(fragment.join('')).join(replacement);
+  for (const phrase of bannedPhrases) {
+    if (cleaned.includes(phrase)) {
+      safetyHits.push(phrase);
+      cleaned = cleaned.split(phrase).join(replacement);
+    }
   }
 
-  return JSON.parse(cleaned) as T;
+  return {
+    data: JSON.parse(cleaned) as T,
+    safetyHits,
+    needsHumanReview: safetyHits.length > 0,
+  };
 }
 
 export function containsUnsafeExpression(value: unknown) {
   const text = JSON.stringify(value);
-  return fragments.some((fragment) => text.includes(fragment.join('')));
+  return bannedPhrases.some((phrase) => text.includes(phrase));
 }

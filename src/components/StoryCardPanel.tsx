@@ -1,3 +1,4 @@
+import { FileText, Tag, AlertTriangle } from 'lucide-react';
 import { Badge } from './Badge';
 import type { HRStoryCard } from '../types';
 
@@ -9,14 +10,17 @@ interface StoryCardPanelProps {
 export function StoryCardPanel({ card, mode = 'hr' }: StoryCardPanelProps) {
   if (mode === 'candidate') {
     return (
-      <section className="story-panel">
+      <section className="story-panel panel-gradient">
         <div className="section-heading">
           <span>候选人预览</span>
           <h2>你的云试岗摘要</h2>
         </div>
         <StoryBlock title="我的岗位理解" content={card.jobUnderstanding} />
-        <StoryList title="我的技能标签" items={card.skillTags} tone="blue" />
+        <div className="section-accent-bar" />
+        <StoryList title="我的技能标签" items={card.skillTags} tone="green" />
+        <div className="section-accent-bar" />
         <StoryList title="我的关注点" items={card.riskFlags.filter((flag) => flag.includes('关注点'))} tone="amber" />
+        <div className="section-accent-bar" />
         <StoryBlock
           title="投递建议"
           content={
@@ -55,8 +59,8 @@ export function StoryCardPanel({ card, mode = 'hr' }: StoryCardPanelProps) {
 
 function StoryBlock({ title, content }: { title: string; content: string }) {
   return (
-    <div className="story-block">
-      <h3>{title}</h3>
+    <div className="story-block card-lift">
+      <h3><FileText size={14} /> {title}</h3>
       <p>{content}</p>
     </div>
   );
@@ -75,9 +79,11 @@ function StoryList({
 }) {
   if (items.length === 0) return null;
 
+  const titleIcon = tone === 'amber' ? <AlertTriangle size={14} /> : <Tag size={14} />;
+
   return (
-    <div className="story-block">
-      <h3>{title}</h3>
+    <div className="story-block card-lift">
+      <h3>{titleIcon} {title}</h3>
       {ordered ? (
         <ol className="story-list ordered">
           {items.map((item) => (
@@ -87,7 +93,7 @@ function StoryList({
       ) : (
         <div className="tag-row">
           {items.map((item) => (
-            <Badge key={item} tone={tone}>
+            <Badge key={item} tone={tone} dot>
               {item}
             </Badge>
           ))}

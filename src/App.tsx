@@ -16,6 +16,7 @@ import { Chat } from './routes/candidate/Chat';
 import { Profile } from './routes/candidate/Profile';
 import { StoryPreview } from './routes/candidate/StoryPreview';
 import { Success } from './routes/candidate/Success';
+import { InboxSim } from './routes/candidate/InboxSim';
 
 const router = createBrowserRouter([
   { path: '/', element: <Home /> },
@@ -38,11 +39,13 @@ const router = createBrowserRouter([
     path: '/candidate',
     element: <CandidateLayout />,
     children: [
+      { index: true, element: <Navigate to="/" replace /> },
       { path: 'job/:jobId', element: <JobDetail /> },
       { path: 'chat/:jobId', element: <Chat /> },
       { path: 'profile/:jobId', element: <Profile /> },
       { path: 'story/:candidateId', element: <StoryPreview /> },
       { path: 'success/:candidateId', element: <Success /> },
+      { path: 'inbox/:jobId', element: <InboxSim /> },
     ],
   },
   { path: '*', element: <Navigate to="/" replace /> },

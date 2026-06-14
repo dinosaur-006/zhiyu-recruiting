@@ -330,7 +330,7 @@ describe('Reality Pro AI', () => {
     expect(prevention.preInviteActions.length).toBeGreaterThan(0);
     expect(prevention.invitationScript).toContain(candidate.name);
     expect(battleCard.interviewGoals.length).toBeGreaterThan(0);
-    expect(battleCard.shouldAvoidAsking).toEqual(expect.arrayContaining(['年龄、婚育、家庭情况等与岗位无关问题']));
+    expect(battleCard.shouldAvoidAsking).toEqual(expect.arrayContaining(['年龄、家庭生育计划、家庭情况等与岗位无关问题']));
   });
 
   it('generates a four-part truth video script', () => {

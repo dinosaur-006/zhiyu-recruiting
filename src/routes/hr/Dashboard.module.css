@@ -1,0 +1,326 @@
+.hrWorkspace {
+  background-color: var(--color-base);
+  color: var(--color-ink);
+  min-height: 100dvh;
+  padding: 2.5rem;
+  font-family: var(--font-sans);
+}
+
+.header {
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 1.5rem;
+  margin-bottom: 2.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+.title {
+  color: var(--color-ink);
+  font-family: var(--font-display);
+  font-size: 2.25rem;
+  letter-spacing: -0.02em;
+}
+
+.subtitle {
+  color: var(--color-muted);
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+}
+
+.goldAccent { color: var(--color-accent); }
+
+.gridTop {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.gridMain {
+  display: grid;
+  grid-template-columns: 4fr 8fr;
+  gap: 1.5rem;
+}
+
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 2px;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.cardHeader {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-muted);
+  margin-bottom: 1.5rem;
+  font-weight: 600;
+  font-family: var(--font-mono);
+}
+
+.kpiValue {
+  font-size: 2.25rem;
+  font-weight: 700;
+  margin-top: 0.5rem;
+  font-family: var(--font-mono);
+}
+
+.heatBarContainer {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.heatLabel {
+  width: 80px;
+  font-size: 0.875rem;
+  color: var(--color-ink);
+}
+
+.heatTrack {
+  flex: 1;
+  height: 8px;
+  background: var(--color-border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.heatFill {
+  height: 100%;
+  background: var(--color-accent);
+  border-radius: 2px;
+  transition: transform 0.6s ease;
+}
+
+.heatValue {
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  color: var(--color-muted);
+  width: 40px;
+  text-align: right;
+}
+
+.actionRow {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 2px;
+  margin-bottom: 0.75rem;
+  transition: border-color 0.2s ease;
+  text-decoration: none;
+  color: inherit;
+}
+
+.actionRow:hover {
+  border-color: var(--color-accent);
+}
+
+.actionRank {
+  width: 32px; height: 32px;
+  border-radius: 2px;
+  background: var(--color-accent-subtle);
+  color: var(--color-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.875rem;
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+}
+
+.actionBody { flex: 1; min-width: 0; }
+
+.actionBody strong {
+  display: block;
+  font-size: 0.9375rem;
+  color: var(--color-ink);
+  margin-bottom: 0.25rem;
+}
+
+.actionBody p {
+  font-size: 0.8125rem;
+  color: var(--color-muted);
+  margin: 0;
+}
+
+.actionBody em {
+  font-size: 0.8125rem;
+  color: var(--color-accent);
+  font-style: normal;
+  display: block;
+  margin-top: 0.25rem;
+}
+
+.candidateRow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--color-border);
+  text-decoration: none;
+  color: inherit;
+  transition: opacity 0.15s;
+}
+
+.candidateRow:hover { opacity: 0.8; }
+
+.candidateAvatar {
+  width: 36px; height: 36px;
+  border-radius: 2px;
+  background: var(--color-accent);
+  color: var(--color-base);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.875rem;
+  flex-shrink: 0;
+}
+
+.insightCard {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background: var(--color-base);
+  border: 1px solid var(--color-border);
+  border-radius: 2px;
+}
+
+.insightCard p {
+  font-size: 0.875rem;
+  color: var(--color-muted);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.exportBtn {
+  padding: 0.5rem 1rem;
+  background: var(--color-border);
+  color: var(--color-ink);
+  font-size: 0.875rem;
+  border-radius: 2px;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s;
+}
+
+.exportBtn:hover { background: var(--color-muted); }
+
+.overrideHint {
+  font-size: 0.8125rem;
+  color: var(--color-muted);
+  margin: 0 0 1rem;
+  line-height: 1.5;
+}
+
+.overrideGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+.overrideRow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: var(--color-base);
+  border: 1px solid var(--color-border);
+  border-radius: 2px;
+  padding: 0.625rem 1rem;
+}
+
+.overrideDimLabel {
+  width: 140px;
+  font-size: 0.8125rem;
+  color: var(--color-muted);
+  flex-shrink: 0;
+}
+
+.overrideScore {
+  width: 48px;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--color-ink);
+  flex-shrink: 0;
+}
+
+.overrideScoreEdited { color: var(--color-accent); }
+
+.overrideInput {
+  width: 80px;
+  padding: 4px 8px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 2px;
+  color: var(--color-ink);
+  font-size: 0.8125rem;
+  font-family: var(--font-mono);
+  text-align: center;
+}
+
+.overrideInput:focus {
+  outline: none;
+  border-color: var(--color-accent);
+}
+
+.overrideInput::placeholder { color: var(--color-muted); }
+
+.overrideAnnotation {
+  flex: 1;
+  min-width: 120px;
+  padding: 4px 8px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 2px;
+  color: var(--color-ink);
+  font-size: 0.8125rem;
+}
+
+.overrideAnnotation:focus {
+  outline: none;
+  border-color: var(--color-accent);
+}
+
+.overrideAnnotation::placeholder { color: var(--color-muted); }
+
+.overrideApplyBtn {
+  padding: 4px 12px;
+  background: var(--color-accent-subtle);
+  border: 1px solid var(--color-accent);
+  border-radius: 2px;
+  color: var(--color-accent);
+  font-size: 0.8125rem;
+  cursor: pointer;
+  transition: background 0.15s, opacity 0.15s;
+  flex-shrink: 0;
+}
+
+.overrideApplyBtn:hover:not(:disabled) {
+  background: var(--color-accent);
+  color: var(--color-base);
+}
+
+.overrideApplyBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  border-color: var(--color-border);
+  color: var(--color-muted);
+}
+
+@media (max-width: 960px) {
+  .hrWorkspace { padding: 1.5rem; }
+  .gridTop { grid-template-columns: 1fr; }
+  .gridMain { grid-template-columns: 1fr; }
+  .title { font-size: 1.5rem; }
+}

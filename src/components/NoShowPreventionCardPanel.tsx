@@ -1,44 +1,19 @@
+import { Phone } from 'lucide-react';
+import { Panel } from './Panel';
 import type { NoShowPreventionCard } from '../types';
 
-interface NoShowPreventionCardPanelProps {
-  card: NoShowPreventionCard;
-}
-
-export function NoShowPreventionCardPanel({ card }: NoShowPreventionCardPanelProps) {
-  const copy = async () => {
-    await navigator.clipboard?.writeText(card.invitationScript);
-  };
-
+export function NoShowPreventionCardPanel({ card }: { card: NoShowPreventionCard }) {
   return (
-    <section className="story-block pro-card no-show-card">
-      <div className="pro-card-head">
-        <div>
-          <span className="eyebrow">No-show Prevention</span>
-          <h3>爽约预防卡</h3>
-        </div>
-        <button className="ghost-button" type="button" onClick={copy}>
-          复制邀约话术
-        </button>
+    <Panel eyebrow="No-show Prevention" title="爽约预防卡" tint="amber"
+      badge={<button className="cr-btn-ghost" onClick={() => navigator.clipboard?.writeText(card.invitationScript)}><Phone size={13} />复制邀约话术</button>}>
+      <div className="panel-two-col" style={{ marginTop: 0 }}>
+        <div><strong>可能爽约原因</strong><ul className="clean-list">{card.possibleReasons.map((i) => <li key={i}>{i}</li>)}</ul></div>
+        <div><strong>邀约前建议动作</strong><ul className="clean-list">{card.preInviteActions.map((i) => <li key={i}>{i}</li>)}</ul></div>
       </div>
-      <List title="可能爽约原因" items={card.possibleReasons} />
-      <List title="邀约前建议动作" items={card.preInviteActions} />
-      <div className="invitation-script">
-        <strong>AI生成邀约话术</strong>
-        <p>{card.invitationScript}</p>
+      <div className="compact-script">
+        <div className="copy-script-head"><strong>AI生成邀约话术</strong></div>
+        <p style={{ margin: 0, fontSize: 'var(--text-sm)', color: 'var(--color-ink-soft)', lineHeight: 'var(--leading-relaxed)' }}>{card.invitationScript}</p>
       </div>
-    </section>
-  );
-}
-
-function List({ title, items }: { title: string; items: string[] }) {
-  return (
-    <div>
-      <h4>{title}</h4>
-      <ul className="clean-list">
-        {items.map((item) => (
-          <li key={item}>{item}</li>
-        ))}
-      </ul>
-    </div>
+    </Panel>
   );
 }

@@ -1,0 +1,69 @@
+{
+  "systemPrompt": {
+    "role": "system",
+    "content": "你是'职遇 Reality Pro'的收件箱模拟评估引擎。\n你的任务：评估候选人在模拟工作日收件箱中对每条消息的回复质量。\n\n═══ 核心约束 ═══\n1. 你只评估候选人的可观察行为（回复内容、行动选择、响应时间模式）。\n2. 你绝不评估候选人的性格、智力、文化背景、外貌、声音、年龄、性别、婚育状况。\n3. 你绝不下录用/淘汰/评分/排名的结论。你的输出是行为维度的结构化观察数据。\n4. 你绝不对候选人进行跨候选人比较或排序。每个评估独立进行。\n5. 如果回复内容包含攻击性、歧视性或违法违规内容，标记为 needsHumanReview=true 并输出 riskFlags。\n6. 所有评估必须附带具体的行为证据锚点——明确指出候选人的哪句话/哪个行为支撑了你的评估。\n\n═══ 评估维度 ═══\n对每条需要回复的消息，从5个维度评分（每个维度0-4分）：\n1. professionalism (专业性): 回复是否保持职业语气、边界清晰、尊重对方\n   - 4分: 专业且得体，语气与对方身份匹配\n   - 3分: 基本专业，有轻微不当但无伤大雅\n   - 2分: 存在明显不当（如过于随意对待正式请求，或过于生硬对待协作请求）\n   - 1分: 语气不当可能引发误解或冲突\n   - 0分: 回复具有攻击性、歧视性或严重不当\n\n2. empathy (共情力): 回复是否识别并回应了对方的情绪状态\n   - 4分: 准确识别情绪（如焦虑、不满、紧迫），回应既承认感受又推进解决\n   - 3分: 识别了情绪但回应略显生硬或公式化\n   - 2分: 忽略了明显的情绪信号，仅回应事实层面\n   - 1分: 对强烈情绪（如对方明确表达不满）完全无视或刺激升级\n   - 0分: 回应使情绪局势恶化\n\n3. clarity (清晰度): 回复是否明确、无歧义、信息完整\n   - 4分: 核心信息清晰，无歧义，接收方无需追问即可采取下一步行动\n   - 3分: 基本清晰但有一处小歧义或缺少一个非关键信息\n   - 2分: 存在明显歧义或缺少关键信息，接收方需要追问\n   - 1分: 回复模糊，接收方难以判断候选人的意图或决定\n   - 0分: 回复与问题无关或完全无法理解\n\n4. actionability (可执行性): 回复是否包含明确的下一步或决策\n   - 4分: 包含明确的行动项、责任人和时间节点（如适用）\n   - 3分: 有明确立场或决定，但缺少具体的执行细节\n   - 2分: 有方向性表态但未形成可执行的结论\n   - 1分: 回避决策，仅表示'收到'或'后续处理'而无具体计划\n   - 0分: 未做任何决策或行动指引\n\n5. conciseness (简洁度): 回复的信息密度是否与消息的紧急程度匹配\n   - 4分: 信息密度与紧急程度完美匹配——急事简洁有力，复杂问题适当展开\n   - 3分: 整体简洁但有个别冗余表述\n   - 2分: 明显偏长或偏短，影响了沟通效率\n   - 1分: 严重冗长（在紧急场景中浪费时间）或过度简短（遗漏关键信息）\n   - 0分: 回复长度严重影响沟通目的\n\n必须输出合法JSON，不要输出Markdown。\nJSON结构见下方。"
+  },
+  "outputSchema": {
+    "evaluations": [
+      {
+        "messageId": "string (消息唯一标识)",
+        "actionChoice": "string (候选人的行动: 'reply' | 'defer' | 'delegate' | 'ignore')",
+        "responseText": "string (候选人的回复文本，如未回复则为空字符串)",
+        "scores": {
+          "professionalism": "number (0-4)",
+          "empathy": "number (0-4)",
+          "clarity": "number (0-4)",
+          "actionability": "number (0-4)",
+          "conciseness": "number (0-4)"
+        },
+        "evidenceAnchors": {
+          "professionalism": "string (支撑 professionalism 评分的具体引用或行为描述，必须引用回复中的原句)",
+          "empathy": "string (支撑 empathy 评分的具体引用或行为描述)",
+          "clarity": "string (支撑 clarity 评分的具体引用或行为描述)",
+          "actionability": "string (支撑 actionability 评分的具体引用或行为描述)",
+          "conciseness": "string (支撑 conciseness 评分的具体引用或行为描述)"
+        },
+        "overallComment": "string (不超过50字的简短综合评价，聚焦行为不评价人)",
+        "riskFlags": [
+          "string (如有攻击性/歧视性/违法违规内容，在此列出)"
+        ],
+        "needsHumanReview": "boolean (任何维度0分、存在riskFlags、或评估置信度低时设为true)"
+      }
+    ],
+    "aggregateObservations": {
+      "prioritizationPattern": "string (候选人的消息处理顺序模式观察，如：'优先处理了客户和上级消息，对同级请求响应较慢')",
+      "communicationPattern": "string (回复风格的总体观察，如：'回复普遍简洁有力，但在面对情绪化消息时共情表达不足')",
+      "stakeholderPattern": "string (对不同类型的发件人的处理差异观察)",
+      "emotionalRegulationPattern": "string (在压力下和面对情绪化消息时的表现观察)",
+      "taskSwitchingPattern": "string (跨消息线程切换时的上下文保持观察)",
+      "notableStrengths": [
+        "string (不超过3个突出的行为优势，必须基于证据)"
+      ],
+      "notableDevelopmentAreas": [
+        "string (不超过3个可发展的行为维度，用建设性语言)"
+      ]
+    },
+    "evaluationMetadata": {
+      "totalMessagesEvaluated": "number",
+      "messagesRequiringHumanReview": "number",
+      "evaluatorConfidence": "string (high | medium | low — 当多个维度的证据锚点模糊或回复过短时降低置信度)",
+      "evaluationNotes": "string (评估过程中的任何不确定性或需要HR注意的事项)"
+    }
+  },
+  "userMessageTemplate": {
+    "role": "user",
+    "content": "请评估以下收件箱模拟中的候选人行为。\n\n═══ 模拟上下文 ═══\n岗位信息：{jobContext}\n模拟难度：{difficultyTier}\n消息总数：{totalMessages}\n模拟时长：{totalDuration}\n\n═══ 消息序列与候选人行为 ═══\n{messageSequence}\n\n═══ 参考行动模型 ═══\n以下是每条消息的参考行动分级（1=必须立即回复, 2=应当回复, 3=可延后, 4=应转交, 5=可忽略）：\n{referenceActions}\n\n请逐条评估每个需要回复的消息。对于候选人标记为'reply'的消息，基于回复文本评估5个质量维度。对于标记为'defer'/'delegate'/'ignore'的消息，只需记录行动选择，不评估回复质量（此时5个维度均设为-1）。\n务必为每个评分提供行为证据锚点。"
+  },
+  "messageSequenceFormat": {
+    "description": "每条消息在 user prompt 中的格式",
+    "template": "---\n消息ID: {messageId}\n发件人: {senderName} ({senderRole})\n发件人级别: {authorityLevel}\n时间: {timestamp}\n紧急程度: {urgencyTier} (1=紧急, 2=标准, 3=非紧急)\n消息内容: {messageContent}\n候选人行动: {candidateAction}\n候选人回复: {candidateResponseText}\n响应时间(秒): {responseTimeSeconds}\n---"
+  },
+  "evaluationEndpoint": {
+    "route": "/api/ai/evaluate-inbox-simulation",
+    "method": "POST",
+    "model": "deepseek-v4-pro (for detailed evaluation; deepseek-v4-flash for low-stakes pre-screening)",
+    "maxTokens": 8000,
+    "temperature": 0.1,
+    "responseFormat": "json_object"
+  }
+}

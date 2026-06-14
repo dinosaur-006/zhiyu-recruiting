@@ -25,4 +25,12 @@ export const apiAiProvider = {
   generateHrReport<T = unknown>(input: unknown) {
     return postJson<T>('/api/ai/generate-hr-report', input);
   },
+
+  generateScenario<T = unknown>(input: unknown) {
+    return postJson<T>('/api/ai/generate-scenario', input);
+  },
+
+  workdayInteract<T = unknown>(input: unknown) {
+    return postJson<T>('/api/ai/workday-sim/interact', input);
+  },
 };

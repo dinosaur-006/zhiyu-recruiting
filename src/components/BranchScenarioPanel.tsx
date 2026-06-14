@@ -1,3 +1,4 @@
+import { Check } from 'lucide-react';
 import { Badge } from './Badge';
 import type { BranchChoice, BranchScenario } from '../types';
 
@@ -11,29 +12,35 @@ export function BranchScenarioPanel({ scenario, selectedChoiceId, onSelect }: Br
   const selectedChoice = scenario.choices.find((choice) => choice.id === selectedChoiceId);
 
   return (
-    <section className="branch-sandbox">
+    <section className="branch-scenario-card">
       <div className="branch-head">
-        <Badge tone="purple">真实任务沙盘 · 第{scenario.round}轮</Badge>
+        <Badge tone="purple">真实任务沙盘 第{scenario.round}轮</Badge>
         <h2>{scenario.title}</h2>
         <p>{scenario.description}</p>
       </div>
 
-      <div className="scenario-grid">
+      <div className="branch-choices-grid">
         {scenario.choices.map((choice) => (
           <button
             key={choice.id}
             type="button"
-            className={choice.id === selectedChoiceId ? 'scenario-card selected' : 'scenario-card'}
+            className={choice.id === selectedChoiceId ? 'branch-choice-btn card-lift panel-tinted tint-green' : 'branch-choice-btn card-lift'}
             onClick={() => onSelect(choice)}
           >
-            <strong>{choice.label}</strong>
+            <span className="choice-label">
+              {choice.id === selectedChoiceId ? (
+                <Check size={14} strokeWidth={2.5} style={{ animation: 'scaleIn 0.3s ease both' }} />
+              ) : (
+                choice.label
+              )}
+            </span>
             <span>{choice.text}</span>
           </button>
         ))}
       </div>
 
       {selectedChoice ? (
-        <section className="scenario-feedback">
+        <section className="scenario-feedback animate-in">
           <span className="eyebrow">倾向分析</span>
           <h2>{selectedChoice.analysis.collaboration}</h2>
           <div className="report-summary-grid compact">

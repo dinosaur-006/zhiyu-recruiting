@@ -1,0 +1,437 @@
+{
+  "competencyDimensions": {
+    "overview": "The Inbox/Workday Simulation assesses 5 core competencies through a time-constrained message-handling scenario. The candidate faces 15-25 messages across a simulated workday (8-12 minutes real-time), each requiring an action choice (reply/draft, defer, delegate, archive/ignore) and, when replied, a free-text response.",
+    "dimensions": [
+      {
+        "id": "prioritization",
+        "label": "Prioritization",
+        "labelZH": "优先级判断",
+        "definition": "The ability to identify which messages demand immediate attention versus those that can be deferred, delegated, or ignored, under time pressure with incomplete information.",
+        "measurement": {
+          "firstAttentionTarget": "Which message type the candidate opens first (urgent client > manager escalation > teammate request > FYI notification > spam)",
+          "actionDistribution": "Ratio of reply vs defer vs delegate vs ignore actions, benchmarked against a reference model built from expert HR/manager judgment",
+          "timeAllocation": "Whether time spent per message correlates with its objective urgency and importance",
+          "missedCritical": "Count of high-urgency messages left unopened or ignored when simulation timer expires"
+        },
+        "scoringCriteria": {
+          "excellent_90_100": "Opens urgent messages within first 10% of elapsed time. No critical messages missed. Delegates appropriately. Action distribution within 15% of reference model.",
+          "proficient_75_89": "Opens urgent messages within first 25% of elapsed time. At most 1 critical message deferred but addressed. Minor deviations from reference model.",
+          "developing_60_74": "Urgent messages opened after 50% of elapsed time. Some non-urgent messages prioritized over urgent ones. 2+ critical messages deferred.",
+          "needsImprovement_below60": "Critical messages ignored. Random or chronological processing order. No delegation attempted."
+        }
+      },
+      {
+        "id": "communication",
+        "label": "Communication Quality",
+        "labelZH": "沟通质量",
+        "definition": "The clarity, conciseness, tone appropriateness, and audience awareness demonstrated in written responses to simulated messages.",
+        "measurement": {
+          "toneAppropriateness": "Whether the tone matches the sender's authority level and the message's emotional register (formal for executives, collaborative for peers, supportive for direct reports)",
+          "clarity": "Whether the response addresses the core question or request without ambiguity, measured by AI evaluation against a reference answer set",
+          "conciseness": "Character count and information density relative to message urgency (urgent = concise, complex = appropriately detailed)",
+          "audienceAwareness": "Whether the response includes appropriate context, avoids jargon when addressing non-technical stakeholders, and tailors detail level to recipient role"
+        },
+        "scoringCriteria": {
+          "excellent_90_100": "Tone consistently appropriate across all sender types. Responses address core questions directly without filler. Information density proportional to urgency. No communication breakdowns.",
+          "proficient_75_89": "Mostly appropriate tone with 1-2 minor mismatches. Responses generally clear but may include minor digressions. Adequate audience awareness.",
+          "developing_60_74": "Several tone mismatches (e.g., too casual with executives). Responses include unnecessary detail or lack critical information. Some audience awareness gaps.",
+          "needsImprovement_below60": "Frequent tone mismatches. Responses confusing or non-responsive to the original message. No evidence of audience adaptation."
+        }
+      },
+      {
+        "id": "stakeholderManagement",
+        "label": "Stakeholder Management",
+        "labelZH": "干系人管理",
+        "definition": "The ability to adapt communication and prioritization based on sender authority level, relationship context, and organizational dynamics.",
+        "measurement": {
+          "authorityGradient": "Difference in response time and response length between messages from executives, managers, peers, and direct reports. Appropriate gradient shows respect for hierarchy without excessive deference.",
+          "escalationJudgment": "Whether the candidate appropriately escalates issues that exceed their authority and handles issues within their scope directly",
+          "crossFunctionalAwareness": "Whether responses to cross-departmental requests acknowledge shared goals and avoid siloed thinking",
+          "relationshipMaintenance": "Whether responses to recurring contacts show continuity (referencing prior interactions) and build rapport"
+        },
+        "scoringCriteria": {
+          "excellent_90_100": "Natural authority gradient: slightly faster and more concise with executives, collaborative with peers, supportive with directs. Appropriate escalation. Cross-functional responses acknowledge shared goals.",
+          "proficient_75_89": "Generally appropriate gradient but may over-defer to executives or under-respond to peers. Escalation mostly correct.",
+          "developing_60_74": "Flat gradient (treats all senders identically) or inverted gradient. Misses escalation opportunities. Cross-functional responses show siloed thinking.",
+          "needsImprovement_below60": "Inappropriate deference patterns. Fails to escalate when needed, or escalates trivial matters. Cross-functional communication creates friction."
+        }
+      },
+      {
+        "id": "emotionalRegulation",
+        "label": "Emotional Regulation",
+        "labelZH": "情绪调节",
+        "definition": "The consistency of decision quality and communication tone under increasing time pressure and in response to emotionally charged (angry, urgent, disappointed) messages.",
+        "measurement": {
+          "pressureConsistency": "Correlation between simulation time pressure (messages arriving faster in later stages) and response quality scores. Low negative correlation = good regulation.",
+          "angryMessageResponse": "Whether responses to angry or accusatory messages remain professional, acknowledge emotions without being defensive, and focus on solutions",
+          "urgentMessageComposure": "Whether urgent messages trigger rushed, incomplete responses or measured, appropriately fast responses",
+          "recoveryPattern": "If an early subpar response occurs, whether subsequent responses return to baseline or cascade into further deterioration"
+        },
+        "scoringCriteria": {
+          "excellent_90_100": "Quality consistent regardless of pressure. Responds to anger with acknowledgment + solution focus. Urgent messages handled efficiently without sacrificing completeness. No deterioration cascade.",
+          "proficient_75_89": "Minor quality dips under peak pressure. Generally handles emotional messages well with 1-2 imperfect responses. Recovers quickly from any slip.",
+          "developing_60_74": "Noticeable quality decrease under pressure. Defensive or dismissive responses to angry messages. Urgency impairs response quality measurably.",
+          "needsImprovement_below60": "Major quality collapse under pressure. Confrontational or avoidant responses to emotional messages. A single bad interaction cascades into systemic deterioration."
+        }
+      },
+      {
+        "id": "taskSwitching",
+        "label": "Task Switching Efficiency",
+        "labelZH": "任务切换效率",
+        "definition": "The ability to maintain context and response quality when interrupted or when switching between unrelated message threads.",
+        "measurement": {
+          "contextPreservation": "Whether responses to a message thread after an interruption are consistent with responses before the interruption (no contradictions, no lost context)",
+          "interruptionRecovery": "Time taken to resume processing a message thread after an interruption, measured by response latency patterns",
+          "threadCoherence": "Logical consistency across multiple responses in the same thread, even when interleaved with other threads",
+          "cognitiveLoadManagement": "Whether the candidate batches similar messages or switches topics excessively (optimal: moderate batching, not extreme fragmentation or rigid sequential processing)"
+        },
+        "scoringCriteria": {
+          "excellent_90_100": "Context perfectly preserved across interruptions. Quick recovery to prior thread. Thread responses are coherent. Moderate, strategic batching of similar messages.",
+          "proficient_75_89": "Minor context loss after complex interruptions. Recovery is adequate. Thread responses mostly coherent. Some suboptimal batching patterns.",
+          "developing_60_74": "Noticeable context loss after interruptions (re-asks questions, contradicts prior responses). Slow recovery. Thread responses show inconsistency.",
+          "needsImprovement_below60": "Severe context loss. Requires re-reading entire threads. Contradictory responses across interruptions. No evidence of batching strategy."
+        }
+      }
+    ],
+    "simulationStructure": {
+      "totalMessages": "15-25 per simulation instance",
+      "totalDuration": "8-12 minutes real-time",
+      "messageTypes": [
+        "urgent_client_escalation",
+        "manager_directive",
+        "peer_collaboration_request",
+        "direct_report_question",
+        "cross_functional_inquiry",
+        "angry_complaint",
+        "fyi_notification",
+        "calendar_invitation",
+        "hr_announcement",
+        "spam_irrelevant"
+      ],
+      "senderAuthorityLevels": ["executive", "manager", "peer", "direct_report", "external_client", "system"],
+      "difficultyTiers": {
+        "entry": "12 messages, 10 minutes, no angry messages, clear urgency signals",
+        "standard": "18 messages, 10 minutes, 1-2 angry messages, moderate ambiguity",
+        "challenging": "22 messages, 8 minutes, 3+ angry messages, high ambiguity, interruptions"
+      }
+    }
+  },
+  "scoringModel": {
+    "perMessageScoring": {
+      "actionChoice_weight": 40,
+      "actionChoice_criteria": {
+        "reply_expected": "The message objectively requires a substantive response (direct question, escalation, time-sensitive decision)",
+        "defer_acceptable": "The message can reasonably be addressed later without negative consequences (FYI, non-urgent request with long deadline)",
+        "delegate_appropriate": "The message falls within another person's responsibility or the candidate lacks authority/context to respond",
+        "ignore_acceptable": "The message is spam, irrelevant announcement, or already resolved by another thread"
+      },
+      "actionScoring": "Each message has a 5-point reference action grid: (1) Must Reply Now, (2) Should Reply, (3) May Defer, (4) Should Delegate, (5) May Ignore. Candidate action compared to reference. Score: exact match = 100, off by 1 tier = 75, off by 2 tiers = 50, off by 3+ tiers = 0.",
+      "responseQuality_weight": 40,
+      "responseQuality_criteria": "AI-evaluated on 5 sub-dimensions each scored 0-20: professionalism (0-4) + empathy (0-4) + clarity (0-4) + actionability (0-4) + conciseness (0-4). Total sub-scores summed to response quality score (0-100).",
+      "responseTime_weight": 20,
+      "responseTime_criteria": "Time from message arrival to candidate action, normalized against message urgency tier. Urgent (tier-1): target <30s = 100, <60s = 75, <120s = 50, >120s = 0. Standard (tier-2): target <90s = 100, <180s = 75, <300s = 50, >300s = 0. Non-urgent (tier-3): target <300s = 100, else proportional."
+    },
+    "perMessageFormula": "messageScore = (actionScore * 0.40) + (qualityScore * 0.40) + (timeScore * 0.20)",
+    "aggregation": {
+      "perDimension": "Each dimension aggregates all messages weighted by the dimension's relevance coefficient for that message type. Relevance coefficients (0-1) are pre-assigned per message type: e.g., an angry client message has emotionalRegulation=1.0, stakeholderManagement=0.8, prioritization=0.6, communication=0.4, taskSwitching=0.3.",
+      "dimensionScoreFormula": "dimScore = SUM(messageScore_i * relevanceCoefficient_i) / SUM(relevanceCoefficient_i) across all messages",
+      "overallScore": "Weighted average of all 5 dimension scores with configurable weights (default: equal 20% each)",
+      "categoryLabels": {
+        "excellent": "90-100: 优秀 — consistently exceeds expectations",
+        "proficient": "75-89: 熟练 — meets expectations with occasional excellence",
+        "developing": "60-74: 发展中 — meets baseline with room for growth",
+        "needsImprovement": "below 60: 需提升 — below expected baseline for the role level"
+      }
+    },
+    "normalization": {
+      "difficultyAdjustment": "Scores from 'challenging' tier receive +5% boost, 'entry' tier receive -5% penalty (applied after dimension aggregation, before final report)",
+      "timePressureNormalization": "If a candidate finishes all messages before time expires, remaining time is not penalized. If messages are unopened at timeout, they receive actionScore=0, qualityScore=0, timeScore=0 and negatively impact all 5 dimensions proportionally to their relevance coefficients.",
+      "minimumMessagesThreshold": "Candidate must handle at least 60% of messages for scores to be considered valid. Below threshold, report marks dimensions as 'Insufficient Data'.",
+      "crossSessionCalibration": "Dimension scores are normalized against the distribution of all candidates for the same job within a rolling 90-day window, using z-score normalization capped at +/-2 standard deviations."
+    }
+  },
+  "aiPromptTemplates": {
+    "systemPrompt": {
+      "role": "system",
+      "content": "你是'职遇 Reality Pro'的收件箱模拟评估引擎。\n你的任务：评估候选人在模拟工作日收件箱中对每条消息的回复质量。\n\n═══ 核心约束 ═══\n1. 你只评估候选人的可观察行为（回复内容、行动选择、响应时间模式）。\n2. 你绝不评估候选人的性格、智力、文化背景、外貌、声音、年龄、性别、婚育状况。\n3. 你绝不下录用/淘汰/评分/排名的结论。你的输出是行为维度的结构化观察数据。\n4. 你绝不对候选人进行跨候选人比较或排序。每个评估独立进行。\n5. 如果回复内容包含攻击性、歧视性或违法违规内容，标记为 needsHumanReview=true 并输出 riskFlags。\n6. 所有评估必须附带具体的行为证据锚点——明确指出候选人的哪句话/哪个行为支撑了你的评估。\n\n═══ 评估维度 ═══\n对每条需要回复的消息，从5个维度评分（每个维度0-4分）：\n1. professionalism (专业性): 回复是否保持职业语气、边界清晰、尊重对方\n   - 4分: 专业且得体，语气与对方身份匹配\n   - 3分: 基本专业，有轻微不当但无伤大雅\n   - 2分: 存在明显不当（如过于随意对待正式请求，或过于生硬对待协作请求）\n   - 1分: 语气不当可能引发误解或冲突\n   - 0分: 回复具有攻击性、歧视性或严重不当\n\n2. empathy (共情力): 回复是否识别并回应了对方的情绪状态\n   - 4分: 准确识别情绪（如焦虑、不满、紧迫），回应既承认感受又推进解决\n   - 3分: 识别了情绪但回应略显生硬或公式化\n   - 2分: 忽略了明显的情绪信号，仅回应事实层面\n   - 1分: 对强烈情绪（如对方明确表达不满）完全无视或刺激升级\n   - 0分: 回应使情绪局势恶化\n\n3. clarity (清晰度): 回复是否明确、无歧义、信息完整\n   - 4分: 核心信息清晰，无歧义，接收方无需追问即可采取下一步行动\n   - 3分: 基本清晰但有一处小歧义或缺少一个非关键信息\n   - 2分: 存在明显歧义或缺少关键信息，接收方需要追问\n   - 1分: 回复模糊，接收方难以判断候选人的意图或决定\n   - 0分: 回复与问题无关或完全无法理解\n\n4. actionability (可执行性): 回复是否包含明确的下一步或决策\n   - 4分: 包含明确的行动项、责任人和时间节点（如适用）\n   - 3分: 有明确立场或决定，但缺少具体的执行细节\n   - 2分: 有方向性表态但未形成可执行的结论\n   - 1分: 回避决策，仅表示'收到'或'后续处理'而无具体计划\n   - 0分: 未做任何决策或行动指引\n\n5. conciseness (简洁度): 回复的信息密度是否与消息的紧急程度匹配\n   - 4分: 信息密度与紧急程度完美匹配——急事简洁有力，复杂问题适当展开\n   - 3分: 整体简洁但有个别冗余表述\n   - 2分: 明显偏长或偏短，影响了沟通效率\n   - 1分: 严重冗长（在紧急场景中浪费时间）或过度简短（遗漏关键信息）\n   - 0分: 回复长度严重影响沟通目的\n\n必须输出合法JSON，不要输出Markdown。\nJSON结构见下方。"
+    },
+    "outputSchema": {
+      "evaluations": [
+        {
+          "messageId": "string (消息唯一标识)",
+          "actionChoice": "string (候选人的行动: 'reply' | 'defer' | 'delegate' | 'ignore')",
+          "responseText": "string (候选人的回复文本，如未回复则为空字符串)",
+          "scores": {
+            "professionalism": "number (0-4)",
+            "empathy": "number (0-4)",
+            "clarity": "number (0-4)",
+            "actionability": "number (0-4)",
+            "conciseness": "number (0-4)"
+          },
+          "evidenceAnchors": {
+            "professionalism": "string (支撑 professionalism 评分的具体引用或行为描述，必须引用回复中的原句)",
+            "empathy": "string (支撑 empathy 评分的具体引用或行为描述)",
+            "clarity": "string (支撑 clarity 评分的具体引用或行为描述)",
+            "actionability": "string (支撑 actionability 评分的具体引用或行为描述)",
+            "conciseness": "string (支撑 conciseness 评分的具体引用或行为描述)"
+          },
+          "overallComment": "string (不超过50字的简短综合评价，聚焦行为不评价人)",
+          "riskFlags": ["string (如有攻击性/歧视性/违法违规内容，在此列出)"],
+          "needsHumanReview": "boolean (任何维度0分、存在riskFlags、或评估置信度低时设为true)"
+        }
+      ],
+      "aggregateObservations": {
+        "prioritizationPattern": "string (候选人的消息处理顺序模式观察，如：'优先处理了客户和上级消息，对同级请求响应较慢')",
+        "communicationPattern": "string (回复风格的总体观察，如：'回复普遍简洁有力，但在面对情绪化消息时共情表达不足')",
+        "stakeholderPattern": "string (对不同类型的发件人的处理差异观察)",
+        "emotionalRegulationPattern": "string (在压力下和面对情绪化消息时的表现观察)",
+        "taskSwitchingPattern": "string (跨消息线程切换时的上下文保持观察)",
+        "notableStrengths": ["string (不超过3个突出的行为优势，必须基于证据)"],
+        "notableDevelopmentAreas": ["string (不超过3个可发展的行为维度，用建设性语言)"]
+      },
+      "evaluationMetadata": {
+        "totalMessagesEvaluated": "number",
+        "messagesRequiringHumanReview": "number",
+        "evaluatorConfidence": "string (high | medium | low — 当多个维度的证据锚点模糊或回复过短时降低置信度)",
+        "evaluationNotes": "string (评估过程中的任何不确定性或需要HR注意的事项)"
+      }
+    },
+    "userMessageTemplate": {
+      "role": "user",
+      "content": "请评估以下收件箱模拟中的候选人行为。\n\n═══ 模拟上下文 ═══\n岗位信息：{jobContext}\n模拟难度：{difficultyTier}\n消息总数：{totalMessages}\n模拟时长：{totalDuration}\n\n═══ 消息序列与候选人行为 ═══\n{messageSequence}\n\n═══ 参考行动模型 ═══\n以下是每条消息的参考行动分级（1=必须立即回复, 2=应当回复, 3=可延后, 4=应转交, 5=可忽略）：\n{referenceActions}\n\n请逐条评估每个需要回复的消息。对于候选人标记为'reply'的消息，基于回复文本评估5个质量维度。对于标记为'defer'/'delegate'/'ignore'的消息，只需记录行动选择，不评估回复质量（此时5个维度均设为-1）。\n务必为每个评分提供行为证据锚点。"
+    },
+    "messageSequenceFormat": {
+      "description": "每条消息在 user prompt 中的格式",
+      "template": "---\n消息ID: {messageId}\n发件人: {senderName} ({senderRole})\n发件人级别: {authorityLevel}\n时间: {timestamp}\n紧急程度: {urgencyTier} (1=紧急, 2=标准, 3=非紧急)\n消息内容: {messageContent}\n候选人行动: {candidateAction}\n候选人回复: {candidateResponseText}\n响应时间(秒): {responseTimeSeconds}\n---"
+    },
+    "evaluationEndpoint": {
+      "route": "/api/ai/evaluate-inbox-simulation",
+      "method": "POST",
+      "model": "deepseek-v4-pro (for detailed evaluation; deepseek-v4-flash for low-stakes pre-screening)",
+      "maxTokens": 8000,
+      "temperature": 0.1,
+      "responseFormat": "json_object"
+    }
+  },
+  "reportIntegration": {
+    "newTypes": {
+      "InboxSimulationResult": {
+        "description": "Top-level result of a single candidate's inbox simulation session. Stored alongside TrialSession.",
+        "fields": {
+          "id": "string",
+          "candidateId": "string",
+          "jobId": "string",
+          "difficultyTier": "'entry' | 'standard' | 'challenging'",
+          "totalMessages": "number",
+          "messagesHandled": "number",
+          "messagesUnopened": "number",
+          "completionRate": "number (0-100)",
+          "startedAt": "string (ISO)",
+          "completedAt": "string (ISO)",
+          "dimensionScores": "InboxDimensionScores",
+          "messageEvaluations": "InboxMessageEvaluation[]",
+          "aggregateObservations": "InboxAggregateObservations",
+          "aiMeta": "AiGenerationMeta"
+        }
+      },
+      "InboxDimensionScores": {
+        "description": "Normalized 0-100 scores per dimension plus the pre-normalization raw scores for audit.",
+        "fields": {
+          "prioritization": "number (0-100)",
+          "communication": "number (0-100)",
+          "stakeholderManagement": "number (0-100)",
+          "emotionalRegulation": "number (0-100)",
+          "taskSwitching": "number (0-100)",
+          "overall": "number (0-100)",
+          "rawScores": "{ prioritization: number, communication: number, stakeholderManagement: number, emotionalRegulation: number, taskSwitching: number }",
+          "normalizationApplied": "boolean",
+          "interpretation": "string (e.g., 'excellent' | 'proficient' | 'developing' | 'needsImprovement')"
+        }
+      },
+      "InboxMessageEvaluation": {
+        "fields": {
+          "messageId": "string",
+          "senderRole": "string",
+          "senderAuthority": "string",
+          "urgencyTier": "number (1-3)",
+          "candidateAction": "'reply' | 'defer' | 'delegate' | 'ignore'",
+          "candidateResponseText": "string",
+          "responseTimeSeconds": "number",
+          "actionScore": "number (0-100)",
+          "qualityScore": "number (0-100, null if action != 'reply')",
+          "timeScore": "number (0-100)",
+          "totalMessageScore": "number (0-100)",
+          "aiQualityEvaluation": "object | null (the full AI evaluation from DeepSeek, null if action != 'reply')",
+          "riskFlags": "string[]",
+          "needsHumanReview": "boolean"
+        }
+      },
+      "InboxAggregateObservations": {
+        "fields": {
+          "prioritizationPattern": "string",
+          "communicationPattern": "string",
+          "stakeholderPattern": "string",
+          "emotionalRegulationPattern": "string",
+          "taskSwitchingPattern": "string",
+          "notableStrengths": "string[] (max 3)",
+          "notableDevelopmentAreas": "string[] (max 3)"
+        }
+      }
+    },
+    "realityReportExtension": {
+      "description": "New optional fields added to the existing RealityReport type in src/types.ts",
+      "newFields": [
+        {
+          "name": "inboxSimulation",
+          "type": "InboxSimulationResult | null",
+          "description": "Present when the candidate has completed the inbox simulation as part of their trial."
+        }
+      ],
+      "integrationPoints": {
+        "concernRadar": "No direct change. The existing ConcernRadar captures candidate concerns from chat; inbox simulation adds behavioral data without modifying the radar.",
+        "decisionPathAnalysis": "The existing 'summary' field can be enriched with a sentence about inbox patterns, e.g., '在收件箱模拟中展现出较强的优先级判断能力，面对8条紧急消息均及时回复。'",
+        "skillEvidence": "Append inbox-derived evidence strings, e.g., '收件箱模拟: 在时间压力下保持回复质量一致，情绪调节能力得到行为验证。'",
+        "evidenceSources": "Add 'fromInboxSimulation' as a new source category to evidenceSources.",
+        "hrActionSuggestion": "Inbox dimension scores can influence the recommendation: high prioritization + communication scores strengthen '优先邀约'; low emotional regulation may trigger '建议补充确认'.",
+        "aiRiskReview": "Add a checkedItem: '收件箱模拟评估已完成，所有AI评分已附带行为证据锚点。'",
+        "trustRepairTasks": "If emotionalRegulation score < 60, auto-generate a trust repair task: '候选人收件箱模拟中情绪调节维度偏低，建议面试中补充压力场景行为追问。'",
+        "interviewQuestions": "Auto-generate based on dimension weaknesses, e.g., if taskSwitching < 60: '在同时推进多个任务时，你通常如何管理上下文切换？能否分享一个处理被打断后快速恢复的具体例子？'"
+      }
+    },
+    "uiIntegration": {
+      "storyPreview": {
+        "location": "src/routes/candidate/StoryPreview.tsx",
+        "integration": "Add a new section (after '行为切片分析' or as a new tab) titled '收件箱模拟表现'. Display: radar chart of 5 dimensions, top 2 strengths, top 1 development area (worded constructively), and a brief narrative summary. Do NOT show raw scores — use the interpretation labels ('优秀', '熟练', etc.).",
+        "keyDesignPrinciple": "Candidate-facing view must be encouraging and developmental. Never show numeric scores or comparisons. Frame as '你在模拟中的行为倾向' not '你的能力评分'."
+      },
+      "candidateDetail": {
+        "location": "src/routes/hr/CandidateDetail.tsx",
+        "integration": "Add inbox simulation data to the Overview tab (as a new SummaryCell row or mini radar), and a new sub-section under the Evidence tab showing per-message evaluation summaries with expandable detail. Add a '收件箱模拟' filter to the trust audit log.",
+        "keyDesignPrinciple": "HR view shows full scores, evidence anchors, and risk flags. All AI evaluations are marked as 'AI生成 · 需人工复核'. The per-message view allows HR to spot-check AI evaluations against actual candidate responses."
+      },
+      "realityReportPanel": {
+        "location": "src/components/RealityReportPanel.tsx",
+        "integration": "When inboxSimulation data exists, render an additional panel section with a 5-axis radar chart and the aggregate observations narrative. Use existing StatCard component for dimension scores."
+      }
+    },
+    "serverIntegration": {
+      "newRoute": "POST /api/ai/evaluate-inbox-simulation",
+      "bodyFormat": {
+        "jobContext": "object (job truth profile for context)",
+        "difficultyTier": "string",
+        "messages": "array of { messageId, senderName, senderRole, authorityLevel, timestamp, urgencyTier, messageContent, candidateAction, candidateResponseText, responseTimeSeconds }",
+        "referenceActions": "object mapping messageId -> expectedActionTier (1-5)"
+      },
+      "handlerPattern": "Follows the same pattern as /api/ai/generate-hr-report: validate input, call DeepSeek with the evaluation prompt, parse + validate JSON response, sanitize via safety.ts, return { data, meta }."
+    }
+  },
+  "safetyBoundaries": {
+    "bannedEvaluationDomains": {
+      "description": "The AI evaluation engine must NEVER evaluate or comment on these domains. Any mention in the AI output triggers a safety hit and needsHumanReview=true.",
+      "domains": [
+        {
+          "domain": "Personality inference",
+          "zh": "性格推断",
+          "examples": "You must NOT say: '候选人性格内向/外向', '性格急躁', '性格强势', '性格软弱'",
+          "allowedAlternative": "Describe observable behavior: '候选人在收到多条紧急消息时优先处理了客户投诉' (not '候选人性格冷静')"
+        },
+        {
+          "domain": "Intelligence assessment",
+          "zh": "智力评估",
+          "examples": "You must NOT say: '候选人很聪明', '逻辑思维能力强', '智力水平高', '反应快/慢' (as cognitive trait)",
+          "allowedAlternative": "Describe observable behavior: '候选人在不完整信息下提出了3个澄清问题后才做决定' (not '候选人逻辑清晰')"
+        },
+        {
+          "domain": "Cultural background",
+          "zh": "文化背景",
+          "examples": "You must NOT say: '可能因为文化背景...', '受教育程度导致...', '地域习惯...'",
+          "allowedAlternative": "No alternative — this domain is completely off-limits regardless of framing."
+        },
+        {
+          "domain": "Mental health speculation",
+          "zh": "心理健康推测",
+          "examples": "You must NOT say: '焦虑倾向', '压力承受力差', '心理素质', '情绪不稳定' (as trait)",
+          "allowedAlternative": "Describe situation-specific response: '在面对模拟的客户愤怒邮件时，候选人的回复未包含情绪确认语句' (not '候选人情绪管理能力弱')"
+        },
+        {
+          "domain": "Physical appearance or voice",
+          "zh": "外貌或声音",
+          "examples": "You must NOT say: '外表', '声音情绪', '表情', '肢体语言'",
+          "allowedAlternative": "N/A — inbox simulation is text-only, so this domain should be irrelevant. Included for completeness."
+        }
+      ]
+    },
+    "bannedOutputPhrases": {
+      "description": "These phrases are matched exactly and additionally checked via the existing server/safety.ts sanitizeAiOutput() function. New phrases specific to inbox simulation evaluation.",
+      "carriedOverFromExisting": [
+        "推荐录用", "建议录用", "自动录用", "建议淘汰", "自动淘汰", "自动筛掉",
+        "候选人评分", "能力分", "录用概率", "稳定性分", "性格判断", "情绪判断",
+        "外貌", "表情", "声音情绪", "颜值", "年龄偏好", "性别偏好", "婚育"
+      ],
+      "newForInboxSimulation": [
+        "沟通能力差", "不适合该岗位", "优先淘汰", "工作能力不足",
+        "思维混乱", "缺乏逻辑", "没有同理心", "情商低",
+        "抗压能力弱", "不适合高压环境", "建议降级录用",
+        "综合排名", "在候选人中排名", "比XX候选人差",
+        "天生", "天赋", "资质", "潜力评估"
+      ]
+    },
+    "humanReviewFlagging": {
+      "description": "Conditions under which the evaluation is automatically flagged for mandatory human review.",
+      "triggers": [
+        {
+          "condition": "Any quality dimension scored 0 by AI",
+          "action": "needsHumanReview=true, riskFlags populated, flagged in CandidateDetail UI with amber alert"
+        },
+        {
+          "condition": "Candidate response contains profanity, threats, or discriminatory language",
+          "action": "needsHumanReview=true, riskFlags populated, flagged in CandidateDetail UI with red alert. HR must manually confirm before any downstream action."
+        },
+        {
+          "condition": "AI evaluator confidence = 'low'",
+          "action": "needsHumanReview=true, evaluationNotes populated with reason. Flagged with blue informational alert."
+        },
+        {
+          "condition": "Candidate ignored more than 40% of urgent (tier-1) messages",
+          "action": "needsHumanReview=true. This may indicate a simulation misunderstanding rather than a true behavioral signal."
+        },
+        {
+          "condition": "Any safetyHit triggered during sanitization",
+          "action": "needsHumanReview=true (existing behavior from server/safety.ts). All affected phrases replaced with '需人工复核'."
+        },
+        {
+          "condition": "Score variance across dimensions exceeds 40 points (e.g., prioritization=90 but emotionalRegulation=30)",
+          "action": "needsHumanReview=true, with a note that extreme variance may indicate an unusual behavioral pattern worthy of human interpretation."
+        }
+      ]
+    },
+    "safetyValidationInServer": {
+      "description": "The server-side validation flow for inbox simulation evaluation follows the same pattern as all other AI endpoints.",
+      "flow": [
+        "1. DeepSeek returns JSON response",
+        "2. parseJsonContent() parses the JSON",
+        "3. validateInboxEvaluation() validates structural integrity (new function in server/schemas.ts, following the pattern of validateHrReport)",
+        "4. sanitizeAiOutput() from server/safety.ts scans for banned phrases and replaces them with '需人工复核'",
+        "5. Any safety hits set needsHumanReview=true on the AiGenerationMeta",
+        "6. The validated and sanitized result is returned to the client"
+      ],
+      "newSchemaValidator": {
+        "functionName": "validateInboxEvaluation",
+        "location": "server/schemas.ts",
+        "pattern": "Mirrors validateHrReport: asRecord wrapper, asString/asNumber/asStringArray helpers, validates the JSON structure matches InboxEvaluationResponse schema, coerces missing/invalid fields to safe defaults."
+      }
+    },
+    "evaluatorGuardrails": {
+      "description": "Hard rules injected into the AI system prompt at evaluation time (augmenting the main evaluation prompt).",
+      "rules": [
+        "You are evaluating behavioral responses to simulated workplace messages, NOT the person.",
+        "Every score must be tied to a specific, quotable piece of the candidate's response text (evidenceAnchor). If you cannot find a specific quote to support a score, lower your confidence and mark needsHumanReview=true.",
+        "If a candidate's response is very short (under 10 characters), you may still evaluate it but confidence should be 'low' and needsHumanReview=true.",
+        "If a candidate did not reply to a message (action = defer/delegate/ignore), do NOT evaluate response quality. Set all quality sub-scores to null, not 0.",
+        "Do NOT compare this candidate to any other candidate, real or hypothetical.",
+        "Do NOT make recommendations about hiring, interviewing, or compensation.",
+        "Your output is ONE input into a human HR professional's decision process. It is not the decision itself."
+      ]
+    }
+  }
+}

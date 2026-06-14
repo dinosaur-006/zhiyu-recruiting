@@ -1,261 +1,179 @@
-import { useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
-import { Badge } from '../../components/Badge';
-import { CandidateRightsPanel } from '../../components/CandidateRightsPanel';
-import { ComplianceNotice } from '../../components/ComplianceNotice';
-import { JobTruthContractPanel } from '../../components/JobTruthContractPanel';
-import { acknowledgeTruthContract, recordTruthPoint, startTrialSession, useDemoState } from '../../store/demoStore';
-import type { JobTruthLabel } from '../../types';
+import { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { Sparkles, FileText, MapPin, Clock } from 'lucide-react';
+import { GravitySandbox } from '../../components/GravitySandbox';
+import { TeamConstellation } from '../../components/candidate/TeamConstellation';
+import { GrowthCompass } from '../../components/candidate/GrowthCompass';
+import { BenefitsCalculator } from '../../components/candidate/BenefitsCalculator';
+import { useDemoState } from '../../store/demoStore';
 
-const chapters = [
-  {
-    id: '01',
-    title: 'HR数字人讲岗位',
-    meta: '岗位概览 / 面试流程 / AI边界',
-    copy: '先讲清岗位基本信息、候选人权利和面试前需要知道的规则。',
-  },
-  {
-    id: '02',
-    title: '未来同事讲一天',
-    meta: '团队协作 / 工作节奏 / Code Review',
-    copy: '用同事视角还原协作方式、需求变化和项目节点前的真实压力。',
-  },
-  {
-    id: '03',
-    title: '主管给任务沙盘',
-    meta: '分岔选择 / 决策路径 / 推进方式',
-    copy: '在真实任务场景里做选择，让HR看到你的顾虑、判断和协作方式。',
-  },
-];
-
-const truthRows: Array<{ key: keyof Pick<JobTruthLabel, 'workPace' | 'collaborationDensity' | 'uncertainty' | 'autonomy' | 'growthSpeed' | 'communicationCost'>; label: string }> = [
-  { key: 'workPace', label: '工作节奏' },
-  { key: 'collaborationDensity', label: '协作密度' },
-  { key: 'uncertainty', label: '不确定性' },
-  { key: 'autonomy', label: '自主空间' },
-  { key: 'growthSpeed', label: '成长速度' },
-  { key: 'communicationCost', label: '沟通成本' },
-];
+function SectionHeading({ title }: { title: string }) {
+  return <h2 style={{ fontFamily: 'var(--cr-font-display)', fontSize: 'var(--cr-text-2xl)', fontWeight: 700, color: 'var(--cr-ink)', marginBottom: 'var(--cr-space-lg)', letterSpacing: '-0.015em' }}>{title}</h2>;
+}
 
 export function JobDetail() {
   const { jobId } = useParams();
   const navigate = useNavigate();
-  const [showConsent, setShowConsent] = useState(false);
-  const [showRights, setShowRights] = useState(false);
-  const [sessionId, setSessionId] = useState<string | null>(null);
   const state = useDemoState();
   const job = state.jobs.find((item) => item.id === jobId);
   const truthLabel = state.jobTruthLabels.find((item) => item.jobId === jobId);
-  const truthContract = state.jobTruthContracts.find((item) => item.jobId === jobId);
-  const session = sessionId ? state.trialSessions.find((item) => item.id === sessionId) : undefined;
-  const company = state.company;
+  const [showStickyCTA, setShowStickyCTA] = useState(false);
+  useEffect(() => {
+    const onScroll = () => setShowStickyCTA(window.scrollY > 500);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   if (!job) {
     return (
-      <main className="mobile-page">
-        <section className="mobile-card">岗位不存在或已下架。</section>
+      <main style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--cr-base)' }}>
+        <div className="cr-empty-state"><FileText size={48} strokeWidth={1} style={{ color: 'var(--cr-muted)', opacity: 0.5 }} /><h3 style={{ fontFamily: 'var(--cr-font-display)', fontSize: 20, fontWeight: 600 }}>岗位不存在或已下架</h3></div>
       </main>
     );
   }
 
-  const ensureSession = () => {
-    const nextSession = session ?? startTrialSession(job.id);
-    setSessionId(nextSession.id);
-    return nextSession;
-  };
-
-  const startTrial = () => {
-    const nextSession = ensureSession();
-    if (!nextSession.truthContractAcknowledgement.acknowledged && truthContract) {
-      acknowledgeTruthContract(
-        nextSession.id,
-        truthContract.commitments.map((item) => item.title),
-        nextSession.truthContractAcknowledgement.unresolvedConcerns,
-      );
-    }
-    navigate(`/candidate/chat/${job.id}?sessionId=${nextSession.id}`);
-  };
-
-  const focusTruthPoint = (point: string) => {
-    const nextSession = ensureSession();
-    recordTruthPoint(nextSession.id, point, true);
-  };
-
-  const acknowledgeContract = (withConcern = false) => {
-    if (!truthContract) return;
-    const nextSession = ensureSession();
-    acknowledgeTruthContract(
-      nextSession.id,
-      truthContract.commitments.map((item) => item.title),
-      withConcern ? ['薪资沟通节点', '成长路径说明'] : [],
-    );
-  };
+  const responsibilities = (job.responsibilities ?? '').split(/[，,]/).filter(Boolean);
 
   return (
-    <main className="mobile-page trusted-job-brief">
-      <section className="job-brief-hero">
-        <div className="company-line">
-          <span>{company.name}</span>
-          <Badge tone="blue">Trusted Job Brief</Badge>
-        </div>
-        <h1>{job.title}</h1>
-        <p>先看岗位真相，再决定是否投递。你可以直接投递，也可以先进入三步云试岗。</p>
-        <div className="job-meta-row">
-          <span>{job.department}</span>
-          <span>{job.location}</span>
-          <span>{job.salaryMin}k-{job.salaryMax}k</span>
-        </div>
-        <div className="mobile-actions">
-          <button className="primary-button" onClick={() => setShowConsent(true)}>
-            开始云试岗
-          </button>
-          <Link className="ghost-button" to={`/candidate/profile/${job.id}?direct=1${sessionId ? `&sessionId=${sessionId}` : ''}`}>
-            直接投递简历
-          </Link>
+    <div style={{ background: 'var(--cr-base)', minHeight: '100vh' }}>
+      {/* HERO */}
+      <section style={{ position: 'relative', overflow: 'hidden', padding: '80px 0 56px', background: 'linear-gradient(180deg, var(--cr-subtle-warm) 0%, var(--cr-base) 100%)', borderBottom: '1px solid var(--cr-border-light)' }}>
+        <div style={{ position: 'absolute', top: 0, right: 0, width: 500, height: 500, background: 'radial-gradient(circle at 70% 30%, var(--cr-accent-subtle) 0%, transparent 60%)', pointerEvents: 'none' }} />
+        <div style={{ maxWidth: 'var(--cr-content-lg)', margin: '0 auto', padding: '0 var(--cr-page-padding)', position: 'relative', zIndex: 1 }}>
+          <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} style={{ marginBottom: 20 }}>
+            <span style={{ fontFamily: 'var(--cr-font-sans)', fontSize: 'var(--cr-text-xs)', fontWeight: 600, letterSpacing: '0.06em', color: 'var(--cr-accent)', background: 'var(--cr-accent-subtle)', border: '1px solid var(--cr-accent)', padding: '4px 12px', display: 'inline-block', borderRadius: 'var(--cr-radius-sm)' }}>星河云智科技 · {job.department}</span>
+          </motion.div>
+          <motion.h1 initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} style={{ fontFamily: 'var(--cr-font-display)', fontSize: 'clamp(32px, 6vw, 48px)', fontWeight: 700, color: 'var(--cr-ink)', lineHeight: 1.1, letterSpacing: '-0.02em', maxWidth: 700, marginBottom: 16 }}>{job.title}</motion.h1>
+          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }} style={{ fontSize: 'var(--cr-text-md)', color: 'var(--cr-ink-soft)', lineHeight: 1.7, maxWidth: 520, marginBottom: 24 }}>
+            {job.analysis?.summary || `我们正在寻找一位能定义下一代产品体验的核心成员。你将直接与团队协作，推动产品从概念到落地。`}
+          </motion.p>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', marginBottom: 28 }}>
+            <span style={{ fontSize: 'var(--cr-text-xl)', fontWeight: 700, color: '#fff', fontFamily: 'var(--cr-font-display)', background: 'var(--cr-positive)', padding: '8px 20px', borderRadius: 'var(--cr-radius-full)' }}>{job.salaryMin}k – {job.salaryMax}k</span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--cr-text-base)', color: 'var(--cr-ink-soft)' }}><MapPin size={14} style={{ color: 'var(--cr-accent)' }} />{job.location}</span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--cr-text-base)', color: 'var(--cr-ink-soft)' }}><Clock size={14} style={{ color: 'var(--cr-accent)' }} />{job.experience}</span>
+          </motion.div>
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+            <button className="cr-btn-primary cr-btn-lg" onClick={() => navigate(`/candidate/inbox/${job.id}`)} style={{ fontSize: 'var(--cr-text-md)', padding: '14px 32px' }}><Sparkles size={18} />开始实境体验</button>
+            <button className="cr-btn-ghost" onClick={() => navigate(`/candidate/profile/${job.id}?direct=1`)} style={{ fontSize: 'var(--cr-text-sm)' }}>跳过体验，直接投递 →</button>
+          </motion.div>
         </div>
       </section>
 
-      <ComplianceNotice />
-
-      {truthLabel ? (
-        <section className="job-brief-section truth-brief-card">
-          <div className="brief-section-head">
-            <span className="eyebrow">Job Truth Brief</span>
-            <h2>岗位真相说明书</h2>
-            <p>这些信息来自JD、团队介绍和HR配置，目的是提前说明节奏、协作和压力边界。</p>
-          </div>
-
-          <div className="truth-brief-table">
-            {truthRows.map((row) => (
-              <button key={row.key} type="button" className="truth-brief-row" onClick={() => focusTruthPoint(row.label)}>
-                <span>{row.label}</span>
-                <strong>{truthLabel[row.key]}</strong>
-              </button>
-            ))}
-            <button type="button" className="truth-brief-row wide" onClick={() => focusTruthPoint('加班波动')}>
-              <span>加班波动</span>
-              <strong>{truthLabel.overtimeVolatility}</strong>
-            </button>
-          </div>
-
-          <div className="fit-brief-grid">
-            <article>
-              <h3>适合的人</h3>
-              <div className="tag-row">
-                {truthLabel.suitableFor.map((item) => (
-                  <Badge key={item} tone="green">
-                    {item}
-                  </Badge>
-                ))}
-              </div>
-            </article>
-            <article>
-              <h3>不太适合的人</h3>
-              <div className="tag-row">
-                {truthLabel.notSuitableFor.map((item) => (
-                  <Badge key={item} tone="gray">
-                    {item}
-                  </Badge>
-                ))}
-              </div>
-            </article>
-          </div>
-
-          <div className="truth-source-list">
-            {truthLabel.evidence.slice(0, 3).map((item) => (
-              <div key={`${item.label}-${item.source}`}>
-                <span>{item.label}</span>
-                <p>{item.source}：{item.evidenceText}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-      ) : null}
-
-      {truthContract ? (
-        <section className="job-brief-section">
-          <JobTruthContractPanel
-            contract={truthContract}
-            acknowledged={session?.truthContractAcknowledgement.acknowledged}
-            unresolvedConcerns={session?.truthContractAcknowledgement.unresolvedConcerns}
-            onAcknowledge={() => acknowledgeContract(false)}
-            onConcern={() => acknowledgeContract(true)}
-            onStart={() => setShowConsent(true)}
-          />
-        </section>
-      ) : null}
-
-      <section className="job-brief-section trial-steps-card">
-        <div className="brief-section-head">
-          <span className="eyebrow">Reality Trial</span>
-          <h2>三步云试岗</h2>
-          <p>不是让AI先评价你，而是先把岗位真实一天讲清楚。</p>
-        </div>
-        <div className="trial-step-list">
-          {chapters.map((chapter) => (
-            <article key={chapter.id} className="trial-step-card">
-              <b>{chapter.id}</b>
-              <div>
-                <span>{chapter.meta}</span>
-                <h3>{chapter.title}</h3>
-                <p>{chapter.copy}</p>
-              </div>
-            </article>
+      {/* JOB DETAILS */}
+      <div style={{ maxWidth: 'var(--cr-content-lg)', margin: '0 auto', padding: 'var(--cr-space-2xl) var(--cr-page-padding) var(--cr-space-3xl)' }}>
+        <SectionHeading title="这个岗位做什么" />
+        <div className="cr-card" style={{ padding: 0, overflow: 'hidden' }}>
+          {responsibilities.map((r, i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 14, padding: 'var(--cr-space-lg) var(--cr-space-xl)', borderBottom: i < responsibilities.length - 1 ? '1px solid var(--cr-border-light)' : 'none', background: i === 0 ? 'var(--cr-accent-subtle)' : 'var(--cr-surface)' }}>
+              <div style={{ width: 32, height: 32, borderRadius: 'var(--cr-radius-sm)', background: i === 0 ? 'var(--cr-accent)' : 'var(--cr-subtle)', color: i === 0 ? '#fff' : 'var(--cr-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'var(--cr-text-sm)', fontWeight: 700, fontFamily: 'var(--cr-font-display)', flexShrink: 0 }}>{String(i + 1).padStart(2, '0')}</div>
+              <span style={{ fontSize: 'var(--cr-text-base)', color: 'var(--cr-ink-soft)', lineHeight: 'var(--cr-leading-normal)', paddingTop: 4 }}>{r.trim()}</span>
+            </div>
           ))}
         </div>
-      </section>
 
-      <section className="job-brief-section rights-brief-card">
-        <div className="truth-contract-head">
-          <div>
-            <span className="eyebrow">Candidate Rights</span>
-            <h2>我的数据与权益</h2>
-            <p>进入云试岗前，你可以先看清系统记录什么、不记录什么，以及HR会看到哪些内容。</p>
+        {job.challenges && (
+          <div style={{ marginTop: 'var(--cr-space-lg)', padding: 'var(--cr-space-lg) var(--cr-space-xl)', borderRadius: 'var(--cr-radius-lg)', background: 'var(--cr-warning-bg)', border: '1px solid var(--cr-warning)', display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+            <div style={{ fontSize: 'var(--cr-text-lg)', flexShrink: 0 }}>💬</div>
+            <div>
+              <div style={{ fontSize: 'var(--cr-text-sm)', fontWeight: 700, color: 'var(--cr-warning)', marginBottom: 6 }}>坦率地说</div>
+              <p style={{ fontSize: 'var(--cr-text-base)', color: 'var(--cr-ink-soft)', lineHeight: 'var(--cr-leading-normal)', margin: 0 }}>{job.challenges}</p>
+            </div>
           </div>
-          <button className="ghost-button" type="button" onClick={() => setShowRights(true)}>
-            查看权益
-          </button>
-        </div>
-      </section>
+        )}
 
-      <div className="mobile-actions sticky brief-sticky-cta">
-        <button className="primary-button" onClick={() => setShowConsent(true)}>
-          开始云试岗
-        </button>
-        <Link className="ghost-button" to={`/candidate/profile/${job.id}?direct=1${sessionId ? `&sessionId=${sessionId}` : ''}`}>
-          直接投递简历
-        </Link>
+        <div style={{ marginTop: 'var(--cr-space-2xl)' }}>
+          <SectionHeading title="需要什么能力" />
+          <div className="cr-card" style={{ padding: 'var(--cr-space-xl)' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: job.analysis?.hardSkills ? 14 : 0 }}>
+              {(job.requirements ?? '').split(/[，,]/).filter(Boolean).map((req, i) => (
+                <span key={i} style={{ padding: '8px 16px', borderRadius: 'var(--cr-radius-full)', background: 'var(--cr-subtle)', fontSize: 'var(--cr-text-base)', color: 'var(--cr-ink-soft)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--cr-accent)', flexShrink: 0 }} />{req.trim()}
+                </span>
+              ))}
+            </div>
+            {job.analysis?.hardSkills && (
+              <div style={{ borderTop: '1px solid var(--cr-border-light)', paddingTop: 14 }}>
+                <div style={{ fontSize: 'var(--cr-text-xs)', color: 'var(--cr-muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>核心技术能力</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>{job.analysis.hardSkills.map((s: string) => <span key={s} className="cr-badge cr-badge-blue" style={{ fontSize: 'var(--cr-text-xs)' }}>{s}</span>)}</div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div style={{ marginTop: 'var(--cr-space-2xl)' }}>
+          <SectionHeading title="团队与成长" />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--cr-space-lg)' }}>
+            <div className="cr-card" style={{ padding: 'var(--cr-space-xl)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                <div style={{ width: 32, height: 32, borderRadius: 'var(--cr-radius-sm)', background: 'var(--cr-accent-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'var(--cr-text-md)' }}>👥</div>
+                <div style={{ fontSize: 'var(--cr-text-base)', fontWeight: 600, color: 'var(--cr-ink)' }}>团队概况</div>
+              </div>
+              <p style={{ fontSize: 'var(--cr-text-base)', color: 'var(--cr-ink-soft)', lineHeight: 'var(--cr-leading-normal)', margin: 0 }}>{job.teamInfo}</p>
+            </div>
+            <div className="cr-card" style={{ padding: 'var(--cr-space-xl)', borderLeft: '4px solid var(--cr-accent)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                <div style={{ width: 32, height: 32, borderRadius: 'var(--cr-radius-sm)', background: 'var(--cr-accent-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'var(--cr-text-md)' }}>📈</div>
+                <div style={{ fontSize: 'var(--cr-text-base)', fontWeight: 600, color: 'var(--cr-ink)' }}>成长路径</div>
+              </div>
+              <p style={{ fontSize: 'var(--cr-text-base)', color: 'var(--cr-ink-soft)', lineHeight: 'var(--cr-leading-normal)', margin: 0 }}>{job.growthPath}</p>
+            </div>
+          </div>
+        </div>
+
+        <div style={{ marginTop: 'var(--cr-space-2xl)' }}>
+          <SectionHeading title="福利与流程" />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--cr-space-lg)' }}>
+            <div className="cr-card" style={{ padding: 'var(--cr-space-xl)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                <div style={{ width: 32, height: 32, borderRadius: 'var(--cr-radius-sm)', background: 'var(--cr-info-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'var(--cr-text-md)' }}>📋</div>
+                <div style={{ fontSize: 'var(--cr-text-base)', fontWeight: 600, color: 'var(--cr-ink)' }}>面试流程</div>
+              </div>
+              <p style={{ fontSize: 'var(--cr-text-sm)', color: 'var(--cr-ink-soft)', lineHeight: 'var(--cr-leading-normal)', margin: 0 }}>{job.interviewProcess}</p>
+            </div>
+            <div className="cr-card" style={{ padding: 'var(--cr-space-xl)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                <div style={{ width: 32, height: 32, borderRadius: 'var(--cr-radius-sm)', background: 'var(--cr-warning-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'var(--cr-text-md)' }}>⏱️</div>
+                <div style={{ fontSize: 'var(--cr-text-base)', fontWeight: 600, color: 'var(--cr-ink)' }}>工作节奏</div>
+              </div>
+              <p style={{ fontSize: 'var(--cr-text-sm)', color: 'var(--cr-ink-soft)', lineHeight: 'var(--cr-leading-normal)', margin: 0 }}>{job.workload || '详见岗位描述'}</p>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {showConsent ? (
-        <div className="modal-backdrop">
-          <section className="consent-modal">
-            <span className="eyebrow">开始前请确认</span>
-            <h2>AI身份披露</h2>
-            <p>
-              你即将进入由AI数字人生成的岗位实境舱。数字人不是HR本人，也不代表真人正在与你实时沟通。
-              系统不会基于本次体验自动做出招聘决定，不分析你的外貌、表情、声音情绪。
-              系统只会基于你的主动提问、场景选择和填写资料生成云试岗报告，供HR人工参考。
-            </p>
-            <div className="mobile-actions">
-              <button className="primary-button" onClick={startTrial}>
-                同意并开始云试岗
-              </button>
-              <Link className="ghost-button" to={`/candidate/profile/${job.id}?direct=1${sessionId ? `&sessionId=${sessionId}` : ''}`}>
-                直接投递简历
-              </Link>
-            </div>
-          </section>
+      {/* FULL-WIDTH SECTIONS */}
+      <div style={{ borderTop: '1px solid var(--cr-border-light)' }}>
+        <div className="cr-section-alt" style={{ padding: 'var(--cr-space-3xl) 0' }}>
+          <GravitySandbox job={job} truthLabel={truthLabel} onStartTrial={() => navigate(`/candidate/inbox/${job.id}`)} onDirectApply={() => navigate(`/candidate/profile/${job.id}?direct=1`)} />
         </div>
-      ) : null}
+        <div className="cr-section-alt"><TeamConstellation job={job} /></div>
+        <GrowthCompass job={job} />
+        <div className="cr-section-alt"><BenefitsCalculator monthlyBase={job.salaryMin ? (job.salaryMin + job.salaryMax) / 2 : undefined} /></div>
 
-      {showRights ? (
-        <div className="modal-backdrop">
-          <section className="consent-modal wide">
-            <CandidateRightsPanel onClose={() => setShowRights(false)} />
-          </section>
-        </div>
-      ) : null}
-    </main>
+        <section style={{ padding: 'var(--cr-space-3xl) 0', maxWidth: 'var(--cr-content-lg)', margin: '0 auto', width: '100%', paddingLeft: 'var(--cr-page-padding)', paddingRight: 'var(--cr-page-padding)' }}>
+          <div style={{ textAlign: 'center', marginBottom: 'var(--cr-space-xl)' }}>
+            <span className="cr-eyebrow" style={{ textAlign: 'center' }}>招聘流程</span>
+            <h2 style={{ fontFamily: 'var(--cr-font-display)', fontSize: 'var(--cr-text-3xl)', fontWeight: 700, color: 'var(--cr-ink)', margin: '8px 0' }}>从这里到 offer</h2>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 0, flexWrap: 'wrap', maxWidth: 800, margin: '0 auto' }}>
+            {[{ step: '01', title: '实境体验', desc: '展示真实能力', color: '#059669' }, { step: '02', title: 'HR 审阅', desc: '人工复核报告', color: '#6366F1' }, { step: '03', title: '初步沟通', desc: '电话了解情况', color: '#D97706' }, { step: '04', title: '深度面试', desc: '技术/业务交流', color: '#2563EB' }, { step: '05', title: 'Offer', desc: '薪资沟通与发放', color: '#059669' }].map((s, i) => (
+              <div key={i} style={{ flex: '1 1 120px', maxWidth: 160, textAlign: 'center', position: 'relative', padding: '0 10px' }}>
+                {i < 4 && <div style={{ position: 'absolute', top: 18, right: -6, width: 12, height: 2, background: 'var(--cr-border)' }} />}
+                <div style={{ width: 36, height: 36, borderRadius: '50%', background: s.color, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 8px', position: 'relative', zIndex: 1, color: '#fff', fontSize: 'var(--cr-text-xs)', fontWeight: 700, fontFamily: 'var(--cr-font-display)' }}>{s.step}</div>
+                <div style={{ fontSize: 'var(--cr-text-sm)', fontWeight: 600, color: 'var(--cr-ink)', marginBottom: 2 }}>{s.title}</div>
+                <div style={{ fontSize: 'var(--cr-text-xs)', color: 'var(--cr-ink-dim)' }}>{s.desc}</div>
+              </div>
+            ))}
+          </div>
+        </section>
+      </div>
+
+      {showStickyCTA && (
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} style={{ position: 'sticky', bottom: 0, zIndex: 40, background: 'var(--cr-surface-float)', backdropFilter: 'blur(20px)', borderTop: '1px solid var(--cr-border-light)', padding: 'var(--cr-space-lg)', display: 'flex', justifyContent: 'center' }}>
+          <button className="cr-btn-primary cr-btn-lg" onClick={() => navigate(`/candidate/inbox/${job.id}`)} style={{ fontSize: 'var(--cr-text-md)' }}><Sparkles size={18} />开始实境体验</button>
+        </motion.div>
+      )}
+    </div>
   );
 }

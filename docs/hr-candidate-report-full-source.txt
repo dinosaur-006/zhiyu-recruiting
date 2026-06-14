@@ -1,0 +1,1307 @@
+import type { ReactNode } from 'react';
+
+type PanelTint = 'green' | 'amber' | 'red' | 'blue' | 'navy';
+const TINTS: Record<PanelTint, string> = { green: 'tint-green', amber: 'tint-amber', red: 'tint-red', blue: 'tint-blue', navy: 'tint-navy' };
+
+interface PanelProps {
+  eyebrow: string;
+  title: string;
+  subtitle?: string;
+  children: ReactNode;
+  badge?: ReactNode;
+  tint?: PanelTint;
+}
+
+export function Panel({ eyebrow, title, subtitle, children, badge, tint }: PanelProps) {
+  const cls = ['detail-section'];
+  if (tint) cls.push('panel-tinted', TINTS[tint]);
+  return (
+    <section className={cls.join(' ')}>
+      <div className="pro-card-head">
+        <div>
+          <span className="section-eyebrow">{eyebrow}</span>
+          <h3 className="section-title">{title}</h3>
+          {subtitle && <p className="section-sub" style={{ marginBottom: 0 }}>{subtitle}</p>}
+        </div>
+        {badge}
+      </div>
+      {children}
+    </section>
+  );
+}
+import { useState } from 'react';
+import { Link, useParams } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Badge } from '../../components/Badge';
+import { AIRiskReviewPanel } from '../../components/AIRiskReviewPanel';
+import { CandidateFairnessIndexPanel } from '../../components/CandidateFairnessIndexPanel';
+import { CandidateTrustIndexPanel } from '../../components/CandidateTrustIndexPanel';
+import { CommitmentConsistencyPanel } from '../../components/CommitmentConsistencyPanel';
+import { ConcernRadarPanel } from '../../components/ConcernRadarPanel';
+import { InterviewBattleCardPanel } from '../../components/InterviewBattleCardPanel';
+import { NoShowPreventionCardPanel } from '../../components/NoShowPreventionCardPanel';
+import { SilenceRiskPanel } from '../../components/SilenceRiskPanel';
+import { TrialReplayPanel } from '../../components/TrialReplayPanel';
+import { TrustAuditLogPanel } from '../../components/TrustAuditLogPanel';
+import { TrustNegotiationCardPanel } from '../../components/TrustNegotiationCardPanel';
+import { TrustRepairTaskPanel } from '../../components/TrustRepairTaskPanel';
+import { addCandidateToTalentPool, inviteCandidate, markReportReviewed, useDemoState } from '../../store/demoStore';
+import type { BranchScenario, Job, RealityReport, ReverseQuestion } from '../../types';
+
+type DetailTab = 'Overview' | 'Evidence' | 'Actions' | 'Governance' | 'Interview';
+const TABS: { key: DetailTab; label: string }[] = [
+  { key: 'Overview', label: '总览' },
+  { key: 'Evidence', label: '证据链' },
+  { key: 'Actions', label: 'HR动作' },
+  { key: 'Governance', label: '信任治理' },
+  { key: 'Interview', label: '面试指南' },
+];
+
+const fade = { initial: { opacity: 0, y: 8 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0, y: -6 } };
+
+export function CandidateDetail() {
+  const { candidateId } = useParams();
+  const state = useDemoState();
+  const candidate = state.candidates.find((i) => i.id === candidateId);
+  const job = state.jobs.find((i) => i.id === candidate?.jobId);
+  const report = state.realityReports.find((i) => i.candidateId === candidateId);
+  const scenes = state.realityScenes.filter((s) => s.jobId === candidate?.jobId);
+  const branchScenarios = state.branchScenarios.filter((s) => s.jobId === candidate?.jobId);
+  const session = state.trialSessions.find((s) => s.candidateId === candidateId);
+  const [activeTab, setActiveTab] = useState<DetailTab>('Overview');
+
+  if (!candidate || !job || !report) {
+    return (
+      <main style={{ padding: 'var(--cr-space-5xl)', textAlign: 'center', background: 'var(--cr-base)', minHeight: '100vh' }}>
+        <div className="cr-empty-state"><h3>未找到候选人报告</h3></div>
+      </main>
+    );
+  }
+
+  const trust = report.candidateTrustIndex.total;
+  const pending = report.trustRepairTasks.find((t) => !t.handledAt);
+  const statusTone = candidate.status === '已邀约' ? 'green' : candidate.status === '已入库' ? 'purple' : 'blue';
+
+  return (
+    <main className="candidate-detail-page">
+      {/* ═══ HEADER ═══ */}
+      <section className="candidate-detail-header">
+        <div className="cd-header-top">
+          <div className="cd-avatar">{candidate.name.charAt(0)}</div>
+          <div className="cd-identity">
+            <h1 className="cd-name">{candidate.name}</h1>
+            <div className="cd-meta">
+              {job.title}<span className="cd-meta-sep" />{candidate.sourceChannel}<span className="cd-meta-sep" />{candidate.email}
+              <span style={{ marginLeft: 8 }}><Badge tone={statusTone}>{candidate.status}</Badge></span>
+            </div>
+          </div>
+          <div className="cd-trust-badge">
+            <div className="cd-trust-ring" style={{ '--pct': trust } as React.CSSProperties}>
+              <span className="cd-trust-val">{trust}</span>
+            </div>
+            <span className="cd-trust-label">信任指数</span>
+          </div>
+        </div>
+        <div className="cd-header-actions">
+          <button className="cr-btn-primary" onClick={() => inviteCandidate(candidate.id)}>发起面试邀请</button>
+          <button className="cr-btn-ghost" onClick={() => addCandidateToTalentPool(candidate.id)}>加入人才库</button>
+          <Link className="cr-btn-ghost" to="/hr/candidates">← 返回列表</Link>
+        </div>
+      </section>
+
+      {/* ═══ TABS ═══ */}
+      <nav className="detail-tab-bar">
+        {TABS.map((t) => (
+          <button key={t.key} className={`detail-tab ${activeTab === t.key ? 'detail-tab--active' : ''}`} onClick={() => setActiveTab(t.key)}>
+            {t.label}
+          </button>
+        ))}
+      </nav>
+
+      {/* ═══ CONTENT ═══ */}
+      <div className="detail-tab-content">
+        <AnimatePresence mode="wait">
+          <motion.div key={activeTab} {...fade} transition={{ duration: 0.2 }}>
+            {activeTab === 'Overview' && <OverviewTab report={report} scenes={scenes} pending={pending} />}
+            {activeTab === 'Evidence' && <EvidenceTab report={report} branchScenarios={branchScenarios} session={session} />}
+            {activeTab === 'Actions' && <ActionsTab report={report} />}
+            {activeTab === 'Governance' && <GovernanceTab report={report} />}
+            {activeTab === 'Interview' && <InterviewGuideTab report={report} job={job} />}
+          </motion.div>
+        </AnimatePresence>
+      </div>
+
+      {/* ═══ STICKY ═══ */}
+      <div className="detail-sticky-bar">
+        <button className="cr-btn-primary" onClick={() => inviteCandidate(candidate.id)}>发起面试邀请</button>
+        <button className="cr-btn-ghost" onClick={() => addCandidateToTalentPool(candidate.id)}>加入人才库</button>
+      </div>
+    </main>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   OVERVIEW — Brief + Trust + Risk + Radar + Tasks (compact)
+   ═══════════════════════════════════════════════════════════════ */
+function OverviewTab({ report, scenes, pending }: {
+  report: RealityReport; scenes: import('../../types').RealityScene[];
+  pending: import('../../types').TrustRepairTask | undefined;
+}) {
+  return (
+    <>
+      {/* Decision Brief */}
+      <section className="detail-section">
+        <span className="section-eyebrow">Decision Brief</span>
+        <h3 className="section-title">一屏结论</h3>
+        <div className="summary-grid-4" style={{ marginTop: 'var(--cr-space-lg)' }}>
+          <SumCell label="信任状态" value={report.candidateTrustIndex.total >= 80 ? '高信任' : report.candidateTrustIndex.total >= 65 ? '中高信任' : '需修复'} detail={`信任指数 ${report.candidateTrustIndex.total}/100`} tone={report.candidateTrustIndex.total >= 80 ? 'green' : report.candidateTrustIndex.total >= 65 ? 'blue' : 'amber'} />
+          <SumCell label="HR行动建议" value={report.hrActionSuggestion} detail={pending?.suggestedAction || '按建议完成复核'} tone={report.hrActionSuggestion === '优先邀约' ? 'green' : report.hrActionSuggestion === '建议入库观察' ? 'amber' : 'blue'} />
+          <SumCell label="AI风险复核" value={report.aiRiskReview.result} detail={report.aiRiskReview.reminders[0] || ''} tone={report.aiRiskReview.result === '复核通过' ? 'green' : 'amber'} />
+          <SumCell label="审计完整率" value={`${report.auditCompletenessRate}%`} detail={report.auditCompletenessRate >= 80 ? '关键行为已留痕' : '建议补充'} tone={report.auditCompletenessRate >= 80 ? 'green' : 'blue'} />
+        </div>
+        <div className="summary-rec">
+          <span className="summary-rec-label">▶ 建议</span>
+          <span className="summary-rec-text">{pending ? `先修复：${pending.title}` : report.trustGapSummary?.repairSuggestions?.[0] || '可进入人工复核'}</span>
+        </div>
+        <AiMeta report={report} />
+      </section>
+
+      {/* Trust Index + Concern Radar (combined — ConcernRadar integrates into Trust panel visually) */}
+      <div className="detail-grid-2col">
+        <CandidateTrustIndexPanel trustIndex={report.candidateTrustIndex} />
+        <div>
+          <ConcernRadarPanel radar={report.concernRadar} />
+          {/* Trial stats inline */}
+          <section className="detail-section" style={{ marginTop: 'var(--cr-space-xl)' }}>
+            <span className="section-eyebrow">Trial Completion</span>
+            <h3 className="section-title">云试岗完成情况</h3>
+            <div className="summary-grid-4" style={{ marginTop: 'var(--cr-space-lg)' }}>
+              <SumCell label="完成度" value={`${report.trialCompletion}%`} detail="" tone="blue" />
+              <SumCell label="真实意向" value={report.realIntention} detail="" tone={report.realIntention === '高' ? 'green' : 'blue'} />
+              <SumCell label="岗位理解" value={report.jobUnderstanding} detail="" tone={report.jobUnderstanding === '清晰' ? 'green' : 'amber'} />
+              <SumCell label="爽约风险" value={report.noShowRisk} detail="" tone={report.noShowRisk === '低' ? 'green' : report.noShowRisk === '中' ? 'amber' : 'red'} />
+            </div>
+          </section>
+        </div>
+      </div>
+
+      {/* Engagement Risk — Silence + NoShow merged into one section */}
+      <div className="detail-grid-2col">
+        <SilenceRiskPanel risk={report.silenceRisk} />
+        <NoShowPreventionCardPanel card={report.noShowPreventionCard} />
+      </div>
+
+      {/* Compact: top 3 pending repair tasks */}
+      {report.trustRepairTasks.filter((t) => !t.handledAt).length > 0 && (
+        <TrustRepairTaskPanel tasks={report.trustRepairTasks.filter((t) => !t.handledAt).slice(0, 3)} compact />
+      )}
+    </>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   EVIDENCE
+   ═══════════════════════════════════════════════════════════════ */
+function EvidenceTab({ report, branchScenarios, session }: {
+  report: RealityReport; branchScenarios: BranchScenario[];
+  session: import('../../types').TrialSession | undefined;
+}) {
+  return (
+    <>
+      <TrialReplayPanel events={report.trialReplay} />
+
+      <section className="detail-section">
+        <span className="section-eyebrow">Branch Decisions</span>
+        <h3 className="section-title">分岔任务选择</h3>
+        <p className="section-sub">候选人在云试岗分岔场景中的每个选择，揭示其决策倾向</p>
+
+        {report.decisionPathAnalysis?.summary && (
+          <div className="decision-path-summary">
+            <p>{report.decisionPathAnalysis.summary}</p>
+            <div className="summary-grid-4">
+              <SumCell label="协作" value={String(report.decisionPathAnalysis.collaboration ?? '—')} detail="" tone="blue" />
+              <SumCell label="风险意识" value={String(report.decisionPathAnalysis.riskAwareness ?? '—')} detail="" tone="blue" />
+              <SumCell label="沟通" value={String(report.decisionPathAnalysis.communication ?? '—')} detail="" tone="blue" />
+              <SumCell label="技术判断" value={String(report.decisionPathAnalysis.technicalJudgment ?? '—')} detail="" tone="blue" />
+            </div>
+          </div>
+        )}
+
+        {branchScenarios.length > 0 ? (
+          <div className="branch-scenarios-list">
+            {branchScenarios.map((sc) => {
+              const ids = session?.branchChoiceIds ?? [];
+              const picks = sc.choices.filter((c) => ids.includes(c.id));
+              return (
+                <div key={sc.id} className="branch-scenario-card">
+                  <h4>第{sc.round}轮：{sc.title}</h4>
+                  <p>{sc.description}</p>
+                  {picks.length > 0 ? (
+                    <div className="branch-choice-results">
+                      {picks.map((ch) => (
+                        <div key={ch.id} className="branch-choice-item">
+                          <strong>选项 {ch.label}：{ch.text}</strong>
+                          <div className="summary-grid-4" style={{ marginTop: 10 }}>
+                            <SumCell label="协作" value={String(ch.analysis.collaboration ?? '—')} detail="" tone="blue" />
+                            <SumCell label="风险" value={String(ch.analysis.riskAwareness ?? '—')} detail="" tone="blue" />
+                            <SumCell label="沟通" value={String(ch.analysis.communication ?? '—')} detail="" tone="blue" />
+                            <SumCell label="技术" value={String(ch.analysis.technicalJudgment ?? '—')} detail="" tone="blue" />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : <p className="cd-muted">未记录选择</p>}
+                </div>
+              );
+            })}
+          </div>
+        ) : <p className="cd-muted">该岗位未配置分岔场景</p>}
+      </section>
+
+      <ReverseQuestionsPanel questions={report.reverseQuestions} />
+    </>
+  );
+}
+
+function ReverseQuestionsPanel({ questions }: { questions: ReverseQuestion[] }) {
+  if (questions.length === 0) return null;
+  return (
+    <section className="detail-section">
+      <span className="section-eyebrow">Candidate Questions</span>
+      <h3 className="section-title">候选人反向提问</h3>
+      <div className="reverse-questions-list">
+        {questions.map((q) => (
+          <div key={q.id} className="reverse-question-card">
+            <div className="rq-header">
+              <Badge tone="purple">{q.type}</Badge>
+              <span className="rq-time">{fmtDate(q.createdAt)}</span>
+            </div>
+            <p className="rq-question">{q.question}</p>
+            <div className="rq-answer"><span className="eyebrow">AI 回复</span><p>{q.answer}</p></div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ACTIONS — Full repair tasks + negotiation + battle card
+   ═══════════════════════════════════════════════════════════════ */
+function ActionsTab({ report }: { report: RealityReport }) {
+  return (
+    <>
+      <TrustRepairTaskPanel tasks={report.trustRepairTasks} />
+      <TrustNegotiationCardPanel card={report.trustNegotiationCard} />
+      <InterviewBattleCardPanel card={report.interviewBattleCard} />
+      <section className="detail-section">
+        <span className="section-eyebrow">Invitation Script</span>
+        <h3 className="section-title">邀约话术</h3>
+        <div className="invitation-script">{report.invitationScript || '暂无邀约话术建议。'}</div>
+      </section>
+    </>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   GOVERNANCE — Audit + Fairness + Risk Review (consolidated)
+   ═══════════════════════════════════════════════════════════════ */
+function GovernanceTab({ report }: { report: RealityReport }) {
+  return (
+    <>
+      <TrustAuditLogPanel events={report.trustAuditLog} completenessRate={report.auditCompletenessRate} />
+      <div className="detail-grid-2col">
+        <CandidateFairnessIndexPanel fairness={report.candidateFairnessIndex} />
+        <div>
+          <AIRiskReviewPanel review={report.aiRiskReview} />
+          <CommitmentConsistencyPanel check={report.commitmentConsistencyCheck} />
+        </div>
+      </div>
+      <section className="detail-section" style={{ fontSize: 'var(--cr-text-sm)', color: 'var(--cr-ink-dim)', lineHeight: 1.7 }}>
+        {report.complianceNote || '本报告遵循AI辅助招聘合规要求。所有AI分析结果仅供参考，最终决策由HR人工完成。'}
+      </section>
+    </>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   INTERVIEW GUIDE
+   ═══════════════════════════════════════════════════════════════ */
+interface IGap { dimension: string; score: number; requirement: number; priority: 'must-ask'|'confirm'|'highlight'; question: string; }
+
+function buildGaps(report?: RealityReport, job?: Job): IGap[] {
+  if (!report || !job) return [];
+  const g: IGap[] = [];
+  const a = report.attentionMap;
+  if (a) {
+    if (a.technology > 60) g.push({ dimension:'技术深度', score:a.technology, requirement:75, priority:'highlight', question:`在${job.title}岗位上，您如何看待技术选型的前瞻性和实用性之间的平衡？` });
+    if (a.salary > 60) g.push({ dimension:'薪资期望', score:a.salary, requirement:70, priority:'confirm', question:`关于薪资范围${job.salaryMin}k-${job.salaryMax}k，您的期望是怎样的？` });
+    if (a.team > 50) g.push({ dimension:'团队协作', score:a.team, requirement:75, priority:'confirm', question:'请描述一次您成功推动跨团队协作的经历。' });
+    if (a.workload > 50) g.push({ dimension:'工作节奏', score:a.workload, requirement:70, priority:'must-ask', question:`${job.workload || '详见JD'}。您如何看待这种节奏？` });
+    if (a.growth > 50) g.push({ dimension:'成长诉求', score:a.growth, requirement:70, priority:'confirm', question:`${job.growthPath || '详见JD'}。与您的规划匹配吗？` });
+  }
+  if (report.jobUnderstanding === '部分清晰' || report.jobUnderstanding === '存在偏差')
+    g.push({ dimension:'岗位理解', score:report.jobUnderstanding==='部分清晰'?60:40, requirement:75, priority:'must-ask', question:'您对岗位职责还有哪些不太清楚的地方？' });
+  if (g.length === 0) g.push({ dimension:'综合评估', score:80, requirement:75, priority:'confirm', question:'请描述一次您在工作中展现核心能力的具体经历。' });
+  return g;
+}
+
+function InterviewGuideTab({ report, job }: { report?: RealityReport; job?: Job }) {
+  const gaps = buildGaps(report, job);
+  const groups = {
+    'must-ask': { label: '🔴 必问', color: 'var(--cr-negative)', items: gaps.filter((g) => g.priority === 'must-ask') },
+    confirm: { label: '🟠 确认', color: 'var(--cr-warning)', items: gaps.filter((g) => g.priority === 'confirm') },
+    highlight: { label: '🟢 高亮', color: 'var(--cr-positive)', items: gaps.filter((g) => g.priority === 'highlight') },
+  };
+
+  return (
+    <section className="detail-section">
+      <span className="section-eyebrow">Interview Guide</span>
+      <h3 className="section-title">面试指南</h3>
+      <p className="section-sub">基于云试岗评分的结构化面试指引</p>
+      <div className="interview-legend">
+        <div className="legend-dot"><span style={{ background: 'var(--cr-negative)' }} />必问（低于要求）</div>
+        <div className="legend-dot"><span style={{ background: 'var(--cr-warning)' }} />确认（临界线）</div>
+        <div className="legend-dot"><span style={{ background: 'var(--cr-positive)' }} />高亮（显著高于）</div>
+      </div>
+      {(['must-ask','confirm','highlight'] as const).map((key) => {
+        const grp = groups[key];
+        if (grp.items.length === 0) return null;
+        return (
+          <div key={key} style={{ marginBottom: key !== 'highlight' ? 'var(--cr-space-xl)' : 0 }}>
+            <h4 style={{ color: grp.color, margin: '0 0 var(--cr-space-md)', fontSize: 'var(--cr-text-md)', fontWeight: 700 }}>{grp.label}</h4>
+            <div className="interview-gap-list">
+              {grp.items.map((g) => {
+                const diff = g.score - g.requirement;
+                const tone: 'red'|'amber'|'green' = g.priority === 'must-ask' ? 'red' : g.priority === 'confirm' ? 'amber' : 'green';
+                return (
+                  <div key={g.dimension} className="interview-gap-card" style={{ borderLeft: `4px solid ${grp.color}` }}>
+                    <div className="ig-header">
+                      <span className="ig-dim">{g.dimension}</span>
+                      <span className="ig-score">得分 {g.score} vs 要求 {g.requirement}<span className="ig-diff" style={{ color: grp.color }}>({diff >= 0 ? '+' : ''}{diff})</span></span>
+                      <Badge tone={tone}>{g.priority === 'must-ask' ? '必问' : g.priority === 'confirm' ? '确认' : '高亮'}</Badge>
+                    </div>
+                    <p className="ig-question">{g.question}</p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+    </section>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SHARED
+   ═══════════════════════════════════════════════════════════════ */
+function SumCell({ label, value, detail, tone }: { label: string; value: string; detail: string; tone: 'green'|'amber'|'blue'|'red' }) {
+  return (
+    <div className={`summary-cell t-${tone}`}>
+      <div className="summary-cell-label">{label}</div>
+      <div className="summary-cell-value">{value}</div>
+      {detail ? <div className="summary-cell-detail">{detail}</div> : null}
+    </div>
+  );
+}
+
+function AiMeta({ report }: { report: RealityReport }) {
+  const m = report.aiMeta;
+  const reviewed = report.humanReviewStatus === 'reviewed';
+  return (
+    <div className="ai-meta-card">
+      <div className="ai-meta-row">
+        <div>
+          <span className="section-eyebrow" style={{ marginBottom: 2 }}>AI Trace</span>
+          <div style={{ fontSize: 'var(--cr-text-sm)', fontWeight: 600, color: 'var(--cr-ink)' }}>AI生成来源与人工复核</div>
+        </div>
+        <button className={reviewed ? 'cr-btn-ghost' : 'cr-btn-primary'} disabled={reviewed} onClick={() => markReportReviewed(report.id)} style={{ fontSize: 'var(--cr-text-sm)' }}>
+          {reviewed ? '✓ 已人工复核' : '确认已人工复核'}
+        </button>
+      </div>
+      <div className="ai-meta-tags">
+        <span>来源：{m?.source === 'deepseek' ? 'DeepSeek' : '本地计算'}</span>
+        {m?.model && <span>模型：{m.model}</span>}
+        {typeof m?.latencyMs === 'number' && <span>耗时：{m.latencyMs}ms</span>}
+      </div>
+      {m?.fallback && <div className="ai-risk-warning">真实AI不可用，本报告为本地计算，请HR人工确认。</div>}
+      {m?.needsHumanReview && <div className="ai-risk-warning">触发了AI安全过滤，部分内容已标记，请HR确认后使用。</div>}
+    </div>
+  );
+}
+
+function fmtDate(iso: string): string {
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? '' : d.toLocaleString('zh-CN', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
+}
+/* ============================================================
+   Candidate Detail — HR Command Center
+   Clean editorial layout. Precise typography. Scannable.
+   ============================================================ */
+
+/* ── Page ── */
+.candidate-detail-page {
+  max-width: var(--cr-content-xl);
+  margin: 0 auto;
+  padding-bottom: 120px;
+  background: var(--cr-base);
+  min-height: 100vh;
+}
+
+/* ═══ HEADER — Two-section: identity + actions ═══ */
+.candidate-detail-header {
+  padding: var(--cr-space-2xl) var(--cr-space-2xl) var(--cr-space-xl);
+  background: linear-gradient(180deg, var(--cr-accent-subtle) 0%, var(--cr-base) 100%);
+  border-bottom: 1px solid var(--cr-border-light);
+}
+
+.cd-header-top {
+  display: flex;
+  align-items: center;
+  gap: var(--cr-space-xl);
+  flex-wrap: wrap;
+}
+
+.cd-avatar {
+  width: 60px; height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--cr-accent), #34D399);
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: var(--cr-text-2xl); font-weight: 700;
+  font-family: var(--cr-font-display); flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(5,150,105,0.18);
+}
+
+.cd-identity { flex: 1; min-width: 0; }
+.cd-name {
+  font-family: var(--cr-font-display); font-size: var(--cr-text-2xl);
+  font-weight: 700; color: var(--cr-ink); margin: 0;
+  letter-spacing: -0.015em; line-height: 1.2;
+}
+.cd-meta {
+  font-size: var(--cr-text-sm); color: var(--cr-ink-dim);
+  display: flex; align-items: center; gap: 4px; flex-wrap: wrap; margin: 4px 0 0;
+}
+.cd-meta-sep { color: var(--cr-border-strong); }
+.cd-meta-sep::before { content: '·'; }
+
+.cd-trust-badge {
+  display: flex; flex-direction: column; align-items: center; gap: 2px; flex-shrink: 0;
+}
+.cd-trust-ring {
+  width: 64px; height: 64px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  position: relative;
+  background: conic-gradient(var(--cr-accent) calc(var(--pct,0)*1%), var(--cr-border-light) 0);
+  mask: radial-gradient(transparent 60%, #000 62%);
+  -webkit-mask: radial-gradient(transparent 60%, #000 62%);
+}
+.cd-trust-ring::before {
+  content: ''; position: absolute; inset: 3px; border-radius: 50%; background: var(--cr-base);
+}
+.cd-trust-val {
+  font-family: var(--cr-font-display); font-size: var(--cr-text-lg);
+  font-weight: 700; color: var(--cr-accent); position: relative; z-index: 1;
+}
+.cd-trust-label {
+  font-size: 10px; color: var(--cr-muted); font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.06em;
+}
+
+.cd-header-actions {
+  display: flex; gap: var(--cr-space-sm); margin-top: var(--cr-space-lg);
+  flex-wrap: wrap;
+}
+.cd-header-actions .cr-btn-primary { min-width: 140px; }
+.cd-header-actions .cr-btn-ghost { min-width: 100px; }
+
+/* ═══ TAB BAR ═══ */
+.detail-tab-bar {
+  display: flex; gap: 0;
+  border-bottom: 1px solid var(--cr-border-light);
+  background: var(--cr-surface);
+  position: sticky; top: 0; z-index: 30;
+  padding: 0 var(--cr-space-2xl);
+}
+.detail-tab {
+  padding: var(--cr-space-md) var(--cr-space-xl);
+  font-size: var(--cr-text-sm); font-weight: 500;
+  color: var(--cr-muted); background: none; border: none;
+  border-bottom: 2px solid transparent; cursor: pointer;
+  transition: all 0.15s; white-space: nowrap;
+  font-family: var(--cr-font-sans);
+}
+.detail-tab:hover { color: var(--cr-ink); }
+.detail-tab--active {
+  color: var(--cr-accent); border-bottom-color: var(--cr-accent); font-weight: 600;
+}
+
+/* ═══ TAB CONTENT ═══ */
+.detail-tab-content {
+  padding: var(--cr-space-2xl);
+}
+
+/* ═══ SECTION CARD ═══ */
+.detail-section {
+  background: var(--cr-surface);
+  border: 1px solid var(--cr-border-light);
+  border-radius: var(--cr-radius-lg);
+  padding: var(--cr-space-2xl);
+  margin-bottom: var(--cr-space-xl);
+}
+.detail-section:last-child { margin-bottom: 0; }
+
+.section-eyebrow {
+  display: block;
+  font-size: 10px; font-weight: 600; letter-spacing: 0.07em;
+  text-transform: uppercase; color: var(--cr-muted); margin-bottom: 4px;
+}
+.section-title {
+  font-family: var(--cr-font-display); font-size: var(--cr-text-lg);
+  font-weight: 700; color: var(--cr-ink); margin: 0 0 4px;
+  letter-spacing: -0.01em;
+}
+.section-sub {
+  font-size: var(--cr-text-sm); color: var(--cr-ink-dim); margin: 0 0 var(--cr-space-xl);
+}
+
+/* ═══ SUMMARY GRID — 4-column ═══ */
+.summary-grid-4 {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: var(--cr-space-md); margin-bottom: var(--cr-space-lg);
+}
+.summary-cell {
+  background: var(--cr-subtle-warm); border-radius: var(--cr-radius-md);
+  padding: var(--cr-space-lg); border-left: 3px solid transparent;
+}
+.summary-cell.t-green  { border-left-color: var(--cr-positive); background: var(--cr-positive-bg); }
+.summary-cell.t-amber  { border-left-color: var(--cr-warning); background: var(--cr-warning-bg); }
+.summary-cell.t-blue   { border-left-color: var(--cr-info); background: var(--cr-info-bg); }
+.summary-cell.t-red    { border-left-color: var(--cr-negative); background: var(--cr-negative-bg); }
+
+.summary-cell-label {
+  font-size: 10px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.05em; color: var(--cr-muted); margin-bottom: 4px;
+}
+.summary-cell-value {
+  font-family: var(--cr-font-display); font-size: var(--cr-text-md);
+  font-weight: 700; color: var(--cr-ink); margin-bottom: 2px;
+}
+.summary-cell-detail {
+  font-size: var(--cr-text-xs); color: var(--cr-ink-dim); line-height: 1.5;
+}
+
+/* Recommendation strip */
+.summary-rec {
+  display: flex; align-items: center; gap: var(--cr-space-md);
+  padding: var(--cr-space-md) var(--cr-space-lg);
+  background: var(--cr-accent-subtle); border-radius: var(--cr-radius-md);
+  border: 1px solid rgba(5,150,105,0.1); font-size: var(--cr-text-sm);
+}
+.summary-rec-label { color: var(--cr-accent); font-weight: 600; flex-shrink: 0; }
+.summary-rec-text { color: var(--cr-ink); font-weight: 500; }
+
+/* ═══ 2-COLUMN ═══ */
+.detail-grid-2col {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: var(--cr-space-xl); margin-bottom: var(--cr-space-xl);
+}
+
+/* ═══ AI META ═══ */
+.ai-meta-card {
+  margin-top: var(--cr-space-lg); padding: var(--cr-space-lg);
+  background: var(--cr-subtle); border-radius: var(--cr-radius-md);
+  font-size: var(--cr-text-xs);
+}
+.ai-meta-row {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: var(--cr-space-md); flex-wrap: wrap;
+}
+.ai-meta-tags {
+  display: flex; flex-wrap: wrap; gap: var(--cr-space-md);
+  font-family: var(--cr-font-mono); color: var(--cr-muted);
+  margin-top: var(--cr-space-sm);
+}
+.ai-meta-tags span { white-space: nowrap; }
+.ai-risk-warning {
+  margin-top: var(--cr-space-sm); padding: var(--cr-space-sm) var(--cr-space-md);
+  background: var(--cr-warning-bg); border: 1px solid var(--cr-warning);
+  border-radius: var(--cr-radius-sm); font-size: var(--cr-text-xs);
+  color: var(--cr-warning); font-weight: 500;
+}
+
+/* ═══ EVIDENCE ═══ */
+.branch-scenarios-list { display: flex; flex-direction: column; gap: var(--cr-space-md); margin-top: var(--cr-space-md); }
+.branch-scenario-card {
+  background: var(--cr-subtle-warm); border-radius: var(--cr-radius-md);
+  padding: var(--cr-space-xl); border: 1px solid var(--cr-border-light);
+}
+.branch-scenario-card h4 { font-family: var(--cr-font-display); font-size: var(--cr-text-md); margin: 0 0 var(--cr-space-sm); font-weight: 600; color: var(--cr-ink); }
+.branch-scenario-card > p { font-size: var(--cr-text-sm); color: var(--cr-ink-dim); margin: 0 0 var(--cr-space-lg); line-height: 1.6; }
+.branch-choice-results { display: flex; flex-direction: column; gap: var(--cr-space-sm); }
+.branch-choice-item {
+  background: var(--cr-surface); border-radius: var(--cr-radius-sm);
+  padding: var(--cr-space-lg); border: 1px solid var(--cr-border-light);
+  border-left: 3px solid var(--cr-accent);
+}
+.branch-choice-item > strong { display: block; margin-bottom: var(--cr-space-sm); font-size: var(--cr-text-sm); color: var(--cr-ink); }
+
+.decision-path-summary { margin-bottom: var(--cr-space-md); }
+.decision-path-summary > p { font-size: var(--cr-text-sm); color: var(--cr-ink-soft); line-height: 1.7; margin-bottom: var(--cr-space-md); }
+
+/* ═══ REVERSE QUESTIONS ═══ */
+.reverse-questions-list { display: flex; flex-direction: column; gap: var(--cr-space-md); }
+.reverse-question-card {
+  background: var(--cr-subtle-warm); border-radius: var(--cr-radius-md);
+  padding: var(--cr-space-xl); border: 1px solid var(--cr-border-light);
+}
+.rq-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--cr-space-md); }
+.rq-time { font-size: var(--cr-text-xs); color: var(--cr-muted); font-family: var(--cr-font-mono); }
+.rq-question { font-size: var(--cr-text-md); font-weight: 600; color: var(--cr-ink); margin: 0 0 var(--cr-space-md); line-height: 1.5; }
+.rq-answer { background: var(--cr-surface); border-radius: var(--cr-radius-sm); padding: var(--cr-space-md) var(--cr-space-lg); border: 1px solid var(--cr-border-light); border-left: 2px solid var(--cr-accent); }
+.rq-answer .eyebrow { display: block; font-size: 10px; color: var(--cr-muted); letter-spacing: 0.06em; margin-bottom: 4px; }
+.rq-answer p { font-size: var(--cr-text-sm); color: var(--cr-ink-soft); line-height: 1.6; margin: 0; }
+
+/* ═══ INTERVIEW GUIDE ═══ */
+.interview-legend { display: flex; gap: var(--cr-space-xl); flex-wrap: wrap; margin-bottom: var(--cr-space-xl); }
+.legend-dot { display: flex; align-items: center; gap: 6px; font-size: var(--cr-text-xs); color: var(--cr-ink-dim); }
+.legend-dot > span { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+
+.interview-gap-list { display: flex; flex-direction: column; gap: var(--cr-space-md); }
+.interview-gap-card {
+  background: var(--cr-surface); border-radius: var(--cr-radius-md);
+  padding: var(--cr-space-lg) var(--cr-space-xl); border: 1px solid var(--cr-border-light);
+  transition: box-shadow 0.15s;
+}
+.interview-gap-card:hover { box-shadow: var(--cr-shadow-sm); }
+.ig-header { display: flex; align-items: baseline; gap: var(--cr-space-md); flex-wrap: wrap; margin-bottom: 6px; }
+.ig-dim { font-size: var(--cr-text-md); font-weight: 600; color: var(--cr-ink); }
+.ig-score { font-size: var(--cr-text-xs); color: var(--cr-muted); }
+.ig-diff { font-weight: 600; margin-left: 6px; }
+.ig-question { font-size: var(--cr-text-sm); color: var(--cr-ink-soft); margin: 0; line-height: 1.6; }
+
+/* ═══ INVITATION SCRIPT ═══ */
+.invitation-script {
+  background: var(--cr-subtle-warm); border-radius: var(--cr-radius-md);
+  padding: var(--cr-space-lg); border: 1px solid var(--cr-border-light);
+  font-size: var(--cr-text-sm); color: var(--cr-ink-soft); line-height: 1.7; white-space: pre-wrap;
+}
+
+/* ═══ STICKY BAR ═══ */
+.detail-sticky-bar {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 40;
+  background: var(--cr-surface-float); backdrop-filter: blur(12px);
+  border-top: 1px solid var(--cr-border-light);
+  box-shadow: 0 -4px 24px rgba(0,0,0,0.05);
+  padding: var(--cr-space-md) var(--cr-space-2xl);
+  display: flex; justify-content: center; align-items: center; gap: var(--cr-space-md);
+}
+.detail-sticky-bar .cr-btn-primary { min-width: 160px; }
+.detail-sticky-bar .cr-btn-ghost { min-width: 100px; }
+
+/* ═══════════════════════════════════════════════════════════
+   PANEL SHARED CLASSES — Fix orphaned CSS for all 12 panels
+   ═══════════════════════════════════════════════════════════ */
+
+/* Panel card — base surface for all panel components */
+.pro-card {
+  background: var(--cr-surface);
+  border: 1px solid var(--cr-border-light);
+  border-radius: var(--cr-radius-lg);
+  padding: var(--cr-space-2xl);
+  margin-bottom: var(--cr-space-xl);
+}
+.pro-card:last-child { margin-bottom: 0; }
+.pro-card-head {
+  margin-bottom: var(--cr-space-xl);
+}
+.pro-card-head .section-eyebrow { display: block; margin-bottom: 4px; }
+.pro-card-head h3 {
+  font-family: var(--cr-font-display); font-size: var(--cr-text-lg);
+  font-weight: 700; color: var(--cr-ink); margin: 0 0 4px;
+}
+.pro-card-head p {
+  font-size: var(--cr-text-sm); color: var(--cr-ink-dim); margin: 0; line-height: 1.6;
+}
+
+/* Tinted panel variants */
+.panel-tinted {
+  border-left: 4px solid var(--cr-border);
+}
+.panel-tinted.tint-green  { border-left-color: var(--cr-positive); background: var(--cr-positive-bg); }
+.panel-tinted.tint-amber  { border-left-color: var(--cr-warning); background: var(--cr-warning-bg); }
+.panel-tinted.tint-red    { border-left-color: var(--cr-negative); background: var(--cr-negative-bg); }
+.panel-tinted.tint-blue   { border-left-color: var(--cr-info); background: var(--cr-info-bg); }
+.panel-tinted.tint-navy   { border-left-color: var(--cr-secondary); background: var(--cr-secondary-subtle); }
+
+/* ── Trust Index Panel ── */
+.trust-index-panel { }
+.trust-gap-row {
+  display: flex; flex-wrap: wrap; gap: var(--cr-space-sm);
+  align-items: center; margin-top: var(--cr-space-md); padding-top: var(--cr-space-md);
+  border-top: 1px solid var(--cr-border-light);
+}
+
+/* ── Governance / Audit / Fairness panels ── */
+.governance-panel { }
+.audit-timeline {
+  display: flex; flex-direction: column; gap: var(--cr-space-md);
+}
+.audit-item {
+  display: flex; gap: var(--cr-space-md); align-items: flex-start;
+  padding: var(--cr-space-md) var(--cr-space-lg);
+  background: var(--cr-subtle-warm); border-radius: var(--cr-radius-md);
+  border-left: 3px solid var(--cr-accent);
+}
+.audit-item-time {
+  font-size: var(--cr-text-xs); color: var(--cr-muted);
+  font-family: var(--cr-font-mono); white-space: nowrap; min-width: 90px;
+}
+.audit-item-body { flex: 1; }
+.audit-item-body strong { font-size: var(--cr-text-sm); color: var(--cr-ink); display: block; }
+.audit-item-body p { font-size: var(--cr-text-xs); color: var(--cr-ink-dim); margin: 2px 0 0; line-height: 1.5; }
+
+/* ── Fairness grid ── */
+.fairness-panel { }
+.fairness-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--cr-space-sm);
+  margin-top: var(--cr-space-lg);
+}
+.fairness-item {
+  text-align: center; padding: var(--cr-space-md);
+  background: var(--cr-subtle-warm); border-radius: var(--cr-radius-sm);
+}
+.fairness-item-label { font-size: 11px; color: var(--cr-muted); margin-bottom: 4px; }
+.fairness-item-value { font-family: var(--cr-font-display); font-size: var(--cr-text-lg); font-weight: 700; color: var(--cr-ink); }
+
+/* ── Consistency check ── */
+.consistency-panel { }
+.consistency-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: var(--cr-space-lg);
+  margin-top: var(--cr-space-lg);
+}
+
+/* ── Risk review ── */
+.risk-review-panel { }
+.risk-review-head { margin-bottom: var(--cr-space-lg); }
+.risk-review-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: var(--cr-space-lg);
+}
+
+/* ── Trial Replay Timeline ── */
+.replay-panel { }
+.replay-timeline {
+  display: flex; flex-direction: column; gap: 0;
+  padding-left: var(--cr-space-xl); border-left: 2px solid var(--cr-border-light);
+  margin-left: var(--cr-space-lg);
+}
+.replay-item {
+  position: relative; padding: var(--cr-space-md) 0 var(--cr-space-md) var(--cr-space-xl);
+}
+.replay-item::before {
+  content: ''; position: absolute; left: calc(-1 * var(--cr-space-xl) - 5px); top: 18px;
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--cr-accent); border: 2px solid var(--cr-surface);
+}
+.replay-item-time {
+  font-size: var(--cr-text-xs); color: var(--cr-muted); font-family: var(--cr-font-mono);
+}
+.replay-item-label {
+  font-size: var(--cr-text-sm); font-weight: 600; color: var(--cr-ink); margin-top: 2px;
+}
+
+/* ── Battle Card ── */
+.battle-card { }
+.battle-card-section {
+  display: flex; gap: var(--cr-space-md); align-items: flex-start;
+  padding: var(--cr-space-md) 0;
+  border-bottom: 1px solid var(--cr-border-light);
+}
+.battle-card-section:last-child { border-bottom: none; }
+.battle-card-icon {
+  width: 32px; height: 32px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; margin-top: 2px;
+}
+
+/* ── No-show card ── */
+.no-show-card { }
+
+/* ── Negotiation panel ── */
+.negotiation-panel { }
+
+/* ── Compact script block ── */
+.compact-script {
+  background: var(--cr-subtle-warm); border-radius: var(--cr-radius-md);
+  padding: var(--cr-space-md) var(--cr-space-lg); margin-top: var(--cr-space-md);
+  font-size: var(--cr-text-sm); color: var(--cr-ink-soft); line-height: 1.7;
+  white-space: pre-wrap;
+}
+.copy-script-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: var(--cr-space-sm);
+}
+
+/* ── Clean list — minimal bullet-free list ── */
+.clean-list {
+  list-style: none; padding: 0; margin: 0;
+  display: flex; flex-direction: column; gap: var(--cr-space-sm);
+}
+.clean-list li {
+  font-size: var(--cr-text-sm); color: var(--cr-ink-soft); line-height: 1.6;
+  padding-left: var(--cr-space-lg); position: relative;
+}
+.clean-list li::before {
+  content: ''; position: absolute; left: 0; top: 8px;
+  width: 5px; height: 5px; border-radius: 50%; background: var(--cr-accent);
+}
+
+/* Trust score ring (shared by trust index + fairness index) */
+.trust-score-ring {
+  width: 88px; height: 88px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  position: relative; flex-shrink: 0;
+  background: conic-gradient(var(--cr-accent) calc(var(--pct, 0) * 1%), var(--cr-border-light) 0);
+  mask: radial-gradient(transparent 60%, #000 62%);
+  -webkit-mask: radial-gradient(transparent 60%, #000 62%);
+}
+.trust-score-ring::before {
+  content: ''; position: absolute; inset: 3px;
+  border-radius: 50%; background: var(--cr-base);
+}
+
+/* Card lift hover effect */
+.card-lift {
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+.card-lift:hover {
+  box-shadow: var(--cr-shadow-md);
+  transform: translateY(-1px);
+}
+
+/* ── Unified 2-column panel grid (replaces risk-review-grid + consistency-grid + governance-grid) ── */
+.panel-two-col {
+  display: grid; grid-template-columns: 1fr 1fr; gap: var(--cr-space-lg);
+  margin-bottom: var(--cr-space-lg);
+}
+.panel-two-col strong {
+  font-size: var(--cr-text-sm); font-weight: 600; color: var(--cr-ink);
+  display: block; margin-bottom: var(--cr-space-sm);
+}
+/* Keep legacy aliases for backward compat */
+.governance-grid, .risk-review-grid, .consistency-grid { }
+.governance-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--cr-space-lg); margin-bottom: var(--cr-space-lg); }
+.governance-grid strong { font-size: var(--cr-text-sm); font-weight: 600; color: var(--cr-ink); display: block; margin-bottom: var(--cr-space-sm); }
+
+/* ── Story list ── */
+.story-list {
+  list-style: none; padding: 0; margin: 0;
+  display: flex; flex-direction: column; gap: var(--cr-space-xs);
+}
+.story-list li {
+  font-size: var(--cr-text-sm); color: var(--cr-ink-soft); line-height: 1.6;
+  padding-left: var(--cr-space-lg); position: relative;
+}
+.story-list li::before {
+  content: '•'; position: absolute; left: 2px; top: -1px;
+  color: var(--cr-muted); font-weight: bold;
+}
+.story-block { margin-bottom: var(--cr-space-xl); }
+.story-block:last-child { margin-bottom: 0; }
+
+/* ── Left accent border utilities ── */
+.panel-left-accent-green  { border-left: 4px solid var(--cr-positive) !important; }
+.panel-left-accent-amber  { border-left: 4px solid var(--cr-warning) !important; }
+.panel-left-accent-red    { border-left: 4px solid var(--cr-negative) !important; }
+.panel-left-accent-blue   { border-left: 4px solid var(--cr-info) !important; }
+.panel-left-accent-navy   { border-left: 4px solid var(--cr-secondary) !important; }
+
+/* Repair task card (TrustRepairTaskPanel) */
+.repair-task-card {
+  background: var(--cr-surface);
+  border: 1px solid var(--cr-border-light);
+  border-radius: var(--cr-radius-lg);
+  padding: var(--cr-space-xl);
+  display: flex; gap: var(--cr-space-lg); align-items: flex-start;
+}
+.repair-task-card:hover { box-shadow: var(--cr-shadow-sm); }
+.repair-source-icon {
+  width: 40px; height: 40px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; font-size: 16px; font-weight: 700;
+}
+.repair-task-body { flex: 1; min-width: 0; }
+.repair-task-title { font-size: var(--cr-text-md); font-weight: 600; color: var(--cr-ink); margin-bottom: 4px; }
+.repair-task-trigger { font-size: var(--cr-text-sm); color: var(--cr-ink-soft); line-height: 1.6; margin-bottom: 6px; }
+.repair-task-meta { display: flex; flex-wrap: wrap; gap: var(--cr-space-sm); align-items: center; font-size: var(--cr-text-xs); color: var(--cr-muted); margin-bottom: 8px; }
+.repair-task-action { background: var(--cr-subtle-warm); border-radius: var(--cr-radius-md); padding: var(--cr-space-md) var(--cr-space-lg); font-size: var(--cr-text-sm); color: var(--cr-ink-soft); line-height: 1.6; }
+
+/* ═══════════════════════════════════════════════════════════
+   STICKY BAR ═══ (moved above, not duplicated)
+   ═══════════════════════════════════════════════════════════ */
+
+/* ═══ UTILITY ═══ */
+.cd-muted { font-size: var(--cr-text-sm); color: var(--cr-muted); }
+
+/* ═══ RESPONSIVE ═══ */
+@media (max-width: 960px) {
+  .summary-grid-4 { grid-template-columns: repeat(2, 1fr); }
+  .detail-grid-2col { grid-template-columns: 1fr; }
+  .detail-tab-content { padding: var(--cr-space-xl); }
+}
+@media (max-width: 640px) {
+  .candidate-detail-header { padding: var(--cr-space-xl) var(--cr-space-lg); }
+  .cd-name { font-size: var(--cr-text-xl); }
+  .cd-header-actions { flex-direction: column; }
+  .cd-header-actions .cr-btn-primary,
+  .cd-header-actions .cr-btn-ghost { width: 100%; }
+  .summary-grid-4 { grid-template-columns: 1fr; }
+  .detail-tab-bar { overflow-x: auto; padding: 0 var(--cr-space-md); }
+  .detail-tab { padding: var(--cr-space-sm) var(--cr-space-lg); font-size: var(--cr-text-xs); }
+  .detail-tab-content { padding: var(--cr-space-lg); }
+  .detail-sticky-bar { flex-wrap: wrap; gap: var(--cr-space-sm); padding: var(--cr-space-sm) var(--cr-space-lg); }
+  .detail-sticky-bar .cr-btn-primary { width: 100%; }
+  .detail-sticky-bar .cr-btn-ghost { flex: 1; }
+}
+import { Badge } from './Badge';
+import { Panel } from './Panel';
+import { buildTrustDimContext } from '../mock/ai';
+import type { CandidateTrustIndex } from '../types';
+
+const LABELS: Record<keyof CandidateTrustIndex['dimensions'], string> = {
+  jobInfoClarity: '岗位信息清晰度', salaryCertainty: '薪资沟通确定性', teamTrust: '团队信任感',
+  growthCredibility: '成长路径可信度', rhythmAcceptance: '工作节奏接受度', aiTransparency: 'AI流程透明度',
+  interviewWillingness: '面试投入意愿',
+};
+
+export function CandidateTrustIndexPanel({ trustIndex }: { trustIndex: CandidateTrustIndex }) {
+  return (
+    <Panel eyebrow="Candidate Trust Index" title="候选人信任指数" subtitle={trustIndex.explanation}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--cr-space-md)' }}>
+        {Object.entries(trustIndex.dimensions).map(([k, v]) => {
+          const color = v < 40 ? 'var(--cr-accent)' : v <= 70 ? 'var(--cr-warning)' : 'var(--cr-negative)';
+          return (
+            <div key={k}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                <span style={{ fontSize: 'var(--cr-text-sm)', fontWeight: 500, color: 'var(--cr-ink-soft)' }}>{LABELS[k as keyof CandidateTrustIndex['dimensions']]}</span>
+                <span style={{ fontFamily: 'var(--cr-font-mono)', fontSize: 'var(--cr-text-xs)', fontWeight: 700, color }}>{v}</span>
+              </div>
+              <div style={{ height: 6, borderRadius: 3, background: 'var(--cr-border-light)', overflow: 'hidden' }}>
+                <div style={{ height: '100%', borderRadius: 3, background: color, width: `${v}%`, transition: 'width 0.5s' }} />
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--cr-muted)', marginTop: 2, lineHeight: 1.4 }}>{buildTrustDimContext(k, v)}</div>
+            </div>
+          );
+        })}
+      </div>
+      <div className="trust-gap-row">
+        <div style={{ flex: 1, minWidth: 200 }}><strong style={{ fontSize: 'var(--cr-text-sm)', color: 'var(--cr-ink)', display: 'block', marginBottom: 'var(--cr-space-sm)' }}>当前信任缺口</strong>{trustIndex.gapReasons.map((r) => <Badge key={r} tone="amber">{r}</Badge>)}</div>
+        <div style={{ flex: 1, minWidth: 200 }}><strong style={{ fontSize: 'var(--cr-text-sm)', color: 'var(--cr-ink)', display: 'block', marginBottom: 'var(--cr-space-sm)' }}>邀约前修复建议</strong><ul className="clean-list">{trustIndex.repairSuggestions.map((r) => <li key={r}>{r}</li>)}</ul></div>
+      </div>
+    </Panel>
+  );
+}
+import { AlertTriangle, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Badge } from './Badge';
+import { Panel } from './Panel';
+import type { SilenceRisk } from '../types';
+
+const ICONS: Record<string, React.ReactNode> = { 高: <AlertTriangle size={13} />, 中: <AlertCircle size={13} />, 低: <CheckCircle2 size={13} /> };
+const TINTS: Record<string, 'red'|'amber'|'green'> = { 高: 'red', 中: 'amber', 低: 'green' };
+
+export function SilenceRiskPanel({ risk }: { risk: SilenceRisk }) {
+  return (
+    <Panel eyebrow="Ghosting Prevention" title="候选人沉默风险识别"
+      subtitle="该模块只用于邀约沟通辅助，不评价候选人能力" tint={TINTS[risk.level]}
+      badge={<Badge tone={risk.level === '高' ? 'red' : risk.level === '中' ? 'amber' : 'green'}>{ICONS[risk.level]}沉默风险：{risk.level}</Badge>}>
+      <div className="panel-two-col">
+        <div><strong>可能沉默原因</strong><ul className="clean-list">{risk.possibleReasons.map((r) => <li key={r}>{r}</li>)}</ul></div>
+        <div><strong>建议HR动作</strong><ul className="clean-list">{risk.suggestedActions.map((a) => <li key={a}>{a}</li>)}</ul></div>
+      </div>
+      <div className="compact-script">
+        <div className="copy-script-head"><strong>沉默唤醒话术</strong></div>
+        <p style={{ margin: 0, fontSize: 'var(--cr-text-sm)', color: 'var(--cr-ink-soft)', lineHeight: 1.7 }}>{risk.wakeUpScript}</p>
+      </div>
+    </Panel>
+  );
+}
+import { Panel } from './Panel';
+import type { ConcernRadar } from '../types';
+
+const LABELS: Record<keyof ConcernRadar, string> = {
+  salary: '薪资顾虑', commute: '通勤顾虑', growth: '成长顾虑',
+  team: '团队氛围顾虑', workload: '工作节奏顾虑', roleClarity: '岗位职责顾虑',
+};
+
+export function ConcernRadarPanel({ radar, title = '候选人顾虑雷达' }: { radar: ConcernRadar; title?: string }) {
+  return (
+    <Panel eyebrow="Concern Radar" title={title}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--cr-space-md)' }}>
+        {Object.entries(radar).map(([k, v]) => {
+          const color = v < 40 ? 'var(--cr-positive)' : v <= 70 ? 'var(--cr-warning)' : 'var(--cr-negative)';
+          return (
+            <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 'var(--cr-space-md)' }}>
+              <span style={{ fontSize: 'var(--cr-text-sm)', color: 'var(--cr-ink-soft)', width: 100, flexShrink: 0, textAlign: 'right' }}>{LABELS[k as keyof ConcernRadar]}</span>
+              <div style={{ flex: 1, height: 8, borderRadius: 4, background: 'var(--cr-border-light)', overflow: 'hidden' }}>
+                <div style={{ height: '100%', borderRadius: 4, background: color, width: `${v}%`, transition: 'width 0.6s' }} />
+              </div>
+              <span style={{ fontSize: 'var(--cr-text-xs)', fontFamily: 'var(--cr-font-mono)', color, fontWeight: 600, width: 36 }}>{v}%</span>
+            </div>
+          );
+        })}
+      </div>
+    </Panel>
+  );
+}
+import { Footprints } from 'lucide-react';
+import { Panel } from './Panel';
+import type { TrialReplayEvent } from '../types';
+
+export function TrialReplayPanel({ events }: { events: TrialReplayEvent[] }) {
+  return (
+    <Panel eyebrow="Evidence Replay" title="云试岗路径回放" subtitle="候选人看过什么、选择过什么、主动问过什么">
+      <div className="replay-timeline">
+        {events.map((e) => (
+          <div key={e.id} className="replay-item">
+            <div className="replay-item-time"><Footprints size={11} /> {e.timeLabel}</div>
+            <div className="replay-item-label">{e.label}</div>
+            <span style={{ fontSize: 10, color: 'var(--cr-muted)' }}>{e.type}</span>
+          </div>
+        ))}
+      </div>
+    </Panel>
+  );
+}
+import { CheckCircle2, AlertTriangle, MessageSquare, FileSearch, Shield } from 'lucide-react';
+import { markTrustRepairTaskHandled } from '../store/demoStore';
+import type { TrustRepairTask } from '../types';
+import { Badge } from './Badge';
+import { Panel } from './Panel';
+
+const META: Record<string, { icon: typeof AlertTriangle; color: string; label: string }> = {
+  '信任缺口': { icon: AlertTriangle, color: 'var(--cr-negative)', label: '信任缺口' },
+  '沉默风险': { icon: MessageSquare,  color: 'var(--cr-warning)', label: '沉默风险' },
+  '承诺一致性': { icon: FileSearch,     color: 'var(--cr-secondary)', label: '承诺一致性' },
+  'AI风险复核': { icon: Shield,         color: 'var(--cr-positive)', label: 'AI风险复核' },
+};
+
+function badgeTone(s: string): 'red'|'amber'|'blue' { if (s === '信任缺口') return 'red'; if (s === '沉默风险') return 'amber'; return 'blue'; }
+
+export function TrustRepairTaskPanel({ tasks, compact = false }: { tasks: TrustRepairTask[]; compact?: boolean }) {
+  const pending = tasks.filter((t) => !t.handledAt);
+  const visible = compact ? pending.slice(0, 4) : tasks;
+  return (
+    <Panel eyebrow="Trust Repair Tasks" title="HR信任修复任务台" subtitle="把信任缺口、沉默风险和承诺一致性问题转成可处理任务"
+      badge={<Badge tone={pending.length > 0 ? 'amber' : 'green'}>{pending.length}项待处理</Badge>}>
+      {visible.length === 0 ? (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--cr-space-sm)', padding: 'var(--cr-space-3xl)', textAlign: 'center', color: 'var(--cr-muted)', background: 'var(--cr-subtle)', borderRadius: 'var(--cr-radius-lg)' }}>
+          <CheckCircle2 size={28} strokeWidth={1.5} style={{ color: 'var(--cr-positive)' }} /><p style={{ fontSize: 'var(--cr-text-sm)', margin: 0 }}>当前没有待处理信任修复任务</p>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--cr-space-md)' }}>
+          {visible.map((task) => {
+            const m = META[task.source] ?? META['信任缺口'];
+            const Icon = m.icon;
+            return (
+              <article key={task.id} className="repair-task-card card-lift" style={{ borderLeft: `4px solid ${m.color}`, opacity: task.handledAt ? 0.55 : 1 }}>
+                <div className="repair-source-icon" style={{ background: `${m.color}18` }}><Icon size={20} style={{ color: m.color }} /></div>
+                <div className="repair-task-body">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                    <span className="repair-task-title">{task.title}</span>
+                    <Badge tone={task.handledAt ? 'green' : badgeTone(task.source)}>{task.handledAt ? '已处理' : '待处理'}</Badge>
+                  </div>
+                  <p className="repair-task-trigger">{task.trigger}</p>
+                  <div className="repair-task-meta">
+                    <span style={{ display: 'inline-flex', fontWeight: 500, padding: '2px 8px', borderRadius: 'var(--cr-radius-full)', fontSize: 'var(--cr-text-xs)', color: m.color, background: `${m.color}18` }}>{m.label}</span>
+                    <span>{task.candidateName}</span>
+                    {task.estimatedImpact.length > 0 && <span>· 预计影响：{task.estimatedImpact[0]}</span>}
+                  </div>
+                  <div className="repair-task-action" style={{ borderLeft: `3px solid ${m.color}` }}>{task.suggestedAction}</div>
+                </div>
+                <div style={{ flexShrink: 0 }}>
+                  {task.handledAt
+                    ? <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 'var(--cr-text-xs)', color: 'var(--cr-positive)', fontWeight: 500 }}><CheckCircle2 size={14} />已处理</span>
+                    : <button className="cr-btn-primary" style={{ fontSize: 'var(--cr-text-xs)', padding: '8px 16px' }} onClick={() => markTrustRepairTaskHandled(task.id)}>标记已处理</button>
+                  }
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      )}
+    </Panel>
+  );
+}
+import { MessageCircle } from 'lucide-react';
+import { Badge } from './Badge';
+import { Panel } from './Panel';
+import type { TrustNegotiationCard } from '../types';
+
+export function TrustNegotiationCardPanel({ card }: { card: TrustNegotiationCard }) {
+  return (
+    <Panel eyebrow="Trust Negotiation" title="邀约前信任谈判舱"
+      subtitle="先澄清候选人最关心的问题，再进入正式邀约"
+      badge={<Badge tone="blue"><MessageCircle size={13} />HR辅助建议</Badge>}>
+      <div className="panel-two-col" style={{ marginTop: 0 }}>
+        <div>
+          <strong>候选人最想确认</strong>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 'var(--cr-space-sm)' }}>{card.candidateQuestions.map((q) => <Badge key={q} tone="amber">{q}</Badge>)}</div>
+        </div>
+        <div><strong>HR应先澄清</strong><ul className="clean-list">{card.hrClarifications.map((i) => <li key={i}>{i}</li>)}</ul></div>
+      </div>
+      <ScriptBox title="信任修复话术" content={card.trustRepairScript} />
+      <ScriptBox title="正式邀约话术" content={card.formalInvitationScript} />
+    </Panel>
+  );
+}
+function ScriptBox({ title, content }: { title: string; content: string }) {
+  return (
+    <div className="compact-script" style={{ marginTop: 'var(--cr-space-lg)' }}>
+      <div className="copy-script-head"><strong>{title}</strong><button className="cr-btn-ghost" style={{ fontSize: 11, padding: '2px 10px' }} onClick={() => navigator.clipboard?.writeText(content)}>复制</button></div>
+      <p style={{ margin: 0, fontSize: 'var(--cr-text-sm)', color: 'var(--cr-ink-soft)', lineHeight: 1.7 }}>{content}</p>
+    </div>
+  );
+}
+import { Target, Search, HelpCircle, MessageSquare, AlertTriangle } from 'lucide-react';
+import { Panel } from './Panel';
+import type { InterviewBattleCard } from '../types';
+
+const ICONS: Record<string, React.ReactNode> = { '本次面试目标': <Target size={14} />, '重点追问': <Search size={14} />, '需要澄清': <HelpCircle size={14} />, '需要补充介绍': <MessageSquare size={14} />, '不建议问的问题': <AlertTriangle size={14} /> };
+
+export function InterviewBattleCardPanel({ card }: { card: InterviewBattleCard }) {
+  return (
+    <Panel eyebrow="Interview Battle Card" title="HR面试作战卡" tint="navy">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--cr-space-md)' }}>
+        <BS icon={ICONS['本次面试目标']} title="本次面试目标" items={card.interviewGoals} />
+        <BS icon={ICONS['重点追问']} title="重点追问" items={card.keyQuestions} ordered />
+        <BS icon={ICONS['需要澄清']} title="需要澄清" items={card.needsClarification} />
+        <BS icon={ICONS['需要补充介绍']} title="需要补充介绍" items={card.shouldExplain} />
+        <div style={{ background: 'var(--cr-negative-bg)', borderRadius: 'var(--cr-radius-md)', padding: 'var(--cr-space-md) var(--cr-space-lg)', border: '1px solid rgba(220,38,38,0.15)' }}>
+          <BS icon={ICONS['不建议问的问题']} title="不建议问的问题" items={card.shouldAvoidAsking} />
+        </div>
+      </div>
+    </Panel>
+  );
+}
+function BS({ icon, title, items, ordered }: { icon: React.ReactNode; title: string; items: string[]; ordered?: boolean }) {
+  return (
+    <div className="battle-card-section">
+      <div className="battle-card-icon" style={{ background: 'var(--cr-secondary-subtle)', color: 'var(--cr-secondary)' }}>{icon}</div>
+      <div style={{ flex: 1 }}><h4 style={{ fontSize: 'var(--cr-text-sm)', fontWeight: 600, color: 'var(--cr-ink)', margin: '0 0 var(--cr-space-sm)' }}>{title}</h4>
+        {ordered ? <ol style={{ padding: '0 0 0 18px', margin: 0, fontSize: 'var(--cr-text-sm)', color: 'var(--cr-ink-soft)', lineHeight: 1.8 }}>{items.map((i) => <li key={i}>{i}</li>)}</ol>
+                 : <ul className="clean-list">{items.map((i) => <li key={i}>{i}</li>)}</ul>}
+      </div>
+    </div>
+  );
+}
+import { Phone } from 'lucide-react';
+import { Panel } from './Panel';
+import type { NoShowPreventionCard } from '../types';
+
+export function NoShowPreventionCardPanel({ card }: { card: NoShowPreventionCard }) {
+  return (
+    <Panel eyebrow="No-show Prevention" title="爽约预防卡" tint="amber"
+      badge={<button className="cr-btn-ghost" onClick={() => navigator.clipboard?.writeText(card.invitationScript)}><Phone size={13} />复制邀约话术</button>}>
+      <div className="panel-two-col" style={{ marginTop: 0 }}>
+        <div><strong>可能爽约原因</strong><ul className="clean-list">{card.possibleReasons.map((i) => <li key={i}>{i}</li>)}</ul></div>
+        <div><strong>邀约前建议动作</strong><ul className="clean-list">{card.preInviteActions.map((i) => <li key={i}>{i}</li>)}</ul></div>
+      </div>
+      <div className="compact-script">
+        <div className="copy-script-head"><strong>AI生成邀约话术</strong></div>
+        <p style={{ margin: 0, fontSize: 'var(--cr-text-sm)', color: 'var(--cr-ink-soft)', lineHeight: 1.7 }}>{card.invitationScript}</p>
+      </div>
+    </Panel>
+  );
+}
+import { ShieldCheck } from 'lucide-react';
+import { Badge } from './Badge';
+import { Panel } from './Panel';
+import type { TrustAuditEvent } from '../types';
+
+export function TrustAuditLogPanel({ events, completenessRate }: { events: TrustAuditEvent[]; completenessRate: number }) {
+  return (
+    <Panel eyebrow="Trust Governance" title="招聘信任审计日志"
+      subtitle="岗位真相、候选人行为、AI建议和HR操作的可追溯治理链路"
+      badge={<Badge tone={completenessRate >= 80 ? 'green' : 'amber'}><ShieldCheck size={13} />完整率 {completenessRate}%</Badge>}>
+      <div className="audit-timeline">
+        {events.map((e) => (
+          <article key={e.id} className="audit-item">
+            <div className="audit-item-time">{fmt(e.occurredAt)}</div>
+            <div className="audit-item-body">
+              <strong>{e.title}<span style={{ marginLeft: 8 }}><Badge tone={e.evidenceLevel === '充分' ? 'green' : 'amber'} dot>{e.evidenceLevel}</Badge></span></strong>
+              <p>{e.description}</p>
+              <span style={{ fontSize: 10, color: 'var(--cr-muted)' }}>{actorLabel(e.actor)}</span>
+            </div>
+          </article>
+        ))}
+      </div>
+    </Panel>
+  );
+}
+function actorLabel(a: TrustAuditEvent['actor']) { return { system: '系统记录', candidate: '候选人行为', ai: 'AI辅助生成', hr: 'HR操作' }[a]; }
+function fmt(v: string) { const d = new Date(v); return Number.isNaN(d.getTime()) ? v : d.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }); }
+import { Panel } from './Panel';
+import type { CandidateFairnessIndex } from '../types';
+
+const LABELS: Record<keyof CandidateFairnessIndex['dimensions'], string> = {
+  aiDisclosure: 'AI身份披露', dataUsageNotice: '数据用途说明', directApplyPath: '直接投递通道',
+  humanReview: '人工复核声明', explanationAndDeletion: '解释/删除说明',
+  sensitiveDataAvoidance: '避免敏感信息采集', feedbackTiming: '面试反馈时效说明',
+};
+
+export function CandidateFairnessIndexPanel({ fairness }: { fairness: CandidateFairnessIndex }) {
+  return (
+    <Panel eyebrow="Candidate Fairness Index" title="候选人体验公平指数" subtitle="衡量招聘流程透明度和候选人权益保障" tint="green">
+      <div className="fairness-grid">
+        {Object.entries(fairness.dimensions).map(([k, v]) => (
+          <div key={k} className="fairness-item">
+            <div className="fairness-item-label">{LABELS[k as keyof CandidateFairnessIndex['dimensions']]}</div>
+            <div className="fairness-item-value">{v}</div>
+          </div>
+        ))}
+      </div>
+      {fairness.optimizationSuggestions.length > 0 && (
+        <ul className="clean-list" style={{ marginTop: 'var(--cr-space-lg)' }}>{fairness.optimizationSuggestions.map((i) => <li key={i}>{i}</li>)}</ul>
+      )}
+    </Panel>
+  );
+}
+import { Shield, AlertTriangle } from 'lucide-react';
+import { Badge } from './Badge';
+import { Panel } from './Panel';
+import type { AIRiskReview } from '../types';
+
+export function AIRiskReviewPanel({ review }: { review: AIRiskReview }) {
+  const ok = review.result === '复核通过';
+  return (
+    <Panel eyebrow="AI Risk Reviewer" title="AI风险复核官" tint={ok ? 'green' : 'amber'}
+      badge={<Badge tone={ok ? 'green' : 'amber'}>{ok ? <Shield size={13} /> : <AlertTriangle size={13} />}{review.result}</Badge>}>
+      <div className="panel-two-col" style={{ marginTop: 0 }}>
+        <div><strong>已检查</strong><ul className="clean-list" style={{ marginTop: 'var(--cr-space-sm)' }}>{review.checkedItems.map((i) => <li key={i}>{i}</li>)}</ul></div>
+        <div><strong>复核提醒</strong><ul className="clean-list" style={{ marginTop: 'var(--cr-space-sm)' }}>{review.reminders.map((i) => <li key={i}>{i}</li>)}</ul></div>
+      </div>
+    </Panel>
+  );
+}
+import { AlertTriangle, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Badge } from './Badge';
+import { Panel } from './Panel';
+import type { CommitmentConsistencyCheck } from '../types';
+
+const TONES: Record<string, 'green'|'amber'|'red'> = { 低: 'green', 中: 'amber', 高: 'red' };
+const ICONS: Record<string, React.ReactNode> = { 高: <AlertTriangle size={13} />, 中: <AlertCircle size={13} />, 低: <CheckCircle2 size={13} /> };
+
+export function CommitmentConsistencyPanel({ check }: { check: CommitmentConsistencyCheck }) {
+  return (
+    <Panel eyebrow="Consistency Check" title="岗位承诺一致性检测"
+      subtitle="检查JD、岗位真相标签、合约、数字人脚本和面试流程之间的表达差异"
+      tint={check.riskLevel === '高' ? 'red' : 'amber'}
+      badge={<Badge tone={TONES[check.riskLevel]}>{ICONS[check.riskLevel]}一致性风险：{check.riskLevel}</Badge>}>
+      <div className="panel-two-col" style={{ marginTop: 0 }}>
+        <div><strong>发现的问题</strong><ul className="clean-list">{check.findings.map((i) => <li key={i}>{i}</li>)}</ul></div>
+        <div><strong>建议补充或修正</strong><ul className="clean-list">{check.suggestions.map((i) => <li key={i}>{i}</li>)}</ul></div>
+      </div>
+    </Panel>
+  );
+}

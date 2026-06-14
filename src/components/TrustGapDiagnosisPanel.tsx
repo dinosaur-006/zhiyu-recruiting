@@ -1,3 +1,4 @@
+import { Info, Heart, FileSearch, Handshake } from 'lucide-react';
 import { Badge } from './Badge';
 import type { TrustGapDiagnosisItem } from '../types';
 
@@ -8,9 +9,23 @@ const typeTone: Record<TrustGapDiagnosisItem['type'], 'blue' | 'purple' | 'amber
   承诺缺口: 'green',
 };
 
+const typeAccent: Record<TrustGapDiagnosisItem['type'], string> = {
+  信息缺口: 'accent-blue',
+  情绪缺口: 'accent-purple',
+  证据缺口: 'accent-amber',
+  承诺缺口: 'accent-green',
+};
+
+const typeIcon: Record<TrustGapDiagnosisItem['type'], React.ReactNode> = {
+  信息缺口: <Info size={14} />,
+  情绪缺口: <Heart size={14} />,
+  证据缺口: <FileSearch size={14} />,
+  承诺缺口: <Handshake size={14} />,
+};
+
 export function TrustGapDiagnosisPanel({ items }: { items: TrustGapDiagnosisItem[] }) {
   return (
-    <section className="story-block trust-diagnosis-panel" id="trust-gap-diagnosis">
+    <section className="story-block trust-diagnosis-panel panel-tinted tint-amber" id="trust-gap-diagnosis">
       <div className="pro-card-head">
         <div>
           <span className="eyebrow">Gap Diagnosis</span>
@@ -20,9 +35,9 @@ export function TrustGapDiagnosisPanel({ items }: { items: TrustGapDiagnosisItem
       </div>
       <div className="diagnosis-list">
         {items.map((item) => (
-          <article key={`${item.type}-${item.trigger}`} className="diagnosis-card">
+          <article key={`${item.type}-${item.trigger}`} className={`diagnosis-card panel-accent ${typeAccent[item.type]}`}>
             <div className="diagnosis-title">
-              <Badge tone={typeTone[item.type]}>{item.type}</Badge>
+              <Badge tone={typeTone[item.type]}>{typeIcon[item.type]}{item.type}</Badge>
               <strong>{item.impact}</strong>
             </div>
             <p><b>触发依据：</b>{item.trigger}</p>

@@ -1,3 +1,4 @@
+import { Eye, EyeOff, Users, Ban } from 'lucide-react';
 import { Badge } from './Badge';
 
 interface CandidateRightsPanelProps {
@@ -7,19 +8,25 @@ interface CandidateRightsPanelProps {
 const rightsSections = [
   {
     title: '本次会记录',
+    icon: <Eye size={16} />,
     items: ['你查看过的岗位真相点', '你在任务沙盘中的选择', '你主动提出的问题', '你主动填写的资料'],
+    cardClass: 'panel-tinted panel-tinted-green',
   },
   {
     title: '本次不会记录',
-    items: ['外貌', '表情', '声音情绪', '与岗位无关的私人敏感信息'],
+    icon: <EyeOff size={16} />,
+    items: ['外观特征', '面部状态', '音色情绪', '与岗位无关的私人敏感信息'],
+    cardClass: 'panel-tinted panel-tinted-red',
   },
   {
     title: 'HR会看到',
+    icon: <Users size={16} />,
     items: ['云试岗完成度', '关注点', '选择路径', '补充资料摘要', 'AI生成的面试前参考建议'],
   },
   {
     title: 'AI不会做',
-    items: ['自动决定录用结果', '自动决定不录用结果', '基于外貌、声音、表情判断适配度'],
+    icon: <Ban size={16} />,
+    items: ['自动决定最终推进结果', '自动决定不进入下一步', '基于外观特征、音色或面部状态判断适配度'],
   },
 ];
 
@@ -37,8 +44,8 @@ export function CandidateRightsPanel({ onClose }: CandidateRightsPanelProps) {
 
       <div className="rights-grid">
         {rightsSections.map((section) => (
-          <div key={section.title} className="rights-card">
-            <strong>{section.title}</strong>
+          <div key={section.title} className={`rights-card${section.cardClass ? ' ' + section.cardClass : ''}`}>
+            <strong>{section.icon}{section.title}</strong>
             <ul className="clean-list">
               {section.items.map((item) => (
                 <li key={item}>{item}</li>

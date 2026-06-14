@@ -1,0 +1,34 @@
+{
+  "perMessageScoring": {
+    "actionChoice_weight": 40,
+    "actionChoice_criteria": {
+      "reply_expected": "The message objectively requires a substantive response (direct question, escalation, time-sensitive decision)",
+      "defer_acceptable": "The message can reasonably be addressed later without negative consequences (FYI, non-urgent request with long deadline)",
+      "delegate_appropriate": "The message falls within another person's responsibility or the candidate lacks authority/context to respond",
+      "ignore_acceptable": "The message is spam, irrelevant announcement, or already resolved by another thread"
+    },
+    "actionScoring": "Each message has a 5-point reference action grid: (1) Must Reply Now, (2) Should Reply, (3) May Defer, (4) Should Delegate, (5) May Ignore. Candidate action compared to reference. Score: exact match = 100, off by 1 tier = 75, off by 2 tiers = 50, off by 3+ tiers = 0.",
+    "responseQuality_weight": 40,
+    "responseQuality_criteria": "AI-evaluated on 5 sub-dimensions each scored 0-20: professionalism (0-4) + empathy (0-4) + clarity (0-4) + actionability (0-4) + conciseness (0-4). Total sub-scores summed to response quality score (0-100).",
+    "responseTime_weight": 20,
+    "responseTime_criteria": "Time from message arrival to candidate action, normalized against message urgency tier. Urgent (tier-1): target <30s = 100, <60s = 75, <120s = 50, >120s = 0. Standard (tier-2): target <90s = 100, <180s = 75, <300s = 50, >300s = 0. Non-urgent (tier-3): target <300s = 100, else proportional."
+  },
+  "perMessageFormula": "messageScore = (actionScore * 0.40) + (qualityScore * 0.40) + (timeScore * 0.20)",
+  "aggregation": {
+    "perDimension": "Each dimension aggregates all messages weighted by the dimension's relevance coefficient for that message type. Relevance coefficients (0-1) are pre-assigned per message type: e.g., an angry client message has emotionalRegulation=1.0, stakeholderManagement=0.8, prioritization=0.6, communication=0.4, taskSwitching=0.3.",
+    "dimensionScoreFormula": "dimScore = SUM(messageScore_i * relevanceCoefficient_i) / SUM(relevanceCoefficient_i) across all messages",
+    "overallScore": "Weighted average of all 5 dimension scores with configurable weights (default: equal 20% each)",
+    "categoryLabels": {
+      "excellent": "90-100: 优秀 — consistently exceeds expectations",
+      "proficient": "75-89: 熟练 — meets expectations with occasional excellence",
+      "developing": "60-74: 发展中 — meets baseline with room for growth",
+      "needsImprovement": "below 60: 需提升 — below expected baseline for the role level"
+    }
+  },
+  "normalization": {
+    "difficultyAdjustment": "Scores from 'challenging' tier receive +5% boost, 'entry' tier receive -5% penalty (applied after dimension aggregation, before final report)",
+    "timePressureNormalization": "If a candidate finishes all messages before time expires, remaining time is not penalized. If messages are unopened at timeout, they receive actionScore=0, qualityScore=0, timeScore=0 and negatively impact all 5 dimensions proportionally to their relevance coefficients.",
+    "minimumMessagesThreshold": "Candidate must handle at least 60% of messages for scores to be considered valid. Below threshold, report marks dimensions as 'Insufficient Data'.",
+    "crossSessionCalibration": "Dimension scores are normalized against the distribution of all candidates for the same job within a rolling 90-day window, using z-score normalization capped at +/-2 standard deviations."
+  }
+}

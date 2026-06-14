@@ -1,6 +1,7 @@
 import type {
   AIAdviceEvidenceTag,
   ConcernRadar,
+  AiGenerationMeta,
   JobAnalysis,
   RealityReport,
   TrustRepairTask,
@@ -74,7 +75,11 @@ export function adaptAiJobAnalysis(aiAnalysis: AiJobAnalysisResponse): JobAnalys
   };
 }
 
-export function adaptAiReportToRealityReport(baseReport: RealityReport, aiReport: AiHrReportResponse): RealityReport {
+export function adaptAiReportToRealityReport(
+  baseReport: RealityReport,
+  aiReport: AiHrReportResponse,
+  aiMeta?: AiGenerationMeta,
+): RealityReport {
   const concernRadar = adaptConcernRadar(baseReport.concernRadar, aiReport.mainConcerns ?? []);
   const majorGaps = unique([
     ...baseReport.trustGapSummary.majorGaps,
@@ -93,6 +98,9 @@ export function adaptAiReportToRealityReport(baseReport: RealityReport, aiReport
 
   return {
     ...baseReport,
+    aiMeta: aiMeta ?? baseReport.aiMeta,
+    humanReviewStatus: baseReport.humanReviewStatus ?? 'pending',
+    reviewedAt: baseReport.reviewedAt,
     concernRadar,
     trustGapSummary: {
       majorGaps,

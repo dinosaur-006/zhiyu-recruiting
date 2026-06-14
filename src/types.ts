@@ -64,6 +64,8 @@ export interface Job extends JobInput {
   status: JobStatus;
   createdAt: string;
   analysis: JobAnalysis;
+  /** Phase 3: HR Genesis Engine 产出的情景参数 */
+  situationalParams?: SituationalParams;
 }
 
 export interface AvatarConfig {
@@ -436,6 +438,19 @@ export interface AIAdviceEvidenceTag {
   reason: string;
 }
 
+export interface AiGenerationMeta {
+  provider?: 'deepseek' | 'mock';
+  source: 'deepseek' | 'mock';
+  model?: string;
+  requestId?: string;
+  latencyMs?: number;
+  safetyHits?: string[];
+  needsHumanReview?: boolean;
+  createdAt: string;
+  fallback: boolean;
+  errorMessage?: string;
+}
+
 export interface RecruitingTrustHealth {
   total: number;
   strengths: string[];
@@ -571,6 +586,9 @@ export interface RealityReport {
     fromJobTruthLabel: string[];
   };
   complianceNote: string;
+  aiMeta?: AiGenerationMeta;
+  humanReviewStatus: 'pending' | 'reviewed';
+  reviewedAt?: string;
 }
 
 export interface FunnelMetrics {
@@ -643,4 +661,144 @@ export interface DemoState {
   conversations: Conversation[];
   storyCards: HRStoryCard[];
   metrics: FunnelMetrics;
+  latestCandidateActivity: Array<{ candidateName: string; action: string; time: string }>;
+  scoreOverrides: Array<{ dimension: string; aiScore: number; hrScore: number; annotation: string }>;
 }
+
+// ─── 情景化上下文 (Phase 1+2) ─────────────────────────────────
+
+export type SceneMood = 'warm_welcome' | 'casual_chat' | 'tense_decision' | 'high_pressure' | 'reflective';
+export type TimePressure = 'none' | 'moderate' | 'urgent';
+
+/** 注入到 AI system prompt 的情景上下文 */
+export interface SituationalContext {
+  sceneMood: SceneMood;
+  timePressure: TimePressure;
+  characterDynamics: string;
+  officeAtmosphere: string;
+  urgencyNarrative: string;
+  personaTone: string;
+  /** 蝴蝶效应：候选人前几轮的选择摘要 */
+  butterflyHistory?: string;
+}
+
+/** HR 造物主引擎产出的结构化参数 (Phase 3) */
+export interface SituationalParams {
+  paceThreshold: number;        // 0=极客慢跑, 100=生死时速
+  collaborationDensity: number;  // 0=孤狼作战, 100=高频开会
+  codeHygiene: number;          // 0=先上再说, 100=绝对规范
+  ambiguityTolerance: number;   // 0=需求必须明确, 100=拥抱变化
+  autonomyLevel: number;        // 0=严格执行, 100=完全Owner
+  derivedAtmosphere: string;    // AI 生成的氛围描述文本
+}
+
+// ═══════════════════════════════════════════════════════
+// Inbox/Workday Simulation Types
+// ═══════════════════════════════════════════════════════
+
+export type SimulationSenderRole = 'direct_manager' | 'teammate' | 'client' | 'cross_team' | 'system_bot' | 'junior' | 'executive';
+export type SimulationMessageType = 'task_request' | 'help_request' | 'escalation' | 'meeting_invite' | 'announcement' | 'follow_up' | 'info_share' | 'decision_needed';
+export type UrgencyTier = 'critical' | 'high' | 'medium' | 'low';
+export type SimulationActionType = 'reply' | 'defer' | 'delegate' | 'ignore';
+
+export interface QuickReplyTemplate { id: string; label: string; text: string; tone: 'assertive' | 'collaborative' | 'neutral' | 'deferring'; }
+export interface SimulationSender { name: string; role: SimulationSenderRole; avatarInitials: string; department?: string; }
+export interface EmbeddedDecision { prompt: string; options: Array<{ id: string; label: string; text: string }>; }
+
+export interface SimulationMessage {
+  id: string; type: SimulationMessageType; sender: SimulationSender; subject: string;
+  content: string; urgency: UrgencyTier; scheduledArrivalSeconds: number; actualArrivalIso?: string;
+  expectedResponseType: SimulationActionType; embeddedDecision?: EmbeddedDecision;
+  competencyTags: string[]; handled: boolean;
+  attachments?: Array<{ type: 'link' | 'image' | 'doc'; label: string; url?: string }>;
+}
+
+export interface ReplyEvaluation {
+  professionalism: number;
+  empathy: number;
+  clarity: number;
+  actionability: number;
+  conciseness: number;
+  overallScore: number;
+  strengths: string[];
+  improvements: string[];
+}
+
+export interface SimulationAction {
+  id: string; messageId: string; type: SimulationActionType; content?: string;
+  quickReplyTemplateId?: string; delegateTarget?: string; deferReason?: string;
+  timestamp: string; responseTimeMs: number;
+  replyEvaluation?: ReplyEvaluation;
+}
+
+export interface InteractRequest {
+  sessionId: string;
+  jobId: string;
+  scenarioId: string;
+  messageId: string;
+  actionType: SimulationActionType;
+  message: SimulationMessage;
+  candidateReply?: string;
+  delegateTarget?: string;
+  deferReason?: string;
+  deferCount?: number;
+  actionHistory?: Array<{ messageId: string; type: SimulationActionType; content?: string; delegateTarget?: string }>;
+  jobTitle?: string;
+  department?: string;
+  managerPersona?: { name: string; title: string; style: string; description: string };
+  teamContext?: string;
+  scenarioTitle?: string;
+}
+
+export interface InteractResponse {
+  evaluation?: ReplyEvaluation;
+  followUpMessage?: SimulationMessage;
+  consequences?: {
+    deferResurfaceSeconds?: number;
+    escalationUrgency?: UrgencyTier;
+    stakeholderNotified?: boolean;
+    escalationMessage?: string;
+  };
+}
+
+export type SimulationSessionStatus = 'waiting' | 'running' | 'paused' | 'completed' | 'abandoned';
+
+export interface SimulationSession {
+  id: string; jobId: string; candidateId: string; scenarioId: string;
+  messages: SimulationMessage[]; actions: SimulationAction[];
+  startTime: string; endTime?: string; status: SimulationSessionStatus;
+  actualDurationMs: number; completionRate: number;
+  connectionState: 'disconnected' | 'connecting' | 'connected' | 'error';
+}
+
+export interface CompetencyScore { competency: string; score: number; evidence: string[]; interpretation: '强' | '中' | '弱'; narrative?: string; }
+export interface ResponsePattern { urgencyTier: UrgencyTier; averageResponseMs: number; medianResponseMs: number; count: number; benchmarkComparison: 'above_average' | 'average' | 'below_average'; }
+export interface CommunicationStyleProfile { dominantTone: 'assertive' | 'collaborative' | 'neutral' | 'deferring' | 'avoidant'; averageReplyLength: number; usesTemplates: boolean; templateUsageRate: number; escalationAwareness: '高' | '中' | '低'; boundarySetting: '高' | '中' | '低'; crossTeamCollaboration: '高' | '中' | '低'; }
+export interface ActionDistribution { reply: number; defer: number; delegate: number; ignore: number; total: number; }
+
+export interface SimulationResult {
+  sessionId: string; candidateId: string; jobId: string;
+  competencyScores: CompetencyScore[]; responsePatterns: ResponsePattern[];
+  communicationStyle: CommunicationStyleProfile; actionDistribution: ActionDistribution;
+  strengths: string[]; improvementAreas: string[]; narrativeSummary: string;
+  missedCriticalMessages: string[]; prioritizationScore: number; aiMeta?: AiGenerationMeta;
+}
+
+export interface SimulationScenario {
+  id: string; jobId: string; title: string; description: string;
+  estimatedDurationMinutes: number; maxDurationMs: number; targetCompetencies: string[];
+  managerPersona: { name: string; title: string; style: 'hands_on' | 'laissez_faire' | 'demanding' | 'supportive'; description: string };
+  teamContext: string; messageScript: SimulationMessage[];
+  ambientEvents?: Array<{ type: string; scheduledArrivalSeconds: number; content: string }>;
+  roleCalibration: { jobFamily: string; seniorityLevel: 'junior' | 'mid' | 'senior' | 'lead' };
+}
+
+export type SimulationSSEEvent =
+  | { type: 'session_start'; sessionId: string; scenarioId: string; estimatedDuration: number }
+  | { type: 'message_arrive'; message: SimulationMessage }
+  | { type: 'ambient_event'; event: { type: string; content: string } }
+  | { type: 'urgency_escalate'; messageId: string; newUrgency: UrgencyTier; reason: string }
+  | { type: 'ghost_nudge'; message: string }
+  | { type: 'session_timeout'; reason: string }
+  | { type: 'session_complete'; summary: string }
+  | { type: 'error'; message: string };
